@@ -130,17 +130,24 @@
   .joy-pick.pop{animation:joypop .5s ease;} @keyframes joypop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.13)}100%{transform:scale(1);opacity:1}}
   /* sticky notes */
   #stickyLayer{position:fixed;inset:0;z-index:80;pointer-events:none;}
-  .sticky{position:absolute;width:182px;min-height:118px;border-radius:12px;box-shadow:0 8px 22px rgba(110,100,150,.24);pointer-events:auto;display:flex;flex-direction:column;transform:rotate(-1deg);}
-  .sticky-head{height:22px;display:flex;align-items:center;justify-content:flex-end;padding:0 6px;cursor:grab;border-radius:12px 12px 0 0;}
+  .sticky{position:absolute;width:200px;height:150px;min-width:140px;min-height:110px;border-radius:12px;box-shadow:0 8px 22px rgba(110,100,150,.24);pointer-events:auto;display:flex;flex-direction:column;transform:rotate(-1deg);overflow:hidden;}
+  .sticky-head{height:26px;display:flex;align-items:center;gap:2px;padding:0 4px 0 8px;cursor:grab;border-radius:12px 12px 0 0;}
   .sticky-head:active{cursor:grabbing;}
-  .sticky-x{border:none;background:none;font-size:15px;line-height:1;color:rgba(58,53,80,.5);cursor:pointer;}
-  .sticky textarea{flex:1;border:none;background:transparent;resize:none;outline:none;font-family:var(--sans);font-size:12.5px;color:#3a3550;padding:2px 10px 10px;}
+  .sticky-tools{display:flex;gap:1px;flex:1;flex-wrap:nowrap;overflow:hidden;}
+  .sticky-tools button{border:none;background:rgba(255,255,255,.45);border-radius:5px;width:18px;height:18px;font-size:11px;line-height:1;color:#4a3a55;cursor:pointer;padding:0;}
+  .sticky-tools button:hover{background:#fff;}
+  .sticky-x{border:none;background:none;font-size:15px;line-height:1;color:rgba(58,53,80,.5);cursor:pointer;flex:0 0 auto;}
+  .sticky-body{flex:1;border:none;background:transparent;outline:none;font-family:var(--sans);font-size:12.5px;color:#3a3550;padding:2px 10px 10px;overflow:auto;}
+  .sticky-body:empty:before{content:attr(data-ph);color:rgba(58,53,80,.35);}
+  .sticky-resize{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,rgba(58,53,80,.28) 50%);border-radius:0 0 12px 0;}
   #addStickyBtn{position:fixed;left:16px;bottom:16px;z-index:81;border:none;border-radius:999px;width:46px;height:46px;font-size:18px;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;box-shadow:var(--shadow);}
-  /* floating breathing/rest timer */
+  /* floating timer (rest + pomodoro focus) */
   #restBtn{position:fixed;right:16px;bottom:16px;z-index:81;border:1.5px solid var(--line-2);border-radius:999px;width:46px;height:46px;font-size:18px;background:#fff;box-shadow:var(--shadow);}
-  #restWidget{position:fixed;right:16px;bottom:70px;z-index:82;width:230px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 32px rgba(120,110,160,.26);padding:12px;}
+  #restWidget{position:fixed;right:16px;bottom:70px;z-index:82;width:236px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 32px rgba(120,110,160,.26);padding:12px;}
   #restWidget.hidden{display:none;}
-  .ring-time{font-family:var(--display);font-size:24px;color:var(--ink);text-align:center;}
+  .ring-time{font-family:var(--display);font-size:26px;color:var(--ink);text-align:center;}
+  .timer-ic{border:none;background:none;color:var(--ink-soft);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:7px;}
+  .timer-ic:hover{background:#f3eef6;color:var(--sakura-deep);}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(70,66,100,.30);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto;}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(90,80,140,.3);width:100%;max-width:560px;padding:20px;}
@@ -1006,7 +1013,7 @@ const H={
 
   async capSticky(){ const inp=$("#capInput"); const t=(inp.value||"").trim(); if(!t)return; await addSticky(t); inp.value=""; toast("on a sticky 🗒️"); },
   async addSticky(){ await addSticky(""); },
-  async toggleRest(){ toggleRest(); },
+  toggleRest(){ toggleTimer(); },
 
   // --- Planner ---
   plnFilter(el){ state.plannerSpoon=el.dataset.v; render(); },
@@ -1075,61 +1082,138 @@ function startBreath(){
 function stopBreath(){ if(breathRAF){ cancelAnimationFrame(breathRAF); clearInterval(breathRAF); breathRAF=null; }
   const bub=$("#bubble"),lab=$("#breathLabel"); if(bub)bub.style.transform="scale(.72)"; if(lab)lab.textContent="ready"; }
 
-/* ===================== STICKY NOTES ===================== */
+/* ===================== STICKY NOTES (rich text + resizable) ===================== */
 const STICKY_COLORS=["#fde2f2","#e6ecfb","#dcf3eb","#e2f0fb","#ece2fb","#fdeadb"];
+const STICKY_W=200, STICKY_H=150;
+const STICKY_TOOLS=[["bold","B","font-weight:800"],["italic","i","font-style:italic"],["underline","U","text-decoration:underline"],
+  ["strikeThrough","S","text-decoration:line-through"],["small","A-",""],["big","A+",""],["head","H","font-weight:800"]];
+function stickyHTML(s){ return (s.html!=null) ? s.html : esc(s.text||""); }
+async function persistStickies(list){ state.sentinel.stickies=list; await DB.saveDaily(SENTINEL,n=>({...n,stickies:list})); }
 async function addSticky(text){
-  const note={ id:"sk"+Date.now(), text:text||"", color:STICKY_COLORS[Math.floor(Math.random()*STICKY_COLORS.length)],
-    x:0.30+Math.random()*0.4, y:0.30+Math.random()*0.3 };
-  await setSent(n=>({...n,stickies:[...(n.stickies||[]),note]})); renderStickies();
+  const note={ id:"sk"+Date.now(), html:text?esc(text):"", color:STICKY_COLORS[Math.floor(Math.random()*STICKY_COLORS.length)],
+    x:0.30+Math.random()*0.4, y:0.30+Math.random()*0.3, w:STICKY_W, h:STICKY_H };
+  await persistStickies([...(state.sentinel.stickies||[]),note]); renderStickies();
 }
 function renderStickies(){
   const layer=$("#stickyLayer"); if(!layer)return;
   const list=state.sentinel.stickies||[];
-  layer.innerHTML=list.map(s=>{ const left=Math.round((s.x||0.5)*Math.max(0,window.innerWidth-190));
-    const top=Math.round((s.y||0.4)*Math.max(0,window.innerHeight-150));
-    return `<div class="sticky" data-id="${s.id}" style="left:${left}px;top:${top}px;background:${s.color}">
-      <div class="sticky-head" data-drag="${s.id}"><button class="sticky-x" data-stx="${s.id}">✕</button></div>
-      <textarea data-sttext="${s.id}" placeholder="…">${esc(s.text)}</textarea></div>`; }).join("");
-  layer.querySelectorAll('[data-stx]').forEach(b=>b.onclick=async()=>{ const id=b.dataset.stx;
-    await setSent(n=>({...n,stickies:(n.stickies||[]).filter(x=>x.id!==id)})); renderStickies(); });
-  layer.querySelectorAll('[data-sttext]').forEach(t=>{ t.onchange=async()=>{ const id=t.dataset.sttext;
-    await setSent(n=>({...n,stickies:(n.stickies||[]).map(x=>x.id===id?{...x,text:t.value}:x)})); }; });
-  layer.querySelectorAll('[data-drag]').forEach(h=>{ h.onpointerdown=ev=>startDrag(ev,h.dataset.drag); });
+  layer.innerHTML=list.map(s=>{ const w=s.w||STICKY_W, h=s.h||STICKY_H;
+    const left=Math.round((s.x||0.5)*Math.max(0,window.innerWidth-w));
+    const top=Math.round((s.y||0.4)*Math.max(0,window.innerHeight-h));
+    return `<div class="sticky" data-id="${s.id}" style="left:${left}px;top:${top}px;width:${w}px;height:${h}px;background:${s.color}">
+      <div class="sticky-head" data-drag="${s.id}">
+        <div class="sticky-tools">${STICKY_TOOLS.map(([cmd,lab,st])=>`<button data-fmt="${cmd}" data-sid="${s.id}" title="${cmd}" style="${st}">${lab}</button>`).join("")}</div>
+        <button class="sticky-x" data-stx="${s.id}" title="delete">✕</button>
+      </div>
+      <div class="sticky-body" contenteditable="true" data-sthtml="${s.id}" data-ph="write something…">${stickyHTML(s)}</div>
+      <div class="sticky-resize" data-resize="${s.id}"></div>
+    </div>`; }).join("");
+  layer.querySelectorAll('[data-stx]').forEach(b=>b.onclick=async()=>{ await persistStickies((state.sentinel.stickies||[]).filter(x=>x.id!==b.dataset.stx)); renderStickies(); });
+  layer.querySelectorAll('[data-sthtml]').forEach(el=>{ el.onblur=async()=>{ const id=el.dataset.sthtml, html=el.innerHTML;
+    await persistStickies((state.sentinel.stickies||[]).map(x=>x.id===id?{...x,html,text:undefined}:x)); }; });
+  layer.querySelectorAll('[data-fmt]').forEach(b=>b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation();
+    const body=layer.querySelector('[data-sthtml="'+b.dataset.sid+'"]'); if(body) body.focus(); fmtCmd(b.dataset.fmt); }));
+  layer.querySelectorAll('[data-drag]').forEach(h=>{ h.onpointerdown=ev=>{ if(ev.target.closest('[data-fmt],[data-stx]')) return; startDrag(ev,h.dataset.drag); }; });
+  layer.querySelectorAll('[data-resize]').forEach(h=>{ h.onpointerdown=ev=>startResize(ev,h.dataset.resize); });
+}
+function fmtCmd(cmd){
+  if(cmd==="big") document.execCommand('fontSize',false,'5');
+  else if(cmd==="small") document.execCommand('fontSize',false,'2');
+  else if(cmd==="head"){ document.execCommand('fontSize',false,'6'); document.execCommand('bold',false,null); }
+  else document.execCommand(cmd,false,null);
 }
 let dragInfo=null;
 function startDrag(ev,id){ ev.preventDefault(); const el=ev.target.closest('.sticky');
   dragInfo={ id, el, dx:ev.clientX-el.offsetLeft, dy:ev.clientY-el.offsetTop };
   window.addEventListener('pointermove',onDrag); window.addEventListener('pointerup',endDrag,{once:true}); }
-function onDrag(ev){ if(!dragInfo)return; let x=ev.clientX-dragInfo.dx, y=ev.clientY-dragInfo.dy;
-  x=Math.max(0,Math.min(x,window.innerWidth-190)); y=Math.max(0,Math.min(y,window.innerHeight-150));
-  dragInfo.el.style.left=x+"px"; dragInfo.el.style.top=y+"px"; }
+function onDrag(ev){ if(!dragInfo)return; const el=dragInfo.el;
+  let x=Math.max(0,Math.min(ev.clientX-dragInfo.dx,window.innerWidth-el.offsetWidth));
+  let y=Math.max(0,Math.min(ev.clientY-dragInfo.dy,window.innerHeight-el.offsetHeight));
+  el.style.left=x+"px"; el.style.top=y+"px"; }
 async function endDrag(){ window.removeEventListener('pointermove',onDrag); if(!dragInfo)return;
-  const el=dragInfo.el, id=dragInfo.id; const x=el.offsetLeft/Math.max(1,window.innerWidth-190), y=el.offsetTop/Math.max(1,window.innerHeight-150);
-  await setSent(n=>({...n,stickies:(n.stickies||[]).map(s=>s.id===id?{...s,x,y}:s)})); dragInfo=null; }
+  const el=dragInfo.el, id=dragInfo.id; const x=el.offsetLeft/Math.max(1,window.innerWidth-el.offsetWidth), y=el.offsetTop/Math.max(1,window.innerHeight-el.offsetHeight);
+  await persistStickies((state.sentinel.stickies||[]).map(s=>s.id===id?{...s,x,y}:s)); dragInfo=null; }
+let resizeInfo=null;
+function startResize(ev,id){ ev.preventDefault(); ev.stopPropagation(); const el=ev.target.closest('.sticky');
+  resizeInfo={ id, el, sx:ev.clientX, sy:ev.clientY, sw:el.offsetWidth, sh:el.offsetHeight };
+  window.addEventListener('pointermove',onResize); window.addEventListener('pointerup',endResize,{once:true}); }
+function onResize(ev){ if(!resizeInfo)return; const el=resizeInfo.el;
+  el.style.width=Math.max(140,resizeInfo.sw+(ev.clientX-resizeInfo.sx))+"px";
+  el.style.height=Math.max(110,resizeInfo.sh+(ev.clientY-resizeInfo.sy))+"px"; }
+async function endResize(){ window.removeEventListener('pointermove',onResize); if(!resizeInfo)return;
+  const el=resizeInfo.el, id=resizeInfo.id, w=el.offsetWidth, h=el.offsetHeight;
+  await persistStickies((state.sentinel.stickies||[]).map(s=>s.id===id?{...s,w,h}:s)); resizeInfo=null; }
 window.addEventListener('resize',()=>renderStickies());
 
-/* ===================== REST / BREATHING TIMER ===================== */
-let restState={open:false,secs:300,total:300,running:false,iv:null};
-function toggleRest(){ restState.open=!restState.open; $("#restWidget").classList.toggle("hidden",!restState.open); if(restState.open) drawRest(); }
-function drawRest(){
-  const w=$("#restWidget"); const mm=String(Math.floor(restState.secs/60)).padStart(2,'0'), ss=String(restState.secs%60).padStart(2,'0');
-  const pct=restState.total?(1-restState.secs/restState.total):0; const R=42,C=2*Math.PI*R;
-  w.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="label">A soft rest 🫧</span><button class="x" data-rclose>✕</button></div>
-    <svg width="110" height="110" viewBox="0 0 110 110" style="display:block;margin:6px auto">
+/* ===================== FLOATING TIMER (rest + pomodoro focus, pop-out) ===================== */
+const TIMER={ open:false, mode:"rest", running:false, iv:null, secs:300, total:300,
+  phase:"focus", workMin:25, breakMin:5, restMin:5, cycles:0 };
+let pipWin=null;
+function toggleTimer(){
+  if(pipWin){ try{ pipWin.close(); }catch(_){} pipWin=null; }
+  TIMER.open=!TIMER.open;
+  $("#restWidget").classList.toggle("hidden", !TIMER.open);
+  if(TIMER.open) paintTimer();
+}
+function timerTarget(){ return pipWin ? pipWin.document.getElementById("timerHost") : $("#restWidget"); }
+function timerMarkup(){
+  const mm=String(Math.floor(TIMER.secs/60)).padStart(2,'0'), ss=String(TIMER.secs%60).padStart(2,'0');
+  const pct=TIMER.total?(1-TIMER.secs/TIMER.total):0; const R=42,C=2*Math.PI*R;
+  const isFocus=TIMER.mode==="focus", onBreak=isFocus&&TIMER.phase==="break";
+  const ring=onBreak?"#7ed0b0":"url(#rg)";
+  const presets=isFocus
+    ? [[25,5],[50,10],[15,3]].map(([w,b])=>`<button data-tpreset="${w}-${b}" class="${TIMER.workMin===w&&TIMER.breakMin===b?'on':''}">${w}/${b}</button>`).join("")
+    : [5,15,25].map(m=>`<button data-tpreset="${m}" class="${TIMER.restMin===m?'on':''}">${m}m</button>`).join("");
+  return `<div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="seg" style="padding:2px"><button data-tmode="rest" class="${!isFocus?'on':''}">🫧 Rest</button><button data-tmode="focus" class="${isFocus?'on':''}">🍅 Focus</button></div>
+      <div style="display:flex"><button class="timer-ic" data-tact="pop" title="Pop out (stay on top)">⧉</button><button class="timer-ic" data-tact="close" title="close">✕</button></div></div>
+    <div style="text-align:center;font-family:var(--display);font-size:13px;color:${onBreak?'#3a9d83':'var(--sakura-deep)'};margin-top:4px">${isFocus?(onBreak?'Break':'Focus')+' · round '+(TIMER.cycles+1):'Rest'}</div>
+    <svg width="110" height="110" viewBox="0 0 110 110" style="display:block;margin:2px auto 0">
       <circle cx="55" cy="55" r="${R}" fill="none" stroke="#eee5f3" stroke-width="8"/>
-      <circle cx="55" cy="55" r="${R}" fill="none" stroke="url(#rg)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${(C*(1-pct)).toFixed(1)}" transform="rotate(-90 55 55)"/>
+      <circle cx="55" cy="55" r="${R}" fill="none" stroke="${ring}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${(C*(1-pct)).toFixed(1)}" transform="rotate(-90 55 55)"/>
       <defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#758ac6"/><stop offset="1" stop-color="#ff9ed8"/></linearGradient></defs></svg>
     <div class="ring-time">${mm}:${ss}</div>
-    <div class="seg" style="margin:8px auto 6px;justify-content:center;display:flex">${[5,15,25].map(m=>`<button data-rest="${m}" class="${restState.total===m*60?'on':''}">${m}m</button>`).join("")}</div>
-    <div style="display:flex;gap:6px;justify-content:center"><button class="btn btn-grad" data-restact="toggle">${restState.running?'Pause':'Start'}</button><button class="btn" data-restact="reset">Reset</button></div>
-    <p class="soft" style="font-size:10.5px;text-align:center;margin:8px 0 0">No goal but rest. Stop whenever. ❄️</p>`;
-  w.querySelectorAll('[data-rest]').forEach(b=>b.onclick=()=>{ const m=Number(b.dataset.rest); restState.total=m*60; restState.secs=m*60; restState.running=false; clearInterval(restState.iv); drawRest(); });
-  w.querySelectorAll('[data-restact]').forEach(b=>b.onclick=()=>{ const a=b.dataset.restact;
-    if(a==="reset"){ restState.secs=restState.total; restState.running=false; clearInterval(restState.iv); }
-    else { restState.running=!restState.running; clearInterval(restState.iv);
-      if(restState.running) restState.iv=setInterval(()=>{ restState.secs=Math.max(0,restState.secs-1); if(restState.secs===0){ restState.running=false; clearInterval(restState.iv); toast("rest done — well done 🦊"); } drawRest(); },1000); }
-    drawRest(); });
-  w.querySelectorAll('[data-rclose]').forEach(b=>b.onclick=()=>toggleRest());
+    <div class="seg" style="margin:8px auto 6px;justify-content:center;display:flex">${presets}</div>
+    <div style="display:flex;gap:6px;justify-content:center"><button class="btn btn-grad" data-tact="toggle">${TIMER.running?'Pause':'Start'}</button><button class="btn" data-tact="reset">Reset</button></div>
+    <p class="soft" style="font-size:10.5px;text-align:center;margin:8px 0 0">${isFocus?'Focus, then a kind little break. 🍅':'No goal but rest. Stop whenever. ❄️'}</p>`;
+}
+function paintTimer(){ const t=timerTarget(); if(!t) return; t.innerHTML=timerMarkup();
+  t.querySelectorAll('[data-tmode]').forEach(b=>b.onclick=()=>setTimerMode(b.dataset.tmode));
+  t.querySelectorAll('[data-tpreset]').forEach(b=>b.onclick=()=>setTimerPreset(b.dataset.tpreset));
+  t.querySelectorAll('[data-tact]').forEach(b=>b.onclick=()=>{ const a=b.dataset.tact;
+    if(a==="toggle") timerToggle(); else if(a==="reset") timerReset(); else if(a==="close") toggleTimer(); else if(a==="pop") popOutTimer(); });
+}
+function timerStop(){ if(TIMER.iv){ clearInterval(TIMER.iv); TIMER.iv=null; } }
+function setTimerMode(m){ TIMER.mode=m; TIMER.running=false; timerStop();
+  if(m==="rest"){ TIMER.total=TIMER.restMin*60; } else { TIMER.phase="focus"; TIMER.cycles=0; TIMER.total=TIMER.workMin*60; }
+  TIMER.secs=TIMER.total; paintTimer(); }
+function setTimerPreset(v){ TIMER.running=false; timerStop();
+  if(TIMER.mode==="rest"){ TIMER.restMin=Number(v); TIMER.total=TIMER.restMin*60; }
+  else { const [w,b]=v.split("-").map(Number); TIMER.workMin=w; TIMER.breakMin=b; TIMER.phase="focus"; TIMER.cycles=0; TIMER.total=w*60; }
+  TIMER.secs=TIMER.total; paintTimer(); }
+function timerToggle(){ TIMER.running=!TIMER.running; timerStop(); if(TIMER.running) TIMER.iv=setInterval(timerTick,1000); paintTimer(); }
+function timerReset(){ TIMER.running=false; timerStop();
+  if(TIMER.mode==="focus"){ TIMER.phase="focus"; TIMER.cycles=0; TIMER.total=TIMER.workMin*60; } TIMER.secs=TIMER.total; paintTimer(); }
+function timerTick(){
+  TIMER.secs=Math.max(0,TIMER.secs-1);
+  if(TIMER.secs===0){
+    if(TIMER.mode==="rest"){ TIMER.running=false; timerStop(); toast("rest done — well done 🦊"); }
+    else if(TIMER.phase==="focus"){ TIMER.phase="break"; TIMER.total=TIMER.breakMin*60; TIMER.secs=TIMER.total; toast("focus done — little break 🍵"); }
+    else { TIMER.phase="focus"; TIMER.cycles++; TIMER.total=TIMER.workMin*60; TIMER.secs=TIMER.total; toast("break over — back to it ✨"); }
+  }
+  paintTimer();
+}
+async function popOutTimer(){
+  if(pipWin){ pipWin.focus(); return; }
+  if(!('documentPictureInPicture' in window)){ toast("Pop-out needs Chrome or Edge 🦊"); return; }
+  try{
+    pipWin=await window.documentPictureInPicture.requestWindow({ width:240, height:344 });
+    document.querySelectorAll('style').forEach(s=>pipWin.document.head.appendChild(s.cloneNode(true)));
+    pipWin.document.body.style.margin="0"; pipWin.document.body.style.background="#fff";
+    const host=pipWin.document.createElement('div'); host.id="timerHost"; host.style.padding="12px"; pipWin.document.body.appendChild(host);
+    pipWin.addEventListener('pagehide',()=>{ pipWin=null; $("#restWidget").classList.toggle("hidden",!TIMER.open); paintTimer(); });
+    $("#restWidget").classList.add("hidden"); paintTimer();
+  }catch(e){ console.error(e); pipWin=null; toast("couldn't pop out"); }
 }
 
 /* ===================== BOOT ===================== */
