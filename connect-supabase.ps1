@@ -45,7 +45,8 @@ if ([string]::IsNullOrWhiteSpace($Key)) {
 
 # --- patch index.html CONFIG ---
 $file = Join-Path $PSScriptRoot "index.html"
-$html = Get-Content $file -Raw
+# Read as UTF-8 explicitly (avoids mangling emoji / special characters)
+$html = [System.IO.File]::ReadAllText($file, [System.Text.Encoding]::UTF8)
 
 $before = $html
 $html = [regex]::Replace($html, '(url:\s*)"[^"]*"(,\s*//\s*Supabase project URL)', ('${1}"' + $Url + '"${2}'))
@@ -57,7 +58,8 @@ if ($html -eq $before) {
   Read-Host "Press Enter to exit"; exit 1
 }
 
-Set-Content -Path $file -Value $html -Encoding utf8 -NoNewline
+# Write as UTF-8 WITHOUT a BOM (keeps emoji intact, no encoding corruption)
+[System.IO.File]::WriteAllText($file, $html, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "index.html updated with your Supabase URL + key." -ForegroundColor Green
 
 # --- publish ---
