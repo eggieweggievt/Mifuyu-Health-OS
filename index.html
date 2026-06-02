@@ -17,7 +17,7 @@
 ========================================================================== -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Supabase is loaded lazily at boot, and only when CONFIG keys are set (see start() at the bottom). -->
 <style>
   :root{
     /* snowfox winter palette */
@@ -193,7 +193,7 @@ const CONFIG = {
 
 /* ===================== SUPABASE / DEMO ===================== */
 const DEMO = !(CONFIG.url && CONFIG.anonKey);
-const SB = (!DEMO && window.supabase) ? window.supabase.createClient(CONFIG.url, CONFIG.anonKey) : null;
+let SB = null; // set in start() once the Supabase library has loaded (live mode only)
 const UID = CONFIG.userId;
 const SENTINEL = "2000-01-01";
 const TODAY = new Date().toLocaleDateString("en-CA");
@@ -930,5 +930,14 @@ window.addEventListener('error',ev=>{ const v=document.getElementById('view');
   if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p><p class="soft" style="font-size:11px">Screenshot this for me and I’ll fix it.</p></div>'; } });
 window.addEventListener('unhandledrejection',ev=>{ const v=document.getElementById('view');
   if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc((ev.reason&&ev.reason.message)||ev.reason||'unknown')+'</p></div>'; } });
-applyPrefs();
-render();
+function start(){
+  // Demo mode: render immediately, no external library needed.
+  if(DEMO){ applyPrefs(); render(); return; }
+  // Live mode: load the Supabase library, then connect and render.
+  const sc=document.createElement('script');
+  sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+  sc.onload=()=>{ try{ SB=window.supabase.createClient(CONFIG.url,CONFIG.anonKey); }catch(e){ console.error(e); } applyPrefs(); render(); };
+  sc.onerror=()=>{ applyPrefs(); render(); }; // still show the app even if the CDN is unreachable
+  document.head.appendChild(sc);
+}
+start();
