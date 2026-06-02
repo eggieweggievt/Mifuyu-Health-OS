@@ -1131,8 +1131,9 @@ function renderCalendar(){
         const bg=ev.src==="game"?gameColor:(ev.color||CAL_COLORS[0]);
         const ic=ev.src==="game"?"🎮 ":"";
         const isStart=ds===ev.date, isEnd=ds===ev.endDate, leftCap=isStart||dow===0, rightCap=isEnd||dow===6, showTitle=isStart||dow===0;
-        const tip=esc(ic+ev.title+(ev.note?" — "+ev.note:""));
-        return `<div class="cal-span${leftCap?' lcap':''}${rightCap?' rcap':''}" data-eid="${ev.id}" data-act="calEvent" draggable="${isStart?'true':'false'}" style="background:${bg}" title="${tip}">${showTitle?ic+esc(ev.title):"&nbsp;"}</div>`;
+        const linkable=ev.src==="game"&&ev.url, act=linkable?`data-act="calLink" data-url="${esc(ev.url)}"`:`data-act="calEvent"`, lk=linkable?" 🔗":"";
+        const tip=esc(ic+ev.title+(ev.note?" — "+ev.note:"")+(linkable?" — (tap to open update)":""));
+        return `<div class="cal-span${leftCap?' lcap':''}${rightCap?' rcap':''}" data-eid="${ev.id}" ${act} draggable="${isStart?'true':'false'}" style="background:${bg}" title="${tip}">${showTitle?ic+esc(ev.title)+lk:"&nbsp;"}</div>`;
       }).join("");
     // single-day events → compact pill, just a short title (time + note open in the event)
     const singleChips=dayEvents.filter(ev=>!(ev.endDate&&ev.endDate>ev.date))
@@ -1140,8 +1141,9 @@ function renderCalendar(){
         const bg=ev.src==="game"?gameColor:(ev.color||CAL_COLORS[0]);
         const ic=ev.src==="game"?"🎮 ":"";
         const et=toLocal(ev.date,ev.time,ev.tz);
-        const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(ev.note?" — "+ev.note:""));
-        return `<div class="cal-ev" draggable="true" data-eid="${ev.id}" data-act="calEvent" style="background:${bg}" title="${tip}">${ic}${esc(ev.title)}</div>`;
+        const linkable=ev.src==="game"&&ev.url, act=linkable?`data-act="calLink" data-url="${esc(ev.url)}"`:`data-act="calEvent"`, lk=linkable?" 🔗":"";
+        const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(ev.note?" — "+ev.note:"")+(linkable?" — (tap to open update)":""));
+        return `<div class="cal-ev" draggable="true" data-eid="${ev.id}" ${act} style="background:${bg}" title="${tip}">${ic}${esc(ev.title)}${lk}</div>`;
       }).join("");
     cells+=`<div class="cal-cell ${inMonth?"":"other"} ${isToday?"today":""}" data-date="${ds}" data-act="calAdd"><span class="cal-daynum">${d.getDate()}</span>${spanBars}${streamChips}${singleChips}</div>`;
   }
@@ -1180,6 +1182,8 @@ async function calEventModal(date,eid){
     <div id="calConv" class="soft-card" style="margin-top:10px;font-size:12.5px;display:none"></div>
     <div class="label" style="margin:12px 0 4px">Note</div>
     <textarea class="inp" id="calNote" rows="2" placeholder="anything to remember… 🌸">${ev&&ev.note?esc(ev.note):""}</textarea>
+    <div class="label" style="margin:12px 0 4px">Link (optional)</div>
+    <div style="display:flex;gap:8px"><input class="inp" id="calUrl" value="${ev&&ev.url?esc(ev.url):""}" placeholder="https://… update info" />${ev&&ev.url?`<button class="btn" data-act="calLink" data-url="${esc(ev.url)}" title="open link">🔗</button>`:""}</div>
     <div class="label" style="margin:12px 0 4px">Colour</div>
     <div id="calColors" style="display:flex;gap:8px">${CAL_COLORS.map(c=>`<button class="cal-swatch" data-color="${c}" style="background:${c};border:2px solid ${c===CAL_COLOR?"var(--ink)":"transparent"}"></button>`).join("")}</div>
     <div style="display:flex;gap:8px;margin-top:16px">
@@ -1333,17 +1337,18 @@ const H={
   calToday(){ const t=new Date(); state.calRef=new Date(t.getFullYear(),t.getMonth(),1); render(); },
   calAdd(el){ calEventModal(el.dataset.date); },
   calEvent(el){ calEventModal(null,el.dataset.eid); },
+  calLink(el){ const u=el.dataset.url; if(u) window.open(u,"_blank","noopener"); },
   closeModal(){ $("#modal").innerHTML=""; },
   noop(){},
   editSchedule(){ $("#modal").innerHTML=""; state.tab="home"; state.schedEdit=true; render(); },
   async saveCalEvent(){
     const title=($("#calTitle").value||"").trim(), date=$("#calDate").value, eid=$("#calEid").value;
-    const endRaw=$("#calEndDate").value||null, time=$("#calTime").value, tz=$("#calTz").value, note=($("#calNote").value||"").trim();
+    const endRaw=$("#calEndDate").value||null, time=$("#calTime").value, tz=$("#calTz").value, note=($("#calNote").value||"").trim(), url=($("#calUrl").value||"").trim();
     if(!title){ toast("give it a name 🌸"); return; }
     const endDate=(endRaw&&endRaw>date)?endRaw:null;
     await DB.saveDaily(SENTINEL,n=>{ const evs=(n.calendarEvents||[]).slice();
-      if(eid){ const t=evs.find(x=>x.id===eid); if(t){ t.title=title;t.date=date;t.endDate=endDate;t.color=CAL_COLOR;t.time=time;t.tz=tz;t.note=note; } }
-      else { evs.push({id:uid(),title,date,endDate,color:CAL_COLOR,time,tz,note}); }
+      if(eid){ const t=evs.find(x=>x.id===eid); if(t){ t.title=title;t.date=date;t.endDate=endDate;t.color=CAL_COLOR;t.time=time;t.tz=tz;t.note=note;t.url=url; } }
+      else { evs.push({id:uid(),title,date,endDate,color:CAL_COLOR,time,tz,note,url}); }
       return {...n,calendarEvents:evs}; });
     state.sentinel=await DB.daily(SENTINEL); $("#modal").innerHTML=""; toast("saved 💗"); render();
   },
