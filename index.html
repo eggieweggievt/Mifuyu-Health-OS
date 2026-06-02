@@ -93,6 +93,15 @@
   .chiprow{display:flex;flex-wrap:wrap;gap:7px;}
   .sitebtn{border:1.5px solid var(--line-2);border-radius:11px;padding:7px 11px;background:#fff;color:var(--ink-soft);font-size:12px;}
   .sitebtn.on{background:linear-gradient(135deg,var(--peri),var(--sakura));border-color:var(--peri);color:#fff;}
+  /* entrance / transition animations */
+  @keyframes viewFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes popIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+  #view.anim{animation:viewFade .30s cubic-bezier(.22,.7,.3,1);}
+  .tab{transition:background .16s,color .16s,transform .12s;}
+  .tab:active{transform:scale(.95);}
+  .btn,.btn-grad,.chip{transition:transform .12s,filter .15s,border-color .15s,color .15s,background .15s;}
+  .btn:active,.btn-grad:active{transform:scale(.96);}
+  .pill{transition:transform .12s;}
   /* sparkline bars */
   .spark{display:flex;align-items:flex-end;gap:2px;height:40px;}
   .spark span{flex:1;background:linear-gradient(180deg,var(--sakura),var(--peri));border-radius:3px 3px 0 0;min-height:2px;opacity:.9;}
@@ -264,6 +273,10 @@ function seedDemo(){
       {id:"t5",text:"Replay a comfort game — just for fun",bucket:"hobbies",spoon:"low",done:false,sub:[]},
       {id:"t6",text:"Try watercolours again, sometime",bucket:"someday",spoon:"some",done:false,sub:[]},
     ],
+    goalsWeek:[ {id:"g1",text:"Ship 2 cozy shorts",done:false},{id:"g2",text:"Rest one full day, guilt-free",done:true} ],
+    goalsMonth:[ {id:"g3",text:"Keep the weight trend gentle",done:false},{id:"g4",text:"Start a song-cover WIP",done:false} ],
+    schedule:[ {id:"sc1",day:"Wed",show:"REACT / POE2",time:"5PM"},{id:"sc2",day:"Thu",show:"REACT / POE2",time:"5PM"},{id:"sc3",day:"Sat",show:"Warframe Day",time:"5PM"} ],
+    captures:[ {id:"cap1",text:"bit idea: rate chat's comfort games out of 10",date:TODAY},{id:"cap2",text:"ask Dr about the cycle gap at next appt",date:TODAY} ],
     appConfig:{},
   };
   return daily;
@@ -347,6 +360,7 @@ async function render(){
   $("#nav").innerHTML = TABS.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
   const st=$("#status"); st.textContent=DEMO?"◇ demo data":(SB?"● live":"◌ connecting…"); st.className="chip"+(DEMO?" demo":(SB?" on":""));
   const v=$("#view");
+  if(state._lastTab!==state.tab){ v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim'); state._lastTab=state.tab; } // gentle fade on tab change only
   try{
     state.sentinel = await DB.daily(SENTINEL);
     state.today = await DB.daily(TODAY);
@@ -356,6 +370,54 @@ async function render(){
     renderStickies();
     if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
+}
+
+/* ===================== HOME cards ===================== */
+function cardSchedule(){
+  const sch=state.sentinel.schedule||[], ed=state.schedEdit;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">Stream schedule 🗓️</span><button class="btn" data-act="schedEdit">${ed?'done':'edit'}</button></div>
+    ${ed
+      ? `${sch.map(r=>`<div style="display:flex;gap:6px;margin-bottom:6px">
+          <input class="inp" data-sched="${r.id}" data-k="day" value="${esc(r.day)}" style="max-width:60px">
+          <input class="inp" data-sched="${r.id}" data-k="show" value="${esc(r.show)}">
+          <input class="inp" data-sched="${r.id}" data-k="time" value="${esc(r.time)}" style="max-width:72px">
+          <button class="x" data-act="delSched" data-v="${r.id}">✕</button></div>`).join("")}
+        <button class="btn btn-grad" data-act="addSched" style="margin-top:4px">+ add day</button>`
+      : (sch.length
+          ? sch.map(r=>`<div class="listrow"><span class="pill pill-lav" style="min-width:40px;text-align:center">${esc(r.day)}</span><span class="grow" style="font-size:13px">${esc(r.show)}</span><span class="soft" style="font-size:12px">${esc(r.time)}</span></div>`).join("")
+          : `<p class="soft" style="font-size:12.5px">No schedule yet — tap edit to add your stream days. 🗓️</p>`)}
+  </section>`;
+}
+function cardGoals(){
+  const wk=state.sentinel.goalsWeek||[], mo=state.sentinel.goalsMonth||[];
+  const list=(arr,period)=>arr.map(g=>`<div class="listrow"><button class="x" data-act="toggleGoal" data-p="${period}" data-v="${g.id}" style="color:${g.done?'var(--mint)':'var(--muted)'};font-size:16px">${g.done?'●':'○'}</button><span class="grow ${g.done?'soft':''}" style="font-size:13px;${g.done?'text-decoration:line-through':''}">${esc(g.text)}</span><button class="x" data-act="delGoal" data-p="${period}" data-v="${g.id}">✕</button></div>`).join("");
+  return `<section class="panel">
+    <div class="card-head"><span class="label">Goals 🌷</span></div>
+    <div class="label" style="color:var(--peri-deep);margin-bottom:2px">This week</div>
+    ${list(wk,"week")}
+    <div style="display:flex;gap:6px;margin:4px 0 12px"><input class="inp" id="goalWeek" placeholder="+ add a goal"><button class="btn" data-act="addGoal" data-p="week">add</button></div>
+    <div class="label" style="color:var(--peri-deep);margin-bottom:2px">This month</div>
+    ${list(mo,"month")}
+    <div style="display:flex;gap:6px;margin-top:4px"><input class="inp" id="goalMonth" placeholder="+ add a goal"><button class="btn" data-act="addGoal" data-p="month">add</button></div>
+  </section>`;
+}
+function cardJournal(){
+  return `<section class="panel">
+    <div class="label" style="margin-bottom:6px">Journal 🌙</div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">A line about today — how it went, a thought, nothing fancy.</p>
+    <textarea class="inp" id="journalInput" placeholder="today I…">${esc(state.today.journal||"")}</textarea>
+    <div style="margin-top:8px"><button class="btn btn-grad" data-act="saveJournal">💾 save</button></div>
+  </section>`;
+}
+function cardBrainDump(){
+  const caps=(state.sentinel.captures||[]).slice().reverse();
+  return `<section class="panel">
+    <div class="label" style="margin-bottom:6px">Brain-dump 🧠</div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">Park a thought — it stays right here. Pin 📌 any of them to a floating sticky.</p>
+    <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="anything on your mind… (Enter)"><button class="btn btn-grad" data-act="capAdd">add</button></div>
+    ${caps.length?`<div style="margin-top:10px">${caps.map(c=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(c.text)}</span><button class="x" data-act="capPin" data-v="${c.id}" title="pin to a sticky">📌</button><button class="x" data-act="capDel" data-v="${c.id}">✕</button></div>`).join("")}</div>`:''}
+  </section>`;
 }
 
 /* ===================== HOME ===================== */
@@ -377,8 +439,7 @@ function viewHome(){
         ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
         ${scaleRow("Energy","mindSet","energy",m.energy,"empty","full")}
       </section>
-      <section class="panel"><div class="label" style="margin-bottom:6px">Brain-dump</div>
-        <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="park a thought on a sticky…"/><button class="btn btn-grad" data-act="capSticky">add</button></div></section>
+      ${cardBrainDump()}
     </div>${DISCLAIMER}`;
   }
 
@@ -395,6 +456,7 @@ function viewHome(){
           <div class="seg">${[["1","🌙","Low"],["3","🌤","Med"],["5","🌞","High"]].map(([v,e,l])=>`<button data-act="energySet" data-v="${v}" class="${energy==v?'on':''}">${e} ${l}</button>`).join("")}</div></div>
       </section>
       ${slipBanner()}
+      ${cardSchedule()}
     </div>
 
     <div class="col">
@@ -406,9 +468,8 @@ function viewHome(){
         ${scaleRow("Energy","mindSet","energy",m.energy,"empty","full")}
         <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
       </section>
-      <section class="panel"><div class="label" style="margin-bottom:6px">Brain-dump 🧠</div>
-        <p class="soft" style="font-size:12px;margin:0 0 8px">Park whatever's swirling on a sticky note — no structure needed.</p>
-        <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="anything on your mind…"/><button class="btn btn-grad" data-act="capSticky">add sticky</button></div></section>
+      ${cardBrainDump()}
+      ${cardJournal()}
     </div>
 
     <div class="col">
@@ -426,6 +487,7 @@ function viewHome(){
         ${wl.length?spark(wl.map(x=>x.w),Math.max(...wl.map(x=>x.w))):'<p class="soft" style="font-size:12px">No weigh-ins yet.</p>'}
         <p class="soft" style="font-size:11.5px;margin-top:6px;text-align:center">The trend is the story, not any single day.</p>
       </section>
+      ${cardGoals()}
     </div>
   </div>${DISCLAIMER}`;
 }
@@ -1025,6 +1087,22 @@ const H={
   async toggleSub(el){ const id=el.dataset.v, sid=el.dataset.s;
     await setSent(n=>({...n,tasks:(n.tasks||[]).map(t=>t.id===id?{...t,sub:(t.sub||[]).map(s=>s.id===sid?{...s,done:!s.done}:s)}:t)})); render(); },
 
+  // --- Home: Goals / Journal / Schedule / Brain-dump ---
+  async addGoal(el){ const p=el.dataset.p, key=p==='week'?'goalsWeek':'goalsMonth'; const inp=$(p==='week'?'#goalWeek':'#goalMonth'); const t=(inp.value||'').trim(); if(!t)return;
+    await setSent(n=>({...n,[key]:[...(n[key]||[]),{id:'g'+Date.now(),text:t,done:false}]})); render(); },
+  async toggleGoal(el){ const key=el.dataset.p==='week'?'goalsWeek':'goalsMonth', id=el.dataset.v;
+    await setSent(n=>({...n,[key]:(n[key]||[]).map(g=>g.id===id?{...g,done:!g.done}:g)})); render(); },
+  async delGoal(el){ const key=el.dataset.p==='week'?'goalsWeek':'goalsMonth', id=el.dataset.v;
+    await setSent(n=>({...n,[key]:(n[key]||[]).filter(g=>g.id!==id)})); render(); },
+  async saveJournal(){ const t=$("#journalInput").value; await setToday(n=>({...n,journal:t})); toast("saved 🌙"); },
+  schedEdit(){ state.schedEdit=!state.schedEdit; render(); },
+  async addSched(){ await setSent(n=>({...n,schedule:[...(n.schedule||[]),{id:'sc'+Date.now(),day:'Day',show:'',time:'5PM'}]})); render(); },
+  async delSched(el){ const id=el.dataset.v; await setSent(n=>({...n,schedule:(n.schedule||[]).filter(r=>r.id!==id)})); render(); },
+  async capAdd(){ const inp=$("#capInput"); const t=(inp.value||'').trim(); if(!t)return;
+    await setSent(n=>({...n,captures:[...(n.captures||[]),{id:'cap'+Date.now(),text:t,date:TODAY}]})); toast("parked 🧠"); render(); },
+  async capDel(el){ const id=el.dataset.v; await setSent(n=>({...n,captures:(n.captures||[]).filter(c=>c.id!==id)})); render(); },
+  async capPin(el){ const c=(state.sentinel.captures||[]).find(x=>x.id===el.dataset.v); if(!c)return; await addSticky(c.text); toast("pinned to a sticky 📌"); },
+
   // --- Optimize ---
   optMode(el){ OPT.mode=el.dataset.v; OPT.err=""; render(); },
   optDrops(){ OPT.drops=!OPT.drops; render(); },
@@ -1045,13 +1123,18 @@ document.addEventListener("keydown",async e=>{
   if(e.key!=="Enter"||e.shiftKey) return; const t=e.target;
   if(t.id==="plnText"){ e.preventDefault(); H.addTask(); }
   else if(t.dataset && t.dataset.subfor){ e.preventDefault(); const id=t.dataset.subfor, v=t.value; t.value=""; await addSub(id,v); }
-  else if(t.id==="capInput"){ e.preventDefault(); H.capSticky(); }
+  else if(t.id==="capInput"){ e.preventDefault(); H.capAdd(); }
+  else if(t.id==="goalWeek"){ e.preventDefault(); H.addGoal({dataset:{p:'week'}}); }
+  else if(t.id==="goalMonth"){ e.preventDefault(); H.addGoal({dataset:{p:'month'}}); }
 });
 document.addEventListener("change",e=>{
-  if(e.target && e.target.id==="thumbFile"){
-    const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const t=e.target; if(!t) return;
+  if(t.id==="thumbFile"){
+    const f=t.files&&t.files[0]; if(!f) return;
     if(f.size>4*1024*1024){ toast("image a bit big — try under 4MB"); return; }
     const r=new FileReader(); r.onload=()=>{ OPT.thumbData=r.result; OPT.thumbRead=null; render(); }; r.readAsDataURL(f);
+  } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value;
+    setSent(n=>({...n,schedule:(n.schedule||[]).map(r=>r.id===id?{...r,[k]:v}:r)})); // fire-and-forget; no re-render mid-edit
   }
 });
 document.addEventListener("click",async e=>{ const el=e.target.closest("[data-act]"); if(!el)return; const fn=H[el.dataset.act];
