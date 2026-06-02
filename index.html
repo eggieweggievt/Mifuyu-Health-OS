@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Mifuyu Health OS ❄️🦊</title>
 <link rel="icon" type="image/png" href="sakura.png" />
-<link rel="apple-touch-icon" href="Film_YCH_20260424215925.png" />
+<link rel="apple-touch-icon" href="AYAYA.png" />
 <!-- =========================================================================
   Mifuyu Health OS — a gentle, private snowfox health companion for Mifu 🦊❄️
   PCOS patterns · Mounjaro (tirzepatide) journey · weight (trend-first) ·
@@ -56,7 +56,7 @@
   .chip{font-size:11px;padding:4px 10px;border-radius:999px;border:1.5px solid var(--line-2);color:var(--muted);background:#fff;}
   .chip.on{color:#3a9d83;border-color:#bfe9d8;background:#f0fbf6;} .chip.demo{color:var(--lav-deep);border-color:#ddcdf6;background:#f6f0ff;}
   .avatar{width:34px;height:34px;border-radius:999px;background:linear-gradient(135deg,var(--peri),var(--sakura));display:grid;place-items:center;color:#fff;font-weight:700;overflow:hidden;}
-  .avatar img{width:100%;height:100%;object-fit:cover;object-position:center top;}
+  .avatar img{width:100%;height:100%;object-fit:cover;object-position:center;}
   main{padding:18px;max-width:1320px;margin:0 auto;}
   .grid-home{display:grid;grid-template-columns:320px minmax(0,1fr) 320px;gap:16px;}
   .col{display:flex;flex-direction:column;gap:16px;}
@@ -192,7 +192,7 @@
   #kikoChat{position:fixed;right:18px;bottom:18px;z-index:84;width:310px;max-width:calc(100vw - 36px);height:440px;max-height:74vh;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 42px rgba(120,110,160,.32);display:flex;flex-direction:column;overflow:hidden;}
   #kikoChat.hidden,#kikoBubble.hidden,#kiko.hidden{display:none!important;}
   .kiko-head{display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid var(--line);background:linear-gradient(120deg,#eef2fb,#fdeaf6);}
-  .kiko-av{width:34px;height:34px;border-radius:999px;background:linear-gradient(135deg,var(--peri),var(--sakura));display:grid;place-items:center;font-size:18px;flex:0 0 auto;}
+  .kiko-av{width:36px;height:36px;border-radius:999px;background:#eef2fb center/cover no-repeat url("Kiko%20Sit.png");border:1px solid var(--line);flex:0 0 auto;}
   .kiko-log{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
   .kiko-msg{font-size:12.5px;line-height:1.45;padding:8px 11px;border-radius:14px;max-width:86%;white-space:pre-wrap;word-break:break-word;}
   .kiko-msg.me{align-self:flex-end;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;border-bottom-right-radius:4px;}
@@ -212,7 +212,7 @@
   <div class="right">
     <span id="status" class="chip">…</span>
     <button class="chip" data-act="settings" title="Comfort &amp; display">⚙️</button>
-    <span class="avatar"><img src="Film_YCH_20260424215925.png" alt="Mifu" /></span>
+    <span class="avatar"><img src="AYAYA.png" alt="Mifu" /></span>
   </div>
 </div>
 <main id="view"></main>
@@ -506,7 +506,7 @@ function viewHome(){
       <section class="panel">
         <div class="card-head"><span class="label">Snowfox</span><span class="pill pill-mint">● here for you</span></div>
         <div style="display:flex;gap:12px;align-items:center">
-          <div class="avatar" style="width:52px;height:52px"><img src="Film_YCH_20260424215925.png" alt="Mifu"/></div>
+          <div class="avatar" style="width:52px;height:52px"><img src="AYAYA.png" alt="Mifu"/></div>
           <div><div style="font-family:var(--display);font-size:18px">${esc(CONFIG.creator.name)}</div><div class="label" style="margin-top:1px">${esc(CONFIG.creator.pronouns)}</div></div>
         </div>
         <div class="soft-card" style="margin-top:12px;font-style:italic;font-size:12.5px">${esc(CONFIG.creator.tagline)}</div>
@@ -1761,7 +1761,7 @@ function paintKiko(){
   const logHtml = KIKO.log.length
     ? KIKO.log.map(m=>`<div class="kiko-msg ${m.role}">${esc(m.text)}</div>`).join("")
     : `<div class="kiko-msg pet">Konfuyu~! I'm Kiko 🦊 Ask me anything — content ideas, a gentle pep talk, or whatever's on your mind. ❄️</div>`;
-  c.innerHTML=`<div class="kiko-head"><div class="kiko-av">🦊</div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoToggle">✕</button></div>
+  c.innerHTML=`<div class="kiko-head"><div class="kiko-av"></div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoToggle">✕</button></div>
     <div class="kiko-log" id="kikoLog">${logHtml}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
     <div class="kiko-input"><input class="inp" id="kikoInput" placeholder="ask Kiko…" ${KIKO.busy?"disabled":""}><button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button></div>`;
   const log=$("#kikoLog"); if(log) log.scrollTop=log.scrollHeight;
