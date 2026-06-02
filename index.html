@@ -185,6 +185,12 @@ const CONFIG = {
              sites:["L abdomen","R abdomen","L thigh","R thigh","L upper arm","R upper arm"] },
   weightUnit:"kg",
   weightDisplay:"soft", // soft | numbers | hidden
+  aiFn:"ai",            // Supabase Edge Function name powering the Optimize tab (keys live there, never here)
+  youtube:{ handle:"@mifuyu", url:"https://youtube.com/@mifuyu" },
+  socials:[ ["Twitch","https://twitch.tv/mifuyu"],["YouTube","https://youtube.com/@mifuyu"],
+            ["X","https://x.com/mifuyuvt"],["TikTok","https://www.tiktok.com/@mifuyuvt"],
+            ["Instagram","https://www.instagram.com/mifuyuvt"],["Bluesky","https://bsky.app/profile/mifuyuvt.bsky.social"],
+            ["Kick","https://kick.com/mifuyuvt"],["Discord","https://discord.gg/mifuyu"] ],
 };
 
 /* ===================== SUPABASE / DEMO ===================== */
@@ -243,6 +249,14 @@ function seedDemo(){
     helps:"Warm shower, hojicha, lo-fi, and a 10-min walk usually resets me. Protein breakfast = calmer day.",
     stickies:[ {id:"sk1",text:"refill Mounjaro pen before Fri ❄️",color:"#fde2f2",x:0.62,y:0.30},
                {id:"sk2",text:"ask Dr about cycle gap 🦊",color:"#e6ecfb",x:0.72,y:0.50} ],
+    tasks:[
+      {id:"t1",text:"Book PCOS follow-up appointment",bucket:"health",spoon:"some",done:false,sub:[{id:"s1",text:"find the clinic number",done:true},{id:"s2",text:"check calendar for a free morning",done:false}]},
+      {id:"t2",text:"Refill Metformin + Mounjaro",bucket:"health",spoon:"low",done:false,sub:[]},
+      {id:"t3",text:"Edit cozy gacha highlight short",bucket:"content",spoon:"full",done:false,sub:[]},
+      {id:"t4",text:"Water the plants 🌱",bucket:"personal",spoon:"low",done:false,sub:[]},
+      {id:"t5",text:"Replay a comfort game — just for fun",bucket:"hobbies",spoon:"low",done:false,sub:[]},
+      {id:"t6",text:"Try watercolours again, sometime",bucket:"someday",spoon:"some",done:false,sub:[]},
+    ],
     appConfig:{},
   };
   return daily;
@@ -289,9 +303,10 @@ function applyPrefs(){
   document.body.classList.toggle("calm",PREF.calm);
   document.body.classList.toggle("text-lg",PREF.text);
 }
-const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false };
+const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all" };
+const OPT={ channel:null, titles:null, ideas:null, busy:"", err:"" }; // Optimize tab results
 
-const TABS=[["home","🏠 Home"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["planner","🗒️ Planner"],["optimize","🎯 Optimize"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -329,7 +344,7 @@ async function render(){
     state.sentinel = await DB.daily(SENTINEL);
     state.today = await DB.daily(TODAY);
     state.range = await DB.range(14);
-    const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,planner:viewPlanner,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     v.innerHTML = fn();
     renderStickies();
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
@@ -761,6 +776,109 @@ function viewSettings(){
       <p class="soft" style="font-size:12px">Right now this is a private, single-user app. When you're ready, you can lock it behind Supabase Auth so only you can open it — an option, never a requirement. The included <b>setup.sql</b> notes where to tighten the row-level security policy. ❄️</p></div></details>
     <p class="soft" style="font-size:11px;margin-top:10px">${DEMO?'Running in <b>demo mode</b> — seeded sample data; changes preview this session but are not saved to a backend.':(SB?'Connected to Supabase ✓ — your entries are saving.':'Connecting to Supabase…')}</p>
   </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">🦊 Mifu's links</div>
+    <div class="chiprow">${(CONFIG.socials||[]).map(([n,u])=>`<a class="chiptog" href="${u}" target="_blank" rel="noopener" style="text-decoration:none">${esc(n)}</a>`).join("")}</div>
+  </section>
+  ${DISCLAIMER}`;
+}
+
+/* ===================== PLANNER ===================== */
+const TASK_BUCKETS=[["personal","💜","Personal"],["health","💊","Health & appts"],["content","🎬","Content"],["hobbies","🎨","Hobbies"],["someday","🌙","Someday / maybe"]];
+const TASK_SPOONS=[["low","🌙","Low"],["some","🌤","Some"],["full","🌞","Full"]];
+function spoonMeta(s){ return TASK_SPOONS.find(x=>x[0]===s)||TASK_SPOONS[1]; }
+function taskRow(t){
+  const sm=spoonMeta(t.spoon); const subs=t.sub||[];
+  return `<div style="border-top:1px solid var(--line);padding:9px 0">
+    <div style="display:flex;align-items:flex-start;gap:9px">
+      <button class="x" data-act="toggleTask" data-v="${t.id}" title="mark done" style="color:var(--mint);font-size:17px">○</button>
+      <div class="grow"><span style="font-size:13px">${esc(t.text)}</span> <span class="pill pill-gray" title="spoons">${sm[1]}</span>
+        ${subs.length?`<div style="margin-top:6px">${subs.map(s=>`<div style="display:flex;align-items:center;gap:7px;padding:2px 0"><button class="x" data-act="toggleSub" data-v="${t.id}" data-s="${s.id}" style="font-size:14px;color:${s.done?'var(--mint)':'var(--muted)'}">${s.done?'●':'○'}</button><span class="${s.done?'soft':''}" style="font-size:12px;${s.done?'text-decoration:line-through':''}">${esc(s.text)}</span></div>`).join("")}</div>`:''}
+        <div style="margin-top:4px"><input class="inp" data-subfor="${t.id}" placeholder="+ subtask (Enter)" style="font-size:11.5px;padding:5px 9px;max-width:240px;display:inline-block;width:auto"></div>
+      </div>
+      <button class="x" data-act="delTask" data-v="${t.id}">✕</button>
+    </div></div>`;
+}
+function viewPlanner(){
+  const tasks=(state.sentinel.tasks||[]);
+  const filt=state.plannerSpoon;
+  const shown=filt==="all"?tasks:tasks.filter(t=>t.spoon===filt);
+  const open=shown.filter(t=>!t.done), done=shown.filter(t=>t.done);
+  const byBucket=b=>open.filter(t=>t.bucket===b);
+  return `
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:18px">🗒️ Planner</h2><span class="pill pill-gray">tasks, your pace</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">One soft list. Tag each task by how many spoons it needs — on low days, filter to just the gentle ones. 🌙</p>
+    <div class="seg" style="margin-bottom:10px">
+      <button data-act="plnFilter" data-v="all" class="${filt==='all'?'on':''}">All</button>
+      ${TASK_SPOONS.map(([v,e,l])=>`<button data-act="plnFilter" data-v="${v}" class="${filt===v?'on':''}">${e} ${l}</button>`).join("")}
+    </div>
+    <div class="soft-card">
+      <input class="inp" id="plnText" placeholder="add a task… (Enter)">
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <select class="inp" id="plnBucket" style="max-width:175px">${TASK_BUCKETS.map(([v,e,l])=>`<option value="${v}">${e} ${l}</option>`).join("")}</select>
+        <select class="inp" id="plnSpoon" style="max-width:130px">${TASK_SPOONS.map(([v,e,l])=>`<option value="${v}" ${v==='some'?'selected':''}>${e} ${l}</option>`).join("")}</select>
+        <button class="btn btn-grad" data-act="addTask">Add</button>
+      </div>
+    </div>
+  </section>
+  ${TASK_BUCKETS.map(([b,e,l])=>{ const items=byBucket(b); if(!items.length) return "";
+    return `<section class="panel"><div class="label" style="margin-bottom:8px">${e} ${l}</div>${items.map(taskRow).join("")}</section>`; }).join("")}
+  ${open.length?"":`<section class="panel"><p class="soft" style="font-size:12.5px;text-align:center;margin:0">Nothing here right now — rest is allowed. 🌸</p></section>`}
+  ${done.length?`<details class="acc"><summary>✅ Done (${done.length})</summary><div class="acc-body">
+    ${done.map(t=>`<div class="listrow"><span class="grow soft" style="text-decoration:line-through">${esc(t.text)}</span><button class="x" data-act="delTask" data-v="${t.id}">✕</button></div>`).join("")}
+  </div></details>`:''}
+  ${DISCLAIMER}`;
+}
+
+/* ===================== OPTIMIZE (YouTube + AI, via Edge Function) ===================== */
+async function aiCall(mode,input){
+  if(!SB) throw new Error("This needs live mode — connect Supabase first.");
+  const { data, error } = await SB.functions.invoke(CONFIG.aiFn, { body:{ mode, input } });
+  if(error) throw new Error(error.message||"AI helper error");
+  if(data && data.error) throw new Error(data.error);
+  return data;
+}
+function optList(items){ return `<div class="soft-card" style="margin-top:10px"><ul style="padding-left:18px;margin:4px 0;font-size:13px">${(items||[]).map(t=>`<li style="margin:5px 0">${esc(t)}</li>`).join("")}</ul></div>`; }
+function viewOptimize(){
+  const ch=OPT.channel;
+  const setupHint = DEMO
+    ? `<div class="disc" style="margin-top:6px">${CONFIG.creator.snow}<span>The Optimize helper runs once you're in <b>live</b> mode with the AI Edge Function deployed (see <b>deploy-ai.ps1</b>). Until then this tab is just a preview. ❄️</span></div>` : "";
+  return `
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:18px">🎯 Optimize</h2><span class="pill pill-gray">content helper</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 6px">Gentle content tools — a channel snapshot and an AI sounding-board for titles &amp; ideas. Suggestions only; your voice always wins. 🦊</p>
+    ${setupHint}
+  </section>
+
+  <section class="panel">
+    <div class="card-head"><span class="label">📺 Channel snapshot</span><button class="btn btn-grad" data-act="optChannel" ${OPT.busy==='channel'?'disabled':''}>${OPT.busy==='channel'?'…':'Pull '+esc(CONFIG.youtube.handle)}</button></div>
+    ${ch?`<div class="soft-card" style="display:flex;gap:18px;flex-wrap:wrap">
+        <div><div class="label">Subscribers</div><div class="bignum">${Number(ch.subs||0).toLocaleString()}</div></div>
+        <div><div class="label">Total views</div><div class="bignum">${Number(ch.views||0).toLocaleString()}</div></div>
+        <div><div class="label">Videos</div><div class="bignum">${Number(ch.videos||0).toLocaleString()}</div></div>
+      </div>
+      ${(ch.recent||[]).length?`<div style="margin-top:10px">${ch.recent.map(r=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(r.title)}</span><span class="soft" style="font-size:11px">${Number(r.views||0).toLocaleString()} views</span></div>`).join("")}</div>`:''}`
+      :`<p class="soft" style="font-size:12.5px">Tap the button to fetch your latest YouTube stats.</p>`}
+  </section>
+
+  <section class="panel">
+    <div class="card-head"><span class="label">✏️ Title helper</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Describe the video — get a few title options to riff on.</p>
+    <textarea class="inp" id="optTitleInput" placeholder="e.g. cozy late-night Genshin exploration, found a secret area…"></textarea>
+    <div style="margin-top:8px"><button class="btn btn-grad" data-act="optTitles" ${OPT.busy==='titles'?'disabled':''}>${OPT.busy==='titles'?'thinking…':'Get title ideas ✨'}</button></div>
+    ${OPT.titles?optList(OPT.titles):''}
+  </section>
+
+  <section class="panel">
+    <div class="card-head"><span class="label">💡 Idea spark</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Give a theme — get gentle video/short ideas that fit your cozy gacha vibe.</p>
+    <textarea class="inp" id="optIdeaInput" placeholder="e.g. ideas for ZZZ content this week…"></textarea>
+    <div style="margin-top:8px"><button class="btn btn-grad" data-act="optIdeas" ${OPT.busy==='ideas'?'disabled':''}>${OPT.busy==='ideas'?'thinking…':'Spark ideas 🌱'}</button></div>
+    ${OPT.ideas?optList(OPT.ideas):''}
+  </section>
+  ${OPT.err?`<div class="disc">⚠️<span>${esc(OPT.err)}</span></div>`:''}
   ${DISCLAIMER}`;
 }
 
@@ -837,7 +955,32 @@ const H={
   async capSticky(){ const inp=$("#capInput"); const t=(inp.value||"").trim(); if(!t)return; await addSticky(t); inp.value=""; toast("on a sticky 🗒️"); },
   async addSticky(){ await addSticky(""); },
   async toggleRest(){ toggleRest(); },
+
+  // --- Planner ---
+  plnFilter(el){ state.plannerSpoon=el.dataset.v; render(); },
+  async addTask(){ const text=($("#plnText").value||"").trim(); if(!text){ toast("type a task"); return; }
+    const bucket=$("#plnBucket").value, spoon=$("#plnSpoon").value;
+    await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text,bucket,spoon,done:false,sub:[]}]})); toast("added 🗒️"); render(); },
+  async toggleTask(el){ const id=el.dataset.v; await setSent(n=>({...n,tasks:(n.tasks||[]).map(t=>t.id===id?{...t,done:!t.done}:t)})); render(); },
+  async delTask(el){ const id=el.dataset.v; await setSent(n=>({...n,tasks:(n.tasks||[]).filter(t=>t.id!==id)})); render(); },
+  async toggleSub(el){ const id=el.dataset.v, sid=el.dataset.s;
+    await setSent(n=>({...n,tasks:(n.tasks||[]).map(t=>t.id===id?{...t,sub:(t.sub||[]).map(s=>s.id===sid?{...s,done:!s.done}:s)}:t)})); render(); },
+
+  // --- Optimize ---
+  async optChannel(){ OPT.busy="channel"; OPT.err=""; render(); try{ OPT.channel=await aiCall("channel",""); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async optTitles(){ const input=($("#optTitleInput").value||"").trim(); if(!input){ toast("describe the video first"); return; }
+    OPT.busy="titles"; OPT.err=""; render(); try{ const d=await aiCall("titles",input); OPT.titles=d.items||d.titles||[]; }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async optIdeas(){ const input=($("#optIdeaInput").value||"").trim(); if(!input){ toast("give a theme first"); return; }
+    OPT.busy="ideas"; OPT.err=""; render(); try{ const d=await aiCall("ideas",input); OPT.ideas=d.items||d.ideas||[]; }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
 };
+async function addSub(taskId,text){ text=(text||"").trim(); if(!text) return;
+  await setSent(n=>({...n,tasks:(n.tasks||[]).map(t=>t.id===taskId?{...t,sub:[...(t.sub||[]),{id:"s"+Date.now(),text,done:false}]}:t)})); render(); }
+document.addEventListener("keydown",async e=>{
+  if(e.key!=="Enter"||e.shiftKey) return; const t=e.target;
+  if(t.id==="plnText"){ e.preventDefault(); H.addTask(); }
+  else if(t.dataset && t.dataset.subfor){ e.preventDefault(); const id=t.dataset.subfor, v=t.value; t.value=""; await addSub(id,v); }
+  else if(t.id==="capInput"){ e.preventDefault(); H.capSticky(); }
+});
 document.addEventListener("click",async e=>{ const el=e.target.closest("[data-act]"); if(!el)return; const fn=H[el.dataset.act];
   if(fn){ try{ await fn(el); }catch(err){ console.error(err); toast("hmm, try again"); } } });
 
