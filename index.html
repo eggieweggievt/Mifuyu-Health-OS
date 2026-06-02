@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mifuyu Health OS ❄️🦊</title>
+<link rel="icon" type="image/png" href="snowflake.png" />
+<link rel="apple-touch-icon" href="Film_YCH_20260424215925.png" />
+<!-- =========================================================================
+  Mifuyu Health OS — a gentle, private snowfox health companion for Mifu 🦊❄️
+  PCOS patterns · Mounjaro (tirzepatide) journey · weight (trend-first) ·
+  mental-health Care tools · gentle pattern-spotter. NOT a medical device.
+  Self-tracking, not diagnosis — her care team's plan always comes first.
+
+  CONFIGURE: paste your Supabase URL + publishable key in CONFIG below, then
+  run setup.sql. Leave blank to run in demo mode (seeded, instant).
+========================================================================== -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    /* snowfox winter palette */
+    --bg:#eef2fb; --bg2:#f4eefb; --panel:#fff; --panel-soft:#f6f8ff;
+    --line:#e4e6f5; --line-2:#dde0f1; --ink:#3a3550; --ink-soft:#6a6488; --muted:#9b96b6;
+    --peri:#758ac6; --peri-deep:#5f74b4; --sakura:#ff9ed8; --sakura-deep:#ec74bf;
+    --lav:#a98fe0; --lav-deep:#8d6fd1; --mint:#6fc3ab; --ice:#9fc3e8; --peach:#f3a978;
+    --shadow:0 6px 22px rgba(120,130,200,.14); --shadow-sm:0 2px 8px rgba(120,130,200,.10);
+    --r:18px; --sans:"Quicksand",ui-rounded,"SF Pro Rounded",system-ui,sans-serif; --display:"Fredoka",var(--sans);
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{background:var(--bg);background-image:radial-gradient(80% 50% at 100% 0%,#f7e0f3 0%,transparent 60%),radial-gradient(70% 50% at 0% 0%,#e2e9fb 0%,transparent 55%);background-attachment:fixed;color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;font-weight:500;-webkit-font-smoothing:antialiased;min-height:100vh;}
+  h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;}
+  .muted{color:var(--muted);} .soft{color:var(--ink-soft);} .peri{color:var(--peri-deep);} .sak{color:var(--sakura-deep);} .lav{color:var(--lav-deep);} .mint{color:#3a9d83;}
+  .num{font-variant-numeric:tabular-nums;} a{color:var(--lav-deep);}
+  button{font-family:inherit;cursor:pointer;font-weight:600;} input,textarea,select{font-family:inherit;font-weight:500;}
+  .label{font-size:10.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);padding:16px;}
+  .inp{background:#fff;border:1.5px solid var(--line-2);border-radius:12px;padding:9px 12px;color:var(--ink);font-size:13px;width:100%;outline:none;}
+  .inp:focus{border-color:var(--peri);box-shadow:0 0 0 3px rgba(117,138,198,.14);}
+  textarea.inp{resize:vertical;}
+  .btn{background:#fff;border:1.5px solid var(--line-2);border-radius:12px;color:var(--ink-soft);font-size:12px;padding:7px 14px;transition:.15s;}
+  .btn:hover{border-color:var(--peri);color:var(--peri-deep);}
+  .btn-grad{background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;border:none;box-shadow:var(--shadow-sm);}
+  .btn-grad:hover{filter:brightness(1.05);color:#fff;}
+  .pill{font-size:10px;font-weight:700;padding:2px 9px;border-radius:999px;letter-spacing:.03em;display:inline-block;}
+  .pill-peri{background:#e6ecfb;color:var(--peri-deep);} .pill-sak{background:#fde2f2;color:var(--sakura-deep);}
+  .pill-lav{background:#ece2fb;color:var(--lav-deep);} .pill-mint{background:#dcf3eb;color:#2f9d79;}
+  .pill-ice{background:#e2f0fb;color:#3c7bb0;} .pill-gray{background:#f0eef6;color:var(--muted);}
+  ::-webkit-scrollbar{width:9px;height:9px;} ::-webkit-scrollbar-thumb{background:#ddd9ef;border-radius:9px;}
+  #rail{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;position:sticky;top:0;z-index:20;background:rgba(255,255,255,.80);backdrop-filter:blur(12px);border-bottom:2px solid transparent;border-image:linear-gradient(90deg,#9fc3e8,#758ac6,#a98fe0,#ff9ed8) 1;flex-wrap:wrap;gap:8px;}
+  .brand{font-family:var(--display);font-size:18px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .brand-crest{font-size:20px;filter:drop-shadow(0 1px 3px rgba(141,111,209,.3));}
+  .brand-logo{height:30px;width:auto;display:block;flex:0 0 auto;filter:drop-shadow(0 1px 3px rgba(141,111,209,.3));}
+  .brand-name{background:linear-gradient(120deg,#5f74b4,#8d6fd1 50%,#ec74bf);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;letter-spacing:.02em;font-size:17px;}
+  nav{display:flex;gap:4px;flex-wrap:wrap;}
+  .tab{font-size:13px;padding:6px 13px;border-radius:999px;color:var(--ink-soft);border:none;background:none;}
+  .tab.active{background:linear-gradient(135deg,#e6ecfb,#fde2f2);color:var(--sakura-deep);} .tab:hover{color:var(--sakura-deep);}
+  #rail .right{display:flex;align-items:center;gap:9px;}
+  .chip{font-size:11px;padding:4px 10px;border-radius:999px;border:1.5px solid var(--line-2);color:var(--muted);background:#fff;}
+  .chip.on{color:#3a9d83;border-color:#bfe9d8;background:#f0fbf6;} .chip.demo{color:var(--lav-deep);border-color:#ddcdf6;background:#f6f0ff;}
+  .avatar{width:34px;height:34px;border-radius:999px;background:linear-gradient(135deg,var(--peri),var(--sakura));display:grid;place-items:center;color:#fff;font-weight:700;overflow:hidden;}
+  .avatar img{width:100%;height:100%;object-fit:cover;object-position:center top;}
+  main{padding:18px;max-width:1320px;margin:0 auto;}
+  .grid-home{display:grid;grid-template-columns:320px minmax(0,1fr) 320px;gap:16px;}
+  .col{display:flex;flex-direction:column;gap:16px;}
+  @media(max-width:1040px){.grid-home{grid-template-columns:1fr;}}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
+  .soft-card{background:var(--panel-soft);border:1px solid var(--line);border-radius:14px;padding:12px;}
+  .seg{display:inline-flex;background:#eef0fa;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;}
+  .seg button{border:none;background:none;border-radius:999px;padding:5px 11px;font-size:12px;color:var(--ink-soft);}
+  .seg button.on{background:#fff;color:var(--sakura-deep);box-shadow:var(--shadow-sm);}
+  .bar{height:6px;border-radius:999px;background:#ede9f6;overflow:hidden;} .bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--peri),var(--sakura));}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:60;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s;}
+  .toast.show{opacity:1;}
+  .hidden{display:none!important;} .grow{flex:1;}
+  .listrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);} .listrow:first-child{border-top:none;}
+  .x{cursor:pointer;color:var(--muted);border:none;background:none;font-size:15px;} .x:hover{color:var(--sakura-deep);}
+  .disc{display:flex;gap:8px;align-items:flex-start;background:linear-gradient(90deg,#eef2ff,#fdf0fb);border:1px dashed var(--lav);border-radius:14px;padding:10px 12px;font-size:11.5px;color:var(--ink-soft);margin-top:14px;}
+  .disc b{color:var(--peri-deep);}
+  .slip{background:linear-gradient(120deg,#e9eefb,#fdeaf6);border:1px solid var(--line);border-radius:16px;padding:13px 16px;text-align:center;font-family:var(--display);font-size:15px;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;}
+  .slip img.deco{height:22px;width:auto;opacity:.92;flex:0 0 auto;}
+  .slip .slip-txt{min-width:0;}
+  /* ---- accessibility ---- */
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important;} }
+  body.calm *{animation:none!important;transition:none!important;}
+  body.calm{background-image:none;background:#f2f3f8;--peri:#8b9bcf;--peri-deep:#7485bb;--sakura:#e6b6da;--sakura-deep:#bd86ad;--lav:#aea0d2;--lav-deep:#8b7cb8;--mint:#86c2af;}
+  body.text-lg{font-size:16px;} body.text-lg .label{font-size:11.5px;} body.text-lg .pill{font-size:12px;}
+  /* scales + chip toggles */
+  .scale{display:flex;gap:4px;flex-wrap:wrap;}
+  .scale button{min-width:34px;height:34px;border:1.5px solid var(--line-2);border-radius:9px;background:#fff;color:var(--ink-soft);font-size:12px;}
+  .scale button.on{background:linear-gradient(135deg,var(--peri),var(--sakura));border-color:var(--peri);color:#fff;}
+  .scale-ends{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:3px;}
+  .field{margin:12px 0;} .field>.label{margin-bottom:6px;}
+  .chiptog{border:1.5px solid var(--line-2);border-radius:999px;padding:7px 13px;background:#fff;color:var(--ink-soft);font-size:12.5px;display:inline-flex;align-items:center;gap:7px;}
+  .chiptog.on{background:#fde2f2;border-color:var(--sakura);color:var(--sakura-deep);}
+  .chiprow{display:flex;flex-wrap:wrap;gap:7px;}
+  .sitebtn{border:1.5px solid var(--line-2);border-radius:11px;padding:7px 11px;background:#fff;color:var(--ink-soft);font-size:12px;}
+  .sitebtn.on{background:linear-gradient(135deg,var(--peri),var(--sakura));border-color:var(--peri);color:#fff;}
+  /* sparkline bars */
+  .spark{display:flex;align-items:flex-end;gap:2px;height:40px;}
+  .spark span{flex:1;background:linear-gradient(180deg,var(--sakura),var(--peri));border-radius:3px 3px 0 0;min-height:2px;opacity:.9;}
+  .spark span.gap{background:#e9e6f2;opacity:.5;min-height:2px;}
+  .sparkrow{display:flex;align-items:center;gap:10px;margin:9px 0;}
+  .sparkrow .lab{width:118px;font-size:12px;} .sparkrow .now{width:38px;text-align:right;font-weight:700;font-size:13px;font-family:var(--display);}
+  /* bignum / stepper */
+  .bignum{font-family:var(--display);font-size:26px;color:var(--ink);}
+  .hcount{display:flex;align-items:center;gap:10px;} .hcount>span{min-width:34px;text-align:center;font-size:20px;font-family:var(--display);color:var(--ink);}
+  .step{width:34px;height:34px;border-radius:11px;border:1.5px solid var(--line-2);background:#fff;color:var(--ink-soft);font-size:17px;display:grid;place-items:center;}
+  /* accordion */
+  details.acc{border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden;}
+  details.acc>summary{list-style:none;cursor:pointer;padding:13px 16px;font-family:var(--display);font-size:15px;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary::after{content:"▸";color:var(--muted);transition:transform .2s;}
+  details.acc[open]>summary::after{transform:rotate(90deg);}
+  details.acc>.acc-body{padding:2px 16px 16px;}
+  /* care: breathing bubble */
+  .breath-wrap{position:relative;height:230px;display:grid;place-items:center;}
+  .breath-bubble{width:108px;height:108px;border-radius:999px;background:radial-gradient(circle at 35% 30%,#fff,var(--sakura) 56%,var(--peri));box-shadow:0 0 42px rgba(141,111,209,.45);transform:scale(.72);will-change:transform;}
+  .breath-label{position:absolute;font-family:var(--display);font-size:17px;color:#fff;text-shadow:0 1px 7px rgba(95,116,180,.7);pointer-events:none;}
+  /* care: flip cards */
+  .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+  .flip{perspective:1100px;min-height:198px;cursor:pointer;}
+  .flip-inner{position:relative;width:100%;min-height:198px;transition:transform .6s;transform-style:preserve-3d;}
+  .flip.open .flip-inner{transform:rotateY(180deg);}
+  .flip-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:16px;border:1px solid var(--line);padding:14px;display:flex;flex-direction:column;}
+  .flip-back{background:#fff;transform:rotateY(180deg);overflow:auto;font-size:12px;color:var(--ink-soft);}
+  .flip-back li{margin:6px 0;}
+  /* care: joy jar */
+  .jar-stage{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .jar-bub{animation:jarfloat 4.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center;}
+  @keyframes jarfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .joy-pick{min-height:26px;font-family:var(--display);font-size:16px;color:var(--lav-deep);margin-top:8px;text-align:center;}
+  .joy-pick.pop{animation:joypop .5s ease;} @keyframes joypop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.13)}100%{transform:scale(1);opacity:1}}
+  /* sticky notes */
+  #stickyLayer{position:fixed;inset:0;z-index:80;pointer-events:none;}
+  .sticky{position:absolute;width:182px;min-height:118px;border-radius:12px;box-shadow:0 8px 22px rgba(110,100,150,.24);pointer-events:auto;display:flex;flex-direction:column;transform:rotate(-1deg);}
+  .sticky-head{height:22px;display:flex;align-items:center;justify-content:flex-end;padding:0 6px;cursor:grab;border-radius:12px 12px 0 0;}
+  .sticky-head:active{cursor:grabbing;}
+  .sticky-x{border:none;background:none;font-size:15px;line-height:1;color:rgba(58,53,80,.5);cursor:pointer;}
+  .sticky textarea{flex:1;border:none;background:transparent;resize:none;outline:none;font-family:var(--sans);font-size:12.5px;color:#3a3550;padding:2px 10px 10px;}
+  #addStickyBtn{position:fixed;left:16px;bottom:16px;z-index:81;border:none;border-radius:999px;width:46px;height:46px;font-size:18px;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;box-shadow:var(--shadow);}
+  /* floating breathing/rest timer */
+  #restBtn{position:fixed;right:16px;bottom:16px;z-index:81;border:1.5px solid var(--line-2);border-radius:999px;width:46px;height:46px;font-size:18px;background:#fff;box-shadow:var(--shadow);}
+  #restWidget{position:fixed;right:16px;bottom:70px;z-index:82;width:230px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 32px rgba(120,110,160,.26);padding:12px;}
+  #restWidget.hidden{display:none;}
+  .ring-time{font-family:var(--display);font-size:24px;color:var(--ink);text-align:center;}
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(70,66,100,.30);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(90,80,140,.3);width:100%;max-width:560px;padding:20px;}
+</style>
+</head>
+<body>
+<div id="rail">
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <span class="brand"><img class="brand-logo" src="Logo.png" alt="mifuyu" /><span class="brand-name">Health OS</span></span>
+    <nav id="nav"></nav>
+  </div>
+  <div class="right">
+    <span id="status" class="chip">…</span>
+    <button class="chip" data-act="settings" title="Comfort &amp; display">⚙️</button>
+    <span class="avatar"><img src="Film_YCH_20260424215925.png" alt="Mifu" /></span>
+  </div>
+</div>
+<main id="view"></main>
+<div id="toast" class="toast"></div>
+<div id="modal"></div>
+<div id="stickyLayer"></div>
+<button id="addStickyBtn" data-act="addSticky" title="New sticky note">🗒️+</button>
+<button id="restBtn" data-act="toggleRest" title="Breathing &amp; rest timer">🫧</button>
+<div id="restWidget" class="hidden"></div>
+
+<script>
+"use strict";
+/* ===================== CONFIG (everything here is yours to change) ===== */
+const CONFIG = {
+  url: "",          // Supabase project URL — blank = demo mode
+  anonKey: "",      // sb_publishable_... — blank = demo mode
+  userId: "mifuyu",
+  creator: {
+    name:"Mifu", fullName:"Yukitsune Mifuyu", emoji:"🦊", snow:"❄️",
+    greeting:"Konfuyu~!", pronouns:"she/they",
+    tagline:"your cute and chaotic Snowfox Shrine maiden",
+  },
+  palette:{ periwinkle:"#758ac6", blueLav:"#99a6d5", sakura:"#ff9ed8", orchid:"#c8a8ca",
+            lavender:"#a98fe0", ice:"#f4f8ff", ink:"#3a3550", ringFrom:"#758ac6", ringTo:"#ff9ed8" },
+  // Mounjaro reference (display/tracking only — NOT advice):
+  mounjaro:{ doses:[2.5,5,7.5,10,12.5,15], maxDose:15, minWeeksBetweenIncreases:4,
+             sites:["L abdomen","R abdomen","L thigh","R thigh","L upper arm","R upper arm"] },
+  weightUnit:"kg",
+  weightDisplay:"soft", // soft | numbers | hidden
+};
+
+/* ===================== SUPABASE / DEMO ===================== */
+const DEMO = !(CONFIG.url && CONFIG.anonKey);
+const SB = (!DEMO && window.supabase) ? window.supabase.createClient(CONFIG.url, CONFIG.anonKey) : null;
+const UID = CONFIG.userId;
+const SENTINEL = "2000-01-01";
+const TODAY = new Date().toLocaleDateString("en-CA");
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id"+Math.random().toString(36).slice(2));
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = s => document.querySelector(s);
+function dayAgo(n){const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString("en-CA");}
+function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+function fmtDate(iso){ try{ return new Date(iso+"T00:00").toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return iso; } }
+function greeting(){ const h=new Date().getHours(); return h<5?"Late night":h<12?"Good morning":h<18?"Good afternoon":"Good evening"; }
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1700); }
+
+/* ===================== DEMO STORE ===================== */
+function seedDemo(){
+  const daily={}; const rnd=(a,b)=>Math.round(a+Math.random()*(b-a));
+  for(let i=13;i>=0;i--){
+    const d=dayAgo(-i);
+    const protein=Math.random()>0.4, moved=Math.random()>0.45, water=rnd(3,9);
+    let nausea=rnd(0,4); if(water>=6)nausea=Math.max(0,nausea-2); if(protein)nausea=Math.max(0,nausea-1);
+    let cravings=rnd(1,5); if(moved)cravings=Math.max(0,cravings-2);
+    const sleep=rnd(5,9); let mood=rnd(1,4); if(sleep>=7)mood=Math.min(5,mood+1);
+    const anxiety=rnd(0,4); if(mood>3&&anxiety>3)mood=3;
+    daily[d]={ energy:rnd(1,5),
+      mind:{ mood, anxiety, energy:rnd(1,5), weather:rnd(1,5), kind:Math.random()>0.5 },
+      pcos:{ fatigue:rnd(0,5), bloating:rnd(0,4), cravings, acne:rnd(0,3), shedding:rnd(0,2),
+             moved, balanced:protein, protein, lowsugar:Math.random()>0.5 },
+      mounjaro:{ nausea, constipation:rnd(0,3), diarrhea:rnd(0,2), reflux:rnd(0,3), belly:rnd(0,3),
+                 fatigue:rnd(0,4), foodnoise:cravings, water, proteinMeals:protein,
+                 smallerMeals:Math.random()>0.4, fiber:Math.random()>0.5, gentleMove:moved },
+      sleep, note:"" };
+  }
+  delete daily[dayAgo(-3)]; delete daily[dayAgo(-9)]; // rest days from tracking
+  const start=dayAgo(-44);
+  daily[SENTINEL]={
+    medsList:[ {id:"m1",name:"Metformin",dose:"500 mg",time:"with dinner"},
+      {id:"m2",name:"Vitamin D3",dose:"1000 IU",time:"morning"},
+      {id:"m3",name:"Inositol",dose:"2 g",time:"morning"},
+      {id:"m4",name:"Omega-3",dose:"1 cap",time:"evening"} ],
+    injectionLog:[ {id:"i1",date:dayAgo(-21),time:"20:00",dose:5,site:"L thigh",after:1,note:"a little tired"},
+      {id:"i2",date:dayAgo(-14),time:"20:15",dose:5,site:"R abdomen",after:2,note:""},
+      {id:"i3",date:dayAgo(-7),time:"19:45",dose:7.5,site:"L abdomen",after:3,note:"queasy first eve, settled"} ],
+    doseHistory:[ {dose:2.5,started:start},{dose:5,started:dayAgo(-44+28)},{dose:7.5,started:dayAgo(-7)} ],
+    weightLog:[ {date:dayAgo(-42),w:84.6},{date:dayAgo(-35),w:84.1},{date:dayAgo(-28),w:83.2},
+      {date:dayAgo(-21),w:82.7},{date:dayAgo(-14),w:82.0},{date:dayAgo(-7),w:81.4},{date:TODAY,w:80.9} ],
+    measurements:[ {date:dayAgo(-28),waist:88},{date:TODAY,waist:85} ],
+    nsv:[ {id:"n1",t:"Climbed the shrine steps without stopping ⛩️",date:dayAgo(-5)},
+      {id:"n2",t:"Cravings were quiet all afternoon",date:dayAgo(-2)} ],
+    cycle:{ lastStart:dayAgo(-39), history:[{start:dayAgo(-39),end:dayAgo(-34),flow:"med"}] },
+    joyJar:["a warm cup of hojicha","fox plushie cuddle","cozy game + soft blanket","slow morning, no alarm",
+            "snow falling outside the window","a favourite comfort song","stretch + sunshine","draw something silly"],
+    helps:"Warm shower, hojicha, lo-fi, and a 10-min walk usually resets me. Protein breakfast = calmer day.",
+    stickies:[ {id:"sk1",text:"refill Mounjaro pen before Fri ❄️",color:"#fde2f2",x:0.62,y:0.30},
+               {id:"sk2",text:"ask Dr about cycle gap 🦊",color:"#e6ecfb",x:0.72,y:0.50} ],
+    appConfig:{},
+  };
+  return daily;
+}
+let demo = DEMO ? seedDemo() : null;
+
+/* ===================== DATA LAYER ===================== */
+const DB = {
+  async daily(date){
+    if(DEMO) return JSON.parse(JSON.stringify(demo[date]||{}));
+    const {data}=await SB.from("daily_logs").select("notes").eq("user_id",UID).eq("date",date).maybeSingle();
+    return (data&&data.notes)||{};
+  },
+  async saveDaily(date,merge){
+    const cur=await DB.daily(date); const next=merge({...cur});
+    if(DEMO){ demo[date]=next; return next; }
+    await SB.from("daily_logs").upsert({user_id:UID,date,notes:next},{onConflict:"user_id,date"});
+    return next;
+  },
+  async range(days){
+    if(DEMO) return Object.entries(demo).filter(([d])=>d!==SENTINEL).map(([date,notes])=>({date,notes}));
+    const since=dayAgo(-days);
+    const {data}=await SB.from("daily_logs").select("date,notes").eq("user_id",UID).gte("date",since).neq("date",SENTINEL);
+    return (data||[]).map(r=>({date:r.date,notes:r.notes||{}}));
+  },
+  async exportAll(){
+    if(DEMO) return Object.entries(demo).map(([date,notes])=>({date,notes}));
+    const {data}=await SB.from("daily_logs").select("*").eq("user_id",UID); return data||[];
+  }
+};
+
+/* ===================== STATE + A11Y ===================== */
+const PREF={ calm:false, text:false, focus:false };
+function applyPrefs(){
+  try{
+    PREF.calm=localStorage.getItem("mifu-calm")==="1";
+    PREF.text=localStorage.getItem("mifu-text")==="1";
+    PREF.focus=localStorage.getItem("mifu-focus")==="1";
+  }catch{}
+  document.body.classList.toggle("calm",PREF.calm);
+  document.body.classList.toggle("text-lg",PREF.text);
+}
+const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false };
+
+const TABS=[["home","🏠 Home"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+function setTab(t){ state.tab=t; render(); }
+
+/* permission slips */
+const SLIPS=["Rest is productive. ❄️","A slow day is still a valid day.","You don't have to earn rest.",
+  "Your worth isn't a number on a scale.","Konfuyu~ — be soft with yourself today. 🦊",
+  "Tap what fits. You don't have to fill everything.","Bodies fluctuate. The trend is the story, not today.",
+  "A gap in tracking is just a rest day. That's okay.","Feelings are visitors, not residents.",
+  "You're doing better than the anxious voice says."];
+const slip=()=>SLIPS[new Date().getDate()%SLIPS.length];
+const slipBanner=(mb)=>`<div class="slip"${mb?' style="margin-bottom:16px"':''}><img class="deco" src="snowflake.png" alt=""/><span class="slip-txt">${esc(slip())}</span><img class="deco" src="sakura.png" alt=""/></div>`;
+
+/* ===================== shared builders ===================== */
+const DISCLAIMER=`<div class="disc">${CONFIG.creator.snow}<span><b>Gentle reminder:</b> this is your own self-tracking — noticing patterns, not a diagnosis. Your care team's plan always comes first. ${CONFIG.creator.emoji}</span></div>`;
+
+function scaleRow(label,act,field,val,lo="none",hi="a lot",max=5){
+  let b=""; for(let i=0;i<=max;i++) b+=`<button data-act="${act}" data-f="${field}" data-v="${i}" class="${val===i?'on':''}">${i}</button>`;
+  return `<div class="field"><div class="label">${label}</div><div class="scale">${b}</div><div class="scale-ends"><span>${lo}</span><span>${hi}</span></div></div>`;
+}
+function chiptog(label,act,field,on){ return `<button class="chiptog ${on?'on':''}" data-act="${act}" data-f="${field}"><span>${on?'✓':'＋'}</span>${label}</button>`; }
+
+/* sparkline from array with possible nulls; max scales the bars */
+function spark(vals,max){
+  const mx=max||Math.max(1,...vals.filter(v=>v!=null));
+  return `<div class="spark">${vals.map(v=> v==null?`<span class="gap" style="height:8%"></span>`
+    :`<span style="height:${Math.max(6,Math.round(v/mx*100))}%"></span>`).join("")}</div>`;
+}
+
+/* ===================== RENDER ROOT ===================== */
+async function render(){
+  applyPrefs();
+  $("#nav").innerHTML = TABS.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
+  const st=$("#status"); st.textContent=DEMO?"◇ demo data":"● live"; st.className="chip"+(DEMO?" demo":" on");
+  const v=$("#view");
+  try{
+    state.sentinel = await DB.daily(SENTINEL);
+    state.today = await DB.daily(TODAY);
+    state.range = await DB.range(14);
+    const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    v.innerHTML = fn();
+    renderStickies();
+  }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
+}
+
+/* ===================== HOME ===================== */
+function viewHome(){
+  const m=state.today.mind||{}, s=state.sentinel;
+  const lastShot=(s.injectionLog||[]).slice(-1)[0];
+  let nextDose=null; if(lastShot){ const d=new Date(lastShot.date+"T00:00"); d.setDate(d.getDate()+7); nextDose=d.toLocaleDateString("en-CA"); }
+  const dueIn=nextDose?daysBetween(TODAY,nextDose):null;
+  const wl=(s.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const energy=state.today.energy||0;
+
+  if(PREF.focus){
+    return `<div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+      ${slipBanner()}
+      <section class="panel"><div class="card-head"><span class="label">Just today 🌙</span><button class="btn" data-act="pref" data-f="focus">exit focus</button></div>
+        <h2 style="font-size:20px">${greeting()}, ${esc(CONFIG.creator.name)} ${CONFIG.creator.emoji}</h2>
+        <p class="soft" style="font-size:12.5px;margin:4px 0 12px">One gentle tap at a time. That's a whole check-in. ❄️</p>
+        ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+        ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
+        ${scaleRow("Energy","mindSet","energy",m.energy,"empty","full")}
+      </section>
+      <section class="panel"><div class="label" style="margin-bottom:6px">Brain-dump</div>
+        <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="park a thought on a sticky…"/><button class="btn btn-grad" data-act="capSticky">add</button></div></section>
+    </div>${DISCLAIMER}`;
+  }
+
+  return `<div class="grid-home">
+    <div class="col">
+      <section class="panel">
+        <div class="card-head"><span class="label">Snowfox</span><span class="pill pill-mint">● here for you</span></div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="avatar" style="width:52px;height:52px"><img src="Film_YCH_20260424215925.png" alt="Mifu"/></div>
+          <div><div style="font-family:var(--display);font-size:18px">${esc(CONFIG.creator.name)}</div><div class="label" style="margin-top:1px">${esc(CONFIG.creator.pronouns)}</div></div>
+        </div>
+        <div class="soft-card" style="margin-top:12px;font-style:italic;font-size:12.5px" class="soft">${esc(CONFIG.creator.tagline)}</div>
+        <div style="margin-top:12px"><div class="label" style="margin-bottom:5px">Energy today 🥄</div>
+          <div class="seg">${[["1","🌙","Low"],["3","🌤","Med"],["5","🌞","High"]].map(([v,e,l])=>`<button data-act="energySet" data-v="${v}" class="${energy==v?'on':''}">${e} ${l}</button>`).join("")}</div></div>
+      </section>
+      ${slipBanner()}
+    </div>
+
+    <div class="col">
+      <section class="panel">
+        <h2 style="font-size:19px">${CONFIG.creator.greeting} ${greeting()}, ${esc(CONFIG.creator.name)} ✿</h2>
+        <p class="soft" style="font-size:12.5px;margin:4px 0 10px">How are you today? Three taps is a whole check-in. 💗</p>
+        ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+        ${scaleRow("Anxiety / overwhelm","mindSet","anxiety",m.anxiety,"calm","high")}
+        ${scaleRow("Energy","mindSet","energy",m.energy,"empty","full")}
+        <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
+      </section>
+      <section class="panel"><div class="label" style="margin-bottom:6px">Brain-dump 🧠</div>
+        <p class="soft" style="font-size:12px;margin:0 0 8px">Park whatever's swirling on a sticky note — no structure needed.</p>
+        <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="anything on your mind…"/><button class="btn btn-grad" data-act="capSticky">add sticky</button></div></section>
+    </div>
+
+    <div class="col">
+      <section class="panel">
+        <div class="card-head"><span class="label">Today at a glance</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span class="pill pill-ice" style="padding:6px 11px">💉 ${lastShot?"Last shot "+fmtDate(lastShot.date):"No shot logged yet"}</span>
+          ${nextDose?`<span class="pill pill-lav" style="padding:6px 11px">📅 Next dose ${fmtDate(nextDose)}${dueIn!=null?` · ${dueIn<=0?'around now':'in '+dueIn+'d'}`:''}</span>`:''}
+          <span class="pill pill-peri" style="padding:6px 11px">💊 ${(s.medsList||[]).length} meds tracked</span>
+        </div>
+        <p class="soft" style="font-size:11.5px;margin-top:8px;text-align:center">No pressure — just a soft snapshot. ❄️</p>
+      </section>
+      <section class="panel">
+        <div class="card-head"><span class="label">Weight trend</span><button class="btn" data-act="tab" data-tab="weight">open →</button></div>
+        ${wl.length?spark(wl.map(x=>x.w),Math.max(...wl.map(x=>x.w))):'<p class="soft" style="font-size:12px">No weigh-ins yet.</p>'}
+        <p class="soft" style="font-size:11.5px;margin-top:6px;text-align:center">The trend is the story, not any single day.</p>
+      </section>
+    </div>
+  </div>${DISCLAIMER}`;
+}
+
+/* ===================== PCOS / HEALTH ===================== */
+function viewPcos(){
+  const p=state.today.pcos||{}, m=state.today.mind||{}, cyc=state.sentinel.cycle||{};
+  const dayX=cyc.lastStart?daysBetween(cyc.lastStart,TODAY):null;
+  const longGap=dayX!=null&&dayX>=45;
+  return `
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:18px">❄️ PCOS — your patterns</h2><span class="pill pill-gray">tap what fits</span></div>
+    <div class="soft-card">
+      <div class="label" style="margin-bottom:6px">🌙 Cycle</div>
+      ${cyc.lastStart?`<div style="display:flex;align-items:baseline;gap:10px"><span class="bignum">Day ${dayX}</span><span class="soft" style="font-size:12px">since last period started (${fmtDate(cyc.lastStart)})</span></div>`
+        :`<p class="soft" style="font-size:12.5px;margin:0">No period start logged yet.</p>`}
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-grad" data-act="cycleStart">Log period start</button>
+        <button class="btn" data-act="cycleEnd">Log period end</button>
+      </div>
+      <div class="field"><div class="label">Flow today (optional)</div><div class="chiprow">
+        ${["light","med","heavy"].map(f=>`<button class="sitebtn ${state.today.flow===f?'on':''}" data-act="pcosSet" data-f="flow" data-v="${f}">${f}</button>`).join("")}</div></div>
+      ${longGap?`<div class="disc" style="margin-top:8px">${CONFIG.creator.snow}<span>It's been a longer stretch without a period. With PCOS that happens — but a long gap can be worth a gentle mention to your doctor whenever you next chat. No alarm, just a note. 🦊</span></div>`:''}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:4px">📊 How's today feeling?</div>
+    ${scaleRow("Energy / fatigue","pcosSet","fatigue",p.fatigue,"none","heavy")}
+    ${scaleRow("Bloating","pcosSet","bloating",p.bloating)}
+    ${scaleRow("Sugar / carb cravings","pcosSet","cravings",p.cravings,"quiet","loud")}
+    ${scaleRow("Acne flare","pcosSet","acne",p.acne)}
+    ${scaleRow("Scalp hair shedding","pcosSet","shedding",p.shedding)}
+    <div class="label" style="margin:14px 0 4px">🌷 Mood &amp; anxiety</div>
+    ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+    ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
+    <div class="label" style="margin:14px 0 6px">🌱 Gentle, supportive habits</div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">No targets to fail — just a soft tally on the days they happen.</p>
+    <div class="chiprow">
+      ${chiptog("Moved my body","pcosToggle","moved",p.moved)}
+      ${chiptog("Balanced meals","pcosToggle","balanced",p.balanced)}
+      ${chiptog("Protein with meals","pcosToggle","protein",p.protein)}
+      ${chiptog("Eased sugar spikes","pcosToggle","lowsugar",p.lowsugar)}
+    </div>
+  </section>
+
+  <details class="acc"><summary>🪶 Weekly / occasional notes</summary><div class="acc-body">
+    ${scaleRow("Unwanted hair / hirsutism (check in weekly)","pcosSet","hirsutism",p.hirsutism)}
+  </div></details>
+  <details class="acc"><summary>💗 What helps me</summary><div class="acc-body">
+    <textarea class="inp" id="helpsNote" placeholder="things that make a PCOS day softer…">${esc(state.sentinel.helps||"")}</textarea>
+    <div style="margin-top:8px"><button class="btn btn-grad" data-act="saveHelps">Save</button></div>
+  </div></details>
+  ${DISCLAIMER}`;
+}
+
+/* ===================== MOUNJARO ===================== */
+function currentDose(){ const h=(state.sentinel.doseHistory||[]).slice().sort((a,b)=>a.started<b.started?-1:1); return h.length?h[h.length-1]:null; }
+function siteHint(){
+  const last=(state.sentinel.injectionLog||[]).slice(-1)[0]; if(!last) return "Pick any site to start your rotation.";
+  const sites=CONFIG.mounjaro.sites; const i=sites.indexOf(last.site);
+  const sug=sites[(i+1+Math.floor(sites.length/2))%sites.length];
+  return `Last site: <b>${esc(last.site)}</b> → maybe try <b>${esc(sug)}</b> this week (rotating spots helps absorption &amp; avoids lumps).`;
+}
+function viewMj(){
+  const mj=state.today.mounjaro||{}, cur=currentDose();
+  const weeksAt=cur?Math.floor(daysBetween(cur.started,TODAY)/7):0;
+  const log=(state.sentinel.injectionLog||[]).slice().reverse();
+  const doses=CONFIG.mounjaro.doses, sites=CONFIG.mounjaro.sites;
+  return `
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:18px">💉 Mounjaro journey</h2><span class="pill pill-ice">once weekly</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">Tracking and reflecting only — never advice. Dose changes are always your doctor's call. 🦊</p>
+    <div class="soft-card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+      <div><div class="label">Current dose</div><div class="bignum">${cur?cur.dose:'—'} mg</div></div>
+      <div><div class="label">Weeks at this dose</div><div class="bignum">${weeksAt}</div></div>
+      <div class="grow" style="min-width:160px"><p class="soft" style="font-size:11.5px;margin:0">You've been at this dose ${weeksAt} week${weeksAt===1?'':'s'}. Tirzepatide steps up slowly (≥${CONFIG.mounjaro.minWeeksBetweenIncreases} weeks between increases, max ${CONFIG.mounjaro.maxDose} mg) — but if &amp; when is entirely your doctor's decision. ❄️</p></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:6px">💉 Log this week's shot</div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">${siteHint()}</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="field"><div class="label">Date</div><input class="inp" type="date" id="shotDate" value="${TODAY}"></div>
+      <div class="field"><div class="label">Time</div><input class="inp" type="time" id="shotTime" value="20:00"></div>
+    </div>
+    <div class="field"><div class="label">Dose (mg)</div><select class="inp" id="shotDose">${doses.map(d=>`<option value="${d}" ${cur&&cur.dose===d?'selected':''}>${d} mg</option>`).join("")}</select></div>
+    <div class="field"><div class="label">Injection site (rotate!)</div><div class="chiprow" id="siteRow">
+      ${sites.map(stt=>`<button class="sitebtn" data-act="pickSite" data-v="${esc(stt)}">${esc(stt)}</button>`).join("")}</div>
+      <input type="hidden" id="shotSite" value=""></div>
+    <div class="field" id="afterField"><div class="label">~30 min after — how do you feel?</div>
+      <div class="scale">${[0,1,2,3,4,5].map(i=>`<button data-act="mjAfter" data-v="${i}">${i}</button>`).join("")}</div>
+      <div class="scale-ends"><span>rough</span><span>fine</span></div></div>
+    <div class="field"><div class="label">Note (optional)</div><input class="inp" type="text" id="shotNote" placeholder="how it went…"></div>
+    <button class="btn btn-grad" data-act="logShot">Log shot ❄️</button>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:4px">🩹 Side-effect check (optional)</div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Usually loudest at the start and just after a dose step, then it eases. Logging helps the pattern-spotter.</p>
+    ${scaleRow("Nausea","mjSet","nausea",mj.nausea)}
+    ${scaleRow("Constipation","mjSet","constipation",mj.constipation)}
+    ${scaleRow("Diarrhea","mjSet","diarrhea",mj.diarrhea)}
+    ${scaleRow("Reflux / heartburn","mjSet","reflux",mj.reflux)}
+    ${scaleRow("Bloating / stomach pain","mjSet","belly",mj.belly)}
+    ${scaleRow("Fatigue","mjSet","fatigue",mj.fatigue)}
+    ${scaleRow("Appetite / 'food noise'","mjSet","foodnoise",mj.foodnoise,"quiet","loud")}
+    <div class="label" style="margin:14px 0 6px">🌿 Supportive habits</div>
+    <div class="chiprow">
+      ${chiptog("Protein with meals","mjToggle","proteinMeals",mj.proteinMeals)}
+      ${chiptog("Smaller meals","mjToggle","smallerMeals",mj.smallerMeals)}
+      ${chiptog("Fiber / veggies","mjToggle","fiber",mj.fiber)}
+      ${chiptog("Gentle movement","mjToggle","gentleMove",mj.gentleMove)}
+    </div>
+    <div class="field"><div class="label">Water today</div>
+      <div class="hcount"><button class="step" data-act="mjWater" data-v="-1">−</button><span>${mj.water||0}</span><button class="step" data-act="mjWater" data-v="1">＋</button><span class="soft" style="font-size:12px;font-family:var(--sans)">cups 🥤</span></div></div>
+  </section>
+
+  <details class="acc"><summary>🩺 When to check in with your doctor</summary><div class="acc-body">
+    <p class="soft" style="font-size:12px">Most tummy stuff is normal and settles. Still, you know your body — these are gentle reasons to give your care team a call (a reminder, never a diagnosis):</p>
+    <ul style="font-size:12px;color:var(--ink-soft);padding-left:18px">
+      <li>Severe stomach pain that won't ease — especially if it radiates to your back (can be a sign of something urgent like pancreatitis, worth prompt medical attention)</li>
+      <li>Relentless vomiting, or signs of dehydration (very dry mouth, dizziness, barely peeing)</li>
+      <li>Gallbladder-type pain (upper-right belly), fever, or yellowing skin/eyes</li>
+      <li>Anything that simply feels wrong or frightening to you</li>
+    </ul>
+    <p class="peri" style="font-size:12px;font-weight:700">You know your body — this is a reminder, not a diagnosis. ❄️</p>
+  </div></details>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:6px">📜 Injection history</div>
+    ${log.length?log.map(s=>`<div class="listrow"><div><b>${fmtDate(s.date)}</b> ${s.time?`<span class="soft">· ${esc(s.time)}</span>`:''}
+      <div class="soft" style="font-size:11.5px">${s.dose} mg · ${esc(s.site||'—')}${s.after!=null?` · after ${s.after}/5`:''}${s.note?` · ${esc(s.note)}`:''}</div></div>
+      <span class="grow"></span><button class="x" data-act="delShot" data-v="${s.id}">✕</button></div>`).join("")
+      :`<p class="soft" style="font-size:12.5px">No shots logged yet. Your first one starts the rotation helper. 🦊</p>`}
+  </section>
+  ${DISCLAIMER}`;
+}
+
+/* ===================== WEIGHT ===================== */
+function rollingAvg(arr){ if(!arr.length)return null; const l=arr.slice(-4); return l.reduce((a,b)=>a+b.w,0)/l.length; }
+function viewWeight(){
+  const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const vals=wl.map(x=>x.w), avg=rollingAvg(wl);
+  const last=wl.slice(-1)[0], dueWeekly=!last||daysBetween(last.date,TODAY)>=7;
+  const disp=CONFIG.weightDisplay, showNum=disp!=="hidden";
+  const nsv=(state.sentinel.nsv||[]).slice().reverse();
+  const meas=(state.sentinel.measurements||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  // normalised trend bars (min..max)
+  let bars=""; if(vals.length){ const mn=Math.min(...vals),mx=Math.max(...vals),rng=Math.max(.6,mx-mn);
+    bars=`<div class="spark" style="height:54px">${vals.map(v=>`<span style="height:${Math.round(((v-mn)/rng)*86+12)}%"></span>`).join("")}</div>`; }
+  return `
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:18px">⚖️ The gentle journey</h2><span class="pill pill-gray">trend-first</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">The <b>trend</b> is the story — bodies fluctuate day to day, especially with PCOS and a GLP-1. We lean on the weekly average, not any single morning.</p>
+    <div class="soft-card">
+      ${showNum?`<div class="label">Rolling weekly avg</div><div class="bignum" id="numSlot">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`
+        :`<div id="numSlot"><button class="btn" data-act="revealNum">Tap to peek at the number</button></div>`}
+      ${bars}
+      <p class="soft" style="font-size:11.5px;text-align:center;margin:6px 0 0">A calm line over time — no good days or bad days here. ❄️</p>
+    </div>
+    <div class="field"><div class="label" style="margin-bottom:6px">${dueWeekly?'🗓️ Time for a gentle weekly weigh-in':'✅ Weighed in recently — no rush'}</div>
+      <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="wInput" placeholder="${CONFIG.weightUnit}" style="max-width:140px"><button class="btn btn-grad" data-act="logWeight">Log it</button></div>
+      <p class="soft" style="font-size:11px;margin-top:6px">Tip: same day &amp; time each week makes the trend cleaner — but a missed week is totally fine.</p></div>
+  </section>
+
+  <section class="panel">
+    <div class="card-head"><span class="label">🌟 Non-scale victories</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">The wins the scale can't see. Celebrate these <b>loudly</b>. ❄️</p>
+    ${nsv.length?nsv.map(v=>`<div class="listrow"><span class="grow">${esc(v.t)} <span class="soft" style="font-size:11px">· ${fmtDate(v.date)}</span></span><button class="x" data-act="delNSV" data-v="${v.id}">✕</button></div>`).join("")
+      :`<p class="soft" style="font-size:12.5px">Add one whenever you notice it — "clothes fit better", "more energy", "cravings quieter"…</p>`}
+    <div style="display:flex;gap:8px;margin-top:10px"><input class="inp" id="nsvInput" placeholder="a little win…"><button class="btn btn-grad" data-act="addNSV">Add 🌸</button></div>
+  </section>
+
+  <details class="acc"><summary>📏 Optional measurements</summary><div class="acc-body">
+    <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="waistInput" placeholder="waist (cm)" style="max-width:160px"><button class="btn btn-grad" data-act="setMeasure">Save</button></div>
+    ${meas.length?`<p class="soft" style="font-size:12px;margin-top:8px">Latest waist: <b>${meas.slice(-1)[0].waist} cm</b> (${fmtDate(meas.slice(-1)[0].date)})</p>`:''}
+  </div></details>
+  ${DISCLAIMER}`;
+}
+
+/* ===================== CARE ===================== */
+const FIRSTAID=[
+  {e:"🖐️",t:"5-4-3-2-1 grounding",tint:"#e6ecfb",b:["Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.","It pulls you out of the spiral and back into right now.","Slow down on each one — no rushing."]},
+  {e:"🟦",t:"Box breathing",tint:"#dcf3eb",b:["In 4 · hold 4 · out 4 · hold 4.","A few rounds steadies a racing heart.","The 🫧 bubble timer in the corner can pace you."]},
+  {e:"🏷️",t:"Name it to tame it",tint:"#fde2f2",b:["Say the feeling out loud: \"this is anxiety.\"","Naming gives your thinking brain something to hold.","Feelings aren't facts — they can be huge and still not be true."]},
+  {e:"❄️",t:"Cool water",tint:"#e2f0fb",b:["Cool water on your wrists or face nudges your nervous system toward calm.","A cold drink, a cool cloth — small resets count."]},
+  {e:"🚪",t:"Step outside",tint:"#ece2fb",b:["Even 2 minutes of fresh air and a wider view can reset an overwhelm spike.","A change of room counts too."]},
+  {e:"💬",t:"Text a friend",tint:"#fdeadb",b:["You don't have to carry it alone.","A small \"hey, rough moment\" is enough."]},
+];
+const REFRAMES=[
+  {e:"🦋",t:"Feelings are visitors",tint:"#e6ecfb",b:["…not residents. This one is passing through, even if it knocked loudly."]},
+  {e:"🌊",t:"This is a wave",tint:"#dcf3eb",b:["It will crest and pass. You've ridden every one so far.","Ride ~10 minutes; most urges soften if you don't feed them."]},
+  {e:"🫂",t:"Talk to yourself like a friend",tint:"#fde2f2",b:["What would you say to someone you love feeling this? Say that to you."]},
+  {e:"🌱",t:"Good enough is enough",tint:"#fdeadb",b:["You don't have to do it perfectly. Showing up softly counts.","A low-demand day is care, not falling behind."]},
+];
+function flipCard(c){
+  return `<div class="flip" data-act="flip"><div class="flip-inner">
+    <div class="flip-face" style="background:${c.tint}">
+      <div style="font-size:30px">${c.e}</div>
+      <div style="font-family:var(--display);font-size:15px;margin-top:6px">${c.t}</div>
+      <div class="label" style="margin-top:auto;padding-top:10px">tap to open →</div>
+    </div>
+    <div class="flip-face flip-back"><ul style="padding-left:16px;margin:2px 0">${c.b.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+  </div></div>`;
+}
+function viewCare(){
+  const m=state.today.mind||{}, jar=state.sentinel.joyJar||[];
+  return `
+  ${slipBanner(true)}
+  <section class="panel" style="text-align:center">
+    <div class="label">🫧 Breathing bubble</div>
+    <p class="soft" style="font-size:12px;margin:4px 0 6px">In 4 · hold 2 · out 6 — a longer exhale tells your body it's safe.</p>
+    <div class="breath-wrap"><div class="breath-bubble" id="bubble"></div><div class="breath-label" id="breathLabel">ready</div></div>
+    <button class="btn btn-grad" data-act="breath">${state.breathOn?'Stop':'Start'}</button>
+    ${PREF.calm?'<p class="soft" style="font-size:11px;margin-top:8px">Calm mode on — the bubble holds still; breathe with the words at your own pace.</p>':''}
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:4px">🌤️ Gentle check-in</div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">How's the weather inside today? No wrong answer. 🌧️→🌞</p>
+    ${scaleRow("Weather inside","mindSet","weather",m.weather,"🌧️ stormy","🌞 bright")}
+    ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+    ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
+    <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">🆘 Anxiety first-aid — tap a card</div>
+    <div class="deck">${FIRSTAID.map(flipCard).join("")}</div>
+  </section>
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">🌸 Soft reframes</div>
+    <div class="deck">${REFRAMES.map(flipCard).join("")}</div>
+  </section>
+
+  <section class="panel" style="text-align:center">
+    <div class="label">🫙 Joy jar</div>
+    <p class="soft" style="font-size:12px;margin:4px 0 8px">Pull out a little joy when you need one.</p>
+    <div class="jar-stage">
+      <svg width="120" height="130" viewBox="0 0 120 130">
+        <rect x="30" y="8" width="60" height="12" rx="4" fill="#cdb8ec"/>
+        <path d="M28 24 h64 a8 8 0 0 1 8 8 v78 a12 12 0 0 1 -12 12 h-56 a12 12 0 0 1 -12 -12 v-78 a8 8 0 0 1 8 -8 z" fill="#eef2ff" stroke="#cdd4ee" stroke-width="2"/>
+        <g class="jar-bub"><circle cx="48" cy="74" r="9" fill="#ff9ed8" opacity=".75"/></g>
+        <g class="jar-bub" style="animation-delay:-1.5s"><circle cx="72" cy="86" r="11" fill="#a98fe0" opacity=".7"/></g>
+        <g class="jar-bub" style="animation-delay:-2.8s"><circle cx="60" cy="60" r="7" fill="#9fc3e8" opacity=".8"/></g>
+      </svg>
+      <div class="joy-pick" id="joyPick">tap below to draw a joy ✿</div>
+    </div>
+    <button class="btn btn-grad" data-act="drawJoy" style="margin-top:6px">Pull a joy 🦊</button>
+    <div style="display:flex;gap:8px;margin-top:10px"><input class="inp" id="joyInput" placeholder="add your own little joy…"><button class="btn" data-act="addJoy">Add</button></div>
+    <p class="soft" style="font-size:11px;margin-top:6px">${jar.length} joys in the jar ❄️</p>
+  </section>
+  ${DISCLAIMER}`;
+}
+
+/* ===================== TRENDS ===================== */
+function buildSeries(){
+  const byDate={}; state.range.forEach(r=>byDate[r.date]=r.notes); byDate[TODAY]=state.today;
+  const days=[]; for(let i=13;i>=0;i--) days.push(dayAgo(-i));
+  const pick=(d,path)=>{ let v=byDate[d]; if(!v)return null; for(const k of path){ v=v&&v[k]; } return v==null?null:v; };
+  return { byDate, series:{
+    mood:days.map(d=>pick(d,["mind","mood"])), anxiety:days.map(d=>pick(d,["mind","anxiety"])),
+    energy:days.map(d=>pick(d,["mind","energy"])), nausea:days.map(d=>pick(d,["mounjaro","nausea"])),
+    cravings:days.map(d=>pick(d,["pcos","cravings"])), water:days.map(d=>pick(d,["mounjaro","water"])),
+    sleep:days.map(d=>pick(d,["sleep"])) } };
+}
+function patternSpotter(byDate){
+  const rows=Object.entries(byDate).filter(([d])=>d!==SENTINEL).map(([,n])=>n).filter(Boolean);
+  if(rows.length<5) return `<p class="soft" style="font-size:12.5px">A few more tracked days (about 5) and gentle patterns will start to appear here. No rush — gaps are fine. ❄️</p>`;
+  const obs=[];
+  const split=(P,Y)=>{ let hi=[],lo=[]; rows.forEach(r=>{const p=P(r),y=Y(r); if(p==null||y==null)return; (p?hi:lo).push(y);});
+    const a=z=>z.length?z.reduce((x,y)=>x+y,0)/z.length:null; return {hi:a(hi),lo:a(lo),nHi:hi.length,nLo:lo.length}; };
+  let s=split(r=>r.mounjaro&&r.mounjaro.water!=null?r.mounjaro.water>=6:null,r=>r.mounjaro?r.mounjaro.nausea:null);
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.nLo>=2&&s.hi<s.lo-0.3)obs.push("🥤 On higher-water days you noted less nausea.");
+  s=split(r=>r.mounjaro?(!!r.mounjaro.proteinMeals&&!!r.mounjaro.smallerMeals):null,r=>r.mounjaro?r.mounjaro.nausea:null);
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("🍳 Nausea ran lower on days with protein + smaller meals.");
+  s=split(r=>r.sleep!=null?r.sleep>=7:null,r=>r.mind?r.mind.mood:null);
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.nLo>=2&&s.hi>s.lo+0.3)obs.push("😴 Mood tended to be gentler after longer sleep.");
+  s=split(r=>r.mind&&r.mind.anxiety!=null?r.mind.anxiety>=3:null,r=>r.mind?r.mind.mood:null);
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("🌧️ Mood tended to dip on higher-anxiety days — those may deserve extra softness.");
+  s=split(r=>r.pcos?!!r.pcos.moved:null,r=>r.pcos?r.pcos.cravings:null);
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("🍩 Cravings were lower on days you moved your body.");
+  if(!obs.length)obs.push("Nothing jumping out yet — your logs look gently varied. That's perfectly okay. ❄️");
+  return `<ul style="padding-left:18px;font-size:13px">${obs.map(o=>`<li style="margin:6px 0">${o}</li>`).join("")}</ul>
+    <p class="soft" style="font-size:11px;margin-top:6px">Gentle observations from your own logs — patterns, not proof, and never a diagnosis. Worth a mention to your care team if something rings true. ❄️🦊</p>`;
+}
+function viewTrends(){
+  const {byDate,series}=buildSeries();
+  const rows=[["Mood",series.mood,5],["Anxiety",series.anxiety,5],["Energy",series.energy,5],
+    ["Nausea",series.nausea,5],["Cravings",series.cravings,5],["Water (cups)",series.water,10],["Sleep (hrs)",series.sleep,10]];
+  return `
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:18px">📈 Last 14 days</h2><span class="pill pill-gray">gaps = rest days</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">A gap just means a rest day from tracking — shown faint, no guilt. ❄️</p>
+    ${rows.map(([lab,arr,mx])=>{ const latest=[...arr].reverse().find(v=>v!=null);
+      return `<div class="sparkrow"><span class="lab">${lab}</span>${spark(arr,mx)}<span class="now">${latest!=null?latest:'–'}</span></div>`; }).join("")}
+  </section>
+  <section class="panel">
+    <div class="label" style="margin-bottom:6px">🔎 Gentle pattern-spotter</div>
+    ${patternSpotter(byDate)}
+  </section>
+  ${DISCLAIMER}`;
+}
+
+/* ===================== SETTINGS ===================== */
+function viewSettings(){
+  const meds=state.sentinel.medsList||[];
+  return `
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">⚙️ Comfort &amp; display</div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">However today needs to feel. Saved on this device.</p>
+    <div class="chiprow">
+      ${chiptog("Calm mode (less motion, softer colours)","pref","calm",PREF.calm)}
+      ${chiptog("Larger text","pref","text",PREF.text)}
+      ${chiptog("Focus mode (Home shows only today)","pref","focus",PREF.focus)}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">💊 Meds &amp; supplements</div>
+    ${meds.length?meds.map(m=>`<div class="listrow"><span class="grow"><b>${esc(m.name)}</b> <span class="soft" style="font-size:11.5px">${esc(m.dose||'')} ${m.time?'· '+esc(m.time):''}</span></span><button class="x" data-act="delMed" data-v="${m.id}">✕</button></div>`).join("")
+      :`<p class="soft" style="font-size:12.5px">No meds added yet.</p>`}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <input class="inp" id="medName" placeholder="name (e.g. Metformin)">
+      <input class="inp" id="medDose" placeholder="dose (e.g. 500 mg)"></div>
+    <div style="display:flex;gap:8px;margin-top:8px"><input class="inp" id="medTime" placeholder="when (e.g. morning)" style="max-width:200px"><button class="btn btn-grad" data-act="addMed">Add med</button></div>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">📝 Your details</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="field"><div class="label">Name</div><input class="inp" id="cfgName" value="${esc(CONFIG.creator.name)}"></div>
+      <div class="field"><div class="label">Greeting</div><input class="inp" id="cfgGreet" value="${esc(CONFIG.creator.greeting)}"></div>
+    </div>
+    <div class="field"><div class="label">Weight unit</div><select class="inp" id="cfgUnit"><option ${CONFIG.weightUnit==='kg'?'selected':''}>kg</option><option ${CONFIG.weightUnit==='lb'?'selected':''}>lb</option></select></div>
+    <div class="field"><div class="label">Weight display</div><select class="inp" id="cfgWdisp">
+      <option value="soft" ${CONFIG.weightDisplay==='soft'?'selected':''}>Soft / trend-first</option>
+      <option value="numbers" ${CONFIG.weightDisplay==='numbers'?'selected':''}>Numbers visible</option>
+      <option value="hidden" ${CONFIG.weightDisplay==='hidden'?'selected':''}>Hide numbers by default</option></select></div>
+    <button class="btn btn-grad" data-act="saveCfg">Save details</button>
+    <p class="soft" style="font-size:11px;margin-top:8px">For permanent changes, edit the <b>CONFIG</b> block at the top of index.html.</p>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">🎨 Palette</div>
+    <div class="chiprow">${Object.entries(CONFIG.palette).map(([k,v])=>`<div title="${k}: ${v}" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:${v}"></div>`).join("")}</div>
+    <p class="soft" style="font-size:11px;margin-top:8px">Snowfox winter: periwinkle → sakura, with lavender &amp; ice. ❄️🌸</p>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">💾 Your data</div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">It's yours. Back it up anytime.</p>
+    <button class="btn btn-grad" data-act="export">Export all my data (JSON)</button>
+    <details class="acc" style="margin-top:12px"><summary>🔒 Privacy upgrade (optional)</summary><div class="acc-body">
+      <p class="soft" style="font-size:12px">Right now this is a private, single-user app. When you're ready, you can lock it behind Supabase Auth so only you can open it — an option, never a requirement. The included <b>setup.sql</b> notes where to tighten the row-level security policy. ❄️</p></div></details>
+    <p class="soft" style="font-size:11px;margin-top:10px">${DEMO?'Running in <b>demo mode</b> — seeded sample data; changes preview this session but are not saved to a backend. Add your Supabase URL + publishable key in the CONFIG block at the top of index.html to go live.':'Connected to Supabase ✓'}</p>
+  </section>
+  ${DISCLAIMER}`;
+}
+
+/* ===================== HANDLERS ===================== */
+async function setToday(merge){ state.today=await DB.saveDaily(TODAY,n=>merge(n)); }
+async function setSent(merge){ state.sentinel=await DB.saveDaily(SENTINEL,n=>merge(n)); }
+
+const H={
+  tab(el){ setTab(el.dataset.tab); },
+  settings(){ setTab("settings"); },
+
+  async energySet(el){ await setToday(n=>({...n,energy:Number(el.dataset.v)})); render(); },
+
+  async mindSet(el){ const f=el.dataset.f,v=Number(el.dataset.v);
+    await setToday(n=>{ const mind={...(n.mind||{})}; mind[f]=v; return {...n,mind}; }); toast("saved 💗"); render(); },
+  async mindToggle(el){ const f=el.dataset.f;
+    await setToday(n=>{ const mind={...(n.mind||{})}; mind[f]=!mind[f]; return {...n,mind}; }); render(); },
+
+  async pcosSet(el){ const f=el.dataset.f,raw=el.dataset.v,v=isNaN(Number(raw))?raw:Number(raw);
+    await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[f]=v; const ex={}; if(f==="flow")ex.flow=raw; return {...n,pcos,...ex}; }); toast("saved 💗"); render(); },
+  async pcosToggle(el){ const f=el.dataset.f;
+    await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[f]=!pcos[f]; return {...n,pcos}; }); render(); },
+
+  async mjSet(el){ const f=el.dataset.f,v=Number(el.dataset.v);
+    await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=v; return {...n,mounjaro}; }); toast("saved 💗"); render(); },
+  async mjToggle(el){ const f=el.dataset.f;
+    await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=!mounjaro[f]; return {...n,mounjaro}; }); render(); },
+  async mjWater(el){ const d=Number(el.dataset.v);
+    await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro.water=Math.max(0,(mounjaro.water||0)+d); return {...n,mounjaro}; }); render(); },
+
+  async saveHelps(){ const t=$("#helpsNote").value; await setSent(n=>({...n,helps:t})); toast("saved 💗"); },
+
+  async cycleStart(){ await setSent(n=>{ const cycle={...(n.cycle||{}),lastStart:TODAY}; cycle.history=[...(cycle.history||[]),{start:TODAY,end:null,flow:state.today.flow||"med"}]; return {...n,cycle}; }); toast("logged ❄️"); render(); },
+  async cycleEnd(){ const c=state.sentinel.cycle; if(!c||!c.history||!c.history.length){ toast("log a start first"); return; }
+    await setSent(n=>{ const cycle={...n.cycle}; cycle.history=cycle.history.map((h,i)=>i===cycle.history.length-1?{...h,end:TODAY}:h); return {...n,cycle}; }); toast("logged ❄️"); render(); },
+
+  pickSite(el){ document.querySelectorAll('#siteRow .sitebtn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); $("#shotSite").value=el.dataset.v; },
+  mjAfter(el){ document.querySelectorAll('#afterField .scale button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); },
+  async logShot(){ const site=$("#shotSite").value; if(!site){ toast("pick a site first 🦊"); return; }
+    const afterEl=document.querySelector('#afterField .scale button.on');
+    const shot={ id:"i"+Date.now(), date:$("#shotDate").value||TODAY, time:$("#shotTime").value, dose:Number($("#shotDose").value),
+      site, after:afterEl?Number(afterEl.dataset.v):null, note:$("#shotNote").value };
+    await setSent(n=>{ const log=[...(n.injectionLog||[]),shot].sort((a,b)=>(a.date+a.time)<(b.date+b.time)?-1:1);
+      let dh=n.doseHistory||[]; const cur=dh.slice().sort((a,b)=>a.started<b.started?-1:1).slice(-1)[0];
+      if(!cur||cur.dose!==shot.dose) dh=[...dh,{dose:shot.dose,started:shot.date}];
+      return {...n,injectionLog:log,doseHistory:dh}; });
+    toast("shot logged ❄️"); render(); },
+  async delShot(el){ await setSent(n=>({...n,injectionLog:(n.injectionLog||[]).filter(s=>s.id!==el.dataset.v)})); render(); },
+
+  async logWeight(){ const v=parseFloat($("#wInput").value); if(isNaN(v)){ toast("enter a number"); return; }
+    await setSent(n=>({...n,weightLog:[...(n.weightLog||[]),{date:TODAY,w:v}]})); toast("logged — trend is the story ❄️"); render(); },
+  revealNum(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); const avg=rollingAvg(wl);
+    const slot=$("#numSlot"); if(slot) slot.innerHTML=`<div class="label">Rolling weekly avg</div><div class="bignum">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`; },
+  async addNSV(){ const t=$("#nsvInput").value.trim(); if(!t)return; await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t,date:TODAY}]})); toast("yay! 🌟"); render(); },
+  async delNSV(el){ await setSent(n=>({...n,nsv:(n.nsv||[]).filter(x=>x.id!==el.dataset.v)})); render(); },
+  async setMeasure(){ const v=parseFloat($("#waistInput").value); if(isNaN(v)){ toast("enter a number"); return; }
+    await setSent(n=>({...n,measurements:[...(n.measurements||[]),{date:TODAY,waist:v}]})); toast("saved ❄️"); render(); },
+
+  breath(){ state.breathOn=!state.breathOn; if(state.breathOn) startBreath(); else stopBreath(); render(); },
+  flip(el){ el.closest('.flip').classList.toggle('open'); },
+  drawJoy(){ const jar=state.sentinel.joyJar||[]; const el=$("#joyPick"); if(!jar.length){ el.textContent="add a joy first ✿"; return; }
+    el.textContent="✿ "+jar[Math.floor(Math.random()*jar.length)]+" ✿"; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); },
+  async addJoy(){ const t=$("#joyInput").value.trim(); if(!t)return; await setSent(n=>({...n,joyJar:[...(n.joyJar||[]),t]})); toast("added to the jar 🫙"); render(); },
+
+  pref(el){ const f=el.dataset.f; const cur=localStorage.getItem("mifu-"+f)==="1"; localStorage.setItem("mifu-"+f,cur?"0":"1"); applyPrefs(); render(); },
+  async addMed(){ const name=$("#medName").value.trim(); if(!name){ toast("name needed"); return; }
+    await setSent(n=>({...n,medsList:[...(n.medsList||[]),{id:"m"+Date.now(),name,dose:$("#medDose").value.trim(),time:$("#medTime").value.trim()}]})); toast("added 💊"); render(); },
+  async delMed(el){ await setSent(n=>({...n,medsList:(n.medsList||[]).filter(m=>m.id!==el.dataset.v)})); render(); },
+  saveCfg(){ CONFIG.creator.name=$("#cfgName").value||CONFIG.creator.name; CONFIG.creator.greeting=$("#cfgGreet").value||CONFIG.creator.greeting;
+    CONFIG.weightUnit=$("#cfgUnit").value; CONFIG.weightDisplay=$("#cfgWdisp").value; toast("details saved ✿"); render(); },
+  async export(){ const rows=await DB.exportAll(); const blob=new Blob([JSON.stringify(rows,null,2)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="mifuyu-health-backup-"+TODAY+".json"; a.click(); toast("backup downloaded 💾"); },
+
+  async capSticky(){ const inp=$("#capInput"); const t=(inp.value||"").trim(); if(!t)return; await addSticky(t); inp.value=""; toast("on a sticky 🗒️"); },
+  async addSticky(){ await addSticky(""); },
+  async toggleRest(){ toggleRest(); },
+};
+document.addEventListener("click",async e=>{ const el=e.target.closest("[data-act]"); if(!el)return; const fn=H[el.dataset.act];
+  if(fn){ try{ await fn(el); }catch(err){ console.error(err); toast("hmm, try again"); } } });
+
+/* ===================== BREATHING (JS paced) ===================== */
+let breathRAF=null;
+function startBreath(){
+  const bub=$("#bubble"), lab=$("#breathLabel"); if(!bub)return;
+  if(PREF.calm){ // static: just cycle the words
+    let phase=0; const words=["breathe in… (4)","hold… (2)","breathe out… (6)"]; const durs=[4000,2000,6000];
+    lab.textContent=words[0]; let t=0;
+    breathRAF=setInterval(()=>{ phase=(phase+1)%3; lab.textContent=words[phase]; },4000); return;
+  }
+  const IN=4000,HOLD=2000,OUT=6000,CYCLE=IN+HOLD+OUT, MIN=.62,MAX=1.18;
+  const t0=performance.now();
+  function frame(now){
+    const t=(now-t0)%CYCLE; let scale,word;
+    if(t<IN){ scale=MIN+(MAX-MIN)*(t/IN); word="breathe in…"; }
+    else if(t<IN+HOLD){ scale=MAX; word="hold…"; }
+    else { const o=(t-IN-HOLD)/OUT; scale=MAX-(MAX-MIN)*o; word="breathe out…"; }
+    bub.style.transform="scale("+scale.toFixed(3)+")"; lab.textContent=word;
+    breathRAF=requestAnimationFrame(frame);
+  }
+  breathRAF=requestAnimationFrame(frame);
+}
+function stopBreath(){ if(breathRAF){ cancelAnimationFrame(breathRAF); clearInterval(breathRAF); breathRAF=null; }
+  const bub=$("#bubble"),lab=$("#breathLabel"); if(bub)bub.style.transform="scale(.72)"; if(lab)lab.textContent="ready"; }
+
+/* ===================== STICKY NOTES ===================== */
+const STICKY_COLORS=["#fde2f2","#e6ecfb","#dcf3eb","#e2f0fb","#ece2fb","#fdeadb"];
+async function addSticky(text){
+  const note={ id:"sk"+Date.now(), text:text||"", color:STICKY_COLORS[Math.floor(Math.random()*STICKY_COLORS.length)],
+    x:0.30+Math.random()*0.4, y:0.30+Math.random()*0.3 };
+  await setSent(n=>({...n,stickies:[...(n.stickies||[]),note]})); renderStickies();
+}
+function renderStickies(){
+  const layer=$("#stickyLayer"); if(!layer)return;
+  const list=state.sentinel.stickies||[];
+  layer.innerHTML=list.map(s=>{ const left=Math.round((s.x||0.5)*Math.max(0,window.innerWidth-190));
+    const top=Math.round((s.y||0.4)*Math.max(0,window.innerHeight-150));
+    return `<div class="sticky" data-id="${s.id}" style="left:${left}px;top:${top}px;background:${s.color}">
+      <div class="sticky-head" data-drag="${s.id}"><button class="sticky-x" data-stx="${s.id}">✕</button></div>
+      <textarea data-sttext="${s.id}" placeholder="…">${esc(s.text)}</textarea></div>`; }).join("");
+  // wire events
+  layer.querySelectorAll('[data-stx]').forEach(b=>b.onclick=async()=>{ const id=b.dataset.stx;
+    await setSent(n=>({...n,stickies:(n.stickies||[]).filter(x=>x.id!==id)})); renderStickies(); });
+  layer.querySelectorAll('[data-sttext]').forEach(t=>{ t.onchange=async()=>{ const id=t.dataset.sttext;
+    await setSent(n=>({...n,stickies:(n.stickies||[]).map(x=>x.id===id?{...x,text:t.value}:x)})); }; });
+  layer.querySelectorAll('[data-drag]').forEach(h=>{ h.onpointerdown=ev=>startDrag(ev,h.dataset.drag); });
+}
+let dragInfo=null;
+function startDrag(ev,id){ ev.preventDefault(); const el=ev.target.closest('.sticky');
+  dragInfo={ id, el, dx:ev.clientX-el.offsetLeft, dy:ev.clientY-el.offsetTop };
+  window.addEventListener('pointermove',onDrag); window.addEventListener('pointerup',endDrag,{once:true}); }
+function onDrag(ev){ if(!dragInfo)return; let x=ev.clientX-dragInfo.dx, y=ev.clientY-dragInfo.dy;
+  x=Math.max(0,Math.min(x,window.innerWidth-190)); y=Math.max(0,Math.min(y,window.innerHeight-150));
+  dragInfo.el.style.left=x+"px"; dragInfo.el.style.top=y+"px"; }
+async function endDrag(){ window.removeEventListener('pointermove',onDrag); if(!dragInfo)return;
+  const el=dragInfo.el, id=dragInfo.id; const x=el.offsetLeft/Math.max(1,window.innerWidth-190), y=el.offsetTop/Math.max(1,window.innerHeight-150);
+  await setSent(n=>({...n,stickies:(n.stickies||[]).map(s=>s.id===id?{...s,x,y}:s)})); dragInfo=null; }
+window.addEventListener('resize',()=>renderStickies());
+
+/* ===================== REST / BREATHING TIMER ===================== */
+let restState={open:false,secs:300,total:300,running:false,iv:null};
+function toggleRest(){ restState.open=!restState.open; $("#restWidget").classList.toggle("hidden",!restState.open); if(restState.open) drawRest(); }
+function drawRest(){
+  const w=$("#restWidget"); const mm=String(Math.floor(restState.secs/60)).padStart(2,'0'), ss=String(restState.secs%60).padStart(2,'0');
+  const pct=restState.total?(1-restState.secs/restState.total):0; const R=42,C=2*Math.PI*R;
+  w.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="label">A soft rest 🫧</span><button class="x" data-rclose>✕</button></div>
+    <svg width="110" height="110" viewBox="0 0 110 110" style="display:block;margin:6px auto">
+      <circle cx="55" cy="55" r="${R}" fill="none" stroke="#eee5f3" stroke-width="8"/>
+      <circle cx="55" cy="55" r="${R}" fill="none" stroke="url(#rg)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${(C*(1-pct)).toFixed(1)}" transform="rotate(-90 55 55)"/>
+      <defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#758ac6"/><stop offset="1" stop-color="#ff9ed8"/></linearGradient></defs></svg>
+    <div class="ring-time">${mm}:${ss}</div>
+    <div class="seg" style="margin:8px auto 6px;justify-content:center;display:flex">${[5,15,25].map(m=>`<button data-rest="${m}" class="${restState.total===m*60?'on':''}">${m}m</button>`).join("")}</div>
+    <div style="display:flex;gap:6px;justify-content:center"><button class="btn btn-grad" data-restact="toggle">${restState.running?'Pause':'Start'}</button><button class="btn" data-restact="reset">Reset</button></div>
+    <p class="soft" style="font-size:10.5px;text-align:center;margin:8px 0 0">No goal but rest. Stop whenever. ❄️</p>`;
+  w.querySelectorAll('[data-rest]').forEach(b=>b.onclick=()=>{ const m=Number(b.dataset.rest); restState.total=m*60; restState.secs=m*60; restState.running=false; clearInterval(restState.iv); drawRest(); });
+  w.querySelectorAll('[data-restact]').forEach(b=>b.onclick=()=>{ const a=b.dataset.restact;
+    if(a==="reset"){ restState.secs=restState.total; restState.running=false; clearInterval(restState.iv); }
+    else { restState.running=!restState.running; clearInterval(restState.iv);
+      if(restState.running) restState.iv=setInterval(()=>{ restState.secs=Math.max(0,restState.secs-1); if(restState.secs===0){ restState.running=false; clearInterval(restState.iv); toast("rest done — well done 🦊"); } drawRest(); },1000); }
+    drawRest(); });
+  w.querySelectorAll('[data-rclose]').forEach(b=>b.onclick=()=>toggleRest());
+}
+
+/* ===================== BOOT ===================== */
+// Safety net: surface any uncaught runtime error on-screen instead of a blank page.
+window.addEventListener('error',ev=>{ const v=document.getElementById('view');
+  if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p><p class="soft" style="font-size:11px">Screenshot this for me and I’ll fix it.</p></div>'; } });
+window.addEventListener('unhandledrejection',ev=>{ const v=document.getElementById('view');
+  if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc((ev.reason&&ev.reason.message)||ev.reason||'unknown')+'</p></div>'; } });
+applyPrefs();
+render();
