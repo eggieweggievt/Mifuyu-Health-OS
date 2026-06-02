@@ -202,7 +202,10 @@ const CONFIG = {
   weightUnit:"kg",
   weightDisplay:"soft", // soft | numbers | hidden
   aiFn:"ai",            // Supabase Edge Function name powering the Optimize tab (keys live there, never here)
-  youtube:{ handle:"@mifuyu", url:"https://youtube.com/@mifuyu" },
+  youtube:{ handle:"@mifuyu", url:"https://youtube.com/@mifuyu", channelId:"" },
+  platforms:{ youtube:"YouTube", tiktok:"TikTok", instagram:"Instagram", twitter:"X", twitch:"Twitch" },
+  // Pasted verbatim into generated descriptions — edit freely.
+  descFooter: "🔗 Find me everywhere:\n▸ Twitch: https://twitch.tv/mifuyu\n▸ YouTube: https://youtube.com/@mifuyu\n▸ Discord: https://discord.gg/mifuyu\n▸ X / TikTok / Instagram: @mifuyuvt\n\n💜 GamerSupps — code MIFUYU for 10% off: https://gamersupps.gg/mifuyu",
   socials:[ ["Twitch","https://twitch.tv/mifuyu"],["YouTube","https://youtube.com/@mifuyu"],
             ["X","https://x.com/mifuyuvt"],["TikTok","https://www.tiktok.com/@mifuyuvt"],
             ["Instagram","https://www.instagram.com/mifuyuvt"],["Bluesky","https://bsky.app/profile/mifuyuvt.bsky.social"],
@@ -324,7 +327,7 @@ function applyPrefs(){
   document.body.classList.toggle("text-lg",PREF.text);
 }
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all" };
-const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumbRead:null }; // Optimize tab
+const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
 const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
@@ -902,75 +905,83 @@ function viewPlanner(){
   ${DISCLAIMER}`;
 }
 
-/* ===================== OPTIMIZE (YouTube + AI, via Edge Function) ===================== */
-const OPT_FORMATS=["Long form","Short form","Community / X post"];
-const OPT_PLATFORMS=["YouTube","TikTok","Instagram","X","Twitch"];
+/* ===================== OPTIMIZE (calls the "ai" Edge Function brain) ===================== */
+const OPT_FORMATS=[["long","Long form"],["short","Short form"],["twitter","Community / X post"]];
+const OPT_PLATFORMS=[["youtube","YouTube"],["tiktok","TikTok"],["instagram","Instagram"],["twitter","X"],["twitch","Twitch"]];
 const oval=id=>{ const e=document.getElementById(id); return e?e.value.trim():""; };
-async function aiCall(mode,payload){
+async function aiCall(mode,input,vidiq){
   if(!SB) throw new Error("This needs live mode — connect Supabase first.");
-  const { data, error } = await SB.functions.invoke(CONFIG.aiFn, { body:{ mode, ...(payload||{}) } });
+  const { data, error } = await SB.functions.invoke(CONFIG.aiFn, { body:{ mode, input:input||{}, userId:CONFIG.userId, vidiq:vidiq||null } });
   if(error) throw new Error(error.message||"AI helper error");
   if(data && data.error) throw new Error(data.error);
   return data;
 }
-function copyBox(id,text){
-  return `<textarea class="inp" id="${id}" rows="7" readonly style="font-size:12px">${esc(text)}</textarea>
-    <button class="btn" data-act="copyBox" data-v="${id}" style="margin-top:6px">📋 Copy</button>`;
-}
 function scoreColor(s){ return s>=75?'#3a9d83':s>=50?'var(--peri-deep)':'var(--sakura-deep)'; }
+/* copy: pull text from OPT result by key (no huge strings in attributes) */
+function optCopy(k){
+  const v=OPT.video||{}, s=OPT.stream||{};
+  const m={ vtitles:(v.titles||[]).join("\n"), vtags:(v.tags||[]).join(", "), vhash:(v.hashtags||[]).join(" "), vdesc:v.description||"",
+    stitles:(s.titles||[]).join("\n"), stags:(s.tags||[]).join(", "), shash:(s.hashtags||[]).join(" "), sdesc:s.description||"",
+    twitch:s.twitchTitle||"", twitter:s.twitterTitle||"" };
+  return m[k]||"";
+}
+function copyBtn(k,label){ return `<button class="btn" data-act="copyText" data-k="${k}" style="margin-top:6px">📋 ${label||'Copy'}</button>`; }
+function hashChips(hs){ const arr=Array.isArray(hs)?hs:[]; return `<div class="chiprow">${arr.map((h,i)=>`<span class="pill ${i===0?'pill-mint':i<3?'pill-lav':'pill-sak'}">${esc(h)}</span>`).join("")}</div>`; }
 function optVideoForm(){
   return `<p class="soft" style="font-size:12px;margin:6px 0 10px">Title score, stronger titles, tags, 1S/2M/2L hashtags, and a full description — in your voice. ✨</p>
   <div class="field"><div class="label">Title / working title</div><input class="inp" id="ovTitle" placeholder="e.g. I tried VTubing on a $0 budget"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-    <div class="field"><div class="label">Format</div><select class="inp" id="ovFormat">${OPT_FORMATS.map(l=>`<option>${l}</option>`).join("")}</select></div>
-    <div class="field"><div class="label">Platform</div><select class="inp" id="ovPlatform">${OPT_PLATFORMS.map(l=>`<option>${l}</option>`).join("")}</select></div>
+    <div class="field"><div class="label">Format</div><select class="inp" id="ovFormat">${OPT_FORMATS.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select></div>
+    <div class="field"><div class="label">Platform</div><select class="inp" id="ovPlatform">${OPT_PLATFORMS.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select></div>
   </div>
   <div class="field"><div class="label">What's it about? (topic, hook, key points)</div><textarea class="inp" id="ovAbout" placeholder="the angle, what happens, who it's for…"></textarea></div>
   <button class="btn btn-grad" data-act="optVideo" ${OPT.busy==='video'?'disabled':''}>${OPT.busy==='video'?'optimizing…':'✨ optimize'}</button>`;
 }
 function optStreamForm(){
-  return `<p class="soft" style="font-size:12px;margin:6px 0 10px">Stream titles (your format + the game), a ready-to-paste description with your links, tags, and a going-live post. ✨</p>
+  return `<p class="soft" style="font-size:12px;margin:6px 0 10px">Stream titles (your style + the game), a ready-to-paste description with your links, YouTube + Twitch + X titles, tags & hashtags. ✨</p>
   <div class="field"><div class="label">Game / stream focus</div><input class="inp" id="osGame" placeholder="e.g. Elden Ring DLC — first deathless attempt"></div>
   <div class="field"><div class="label">Drops?</div><div class="chiprow"><button class="chiptog ${OPT.drops?'on':''}" data-act="optDrops"><span>${OPT.drops?'✓':'＋'}</span>Drops active</button></div></div>
   <div class="field"><div class="label">Anything special this stream? (vibe, goal, milestone)</div><textarea class="inp" id="osSpecial" placeholder="subathon, first playthrough, chill vibes, charity goal…"></textarea></div>
   <button class="btn btn-grad" data-act="optStream" ${OPT.busy==='stream'?'disabled':''}>${OPT.busy==='stream'?'optimizing…':'✨ optimize'}</button>`;
 }
+function titleList(arr){ return `<ul style="padding-left:18px;font-size:13px;margin:4px 0">${(arr||[]).map(t=>`<li style="margin:5px 0">${esc(t)}</li>`).join("")}</ul>`; }
 function optVideoResult(r){
-  const hs=r.hashtags||{};
   return `<section class="panel">
-    <div class="card-head"><span class="label">✨ Optimized</span>${r.score!=null?`<span class="pill" style="background:#eef0fa;color:${scoreColor(r.score)};font-size:13px">Title score ${r.score}/100</span>`:''}</div>
-    ${r.scoreNote?`<p class="soft" style="font-size:12px;margin:0 0 8px">${esc(r.scoreNote)}</p>`:''}
-    <div class="label" style="margin:6px 0 4px">Stronger titles</div>
-    <ul style="padding-left:18px;font-size:13px">${(r.titles||[]).map(t=>`<li style="margin:5px 0">${esc(t)}</li>`).join("")}</ul>
-    <div class="label" style="margin:12px 0 4px">Tags</div><div class="soft" style="font-size:12px">${(r.tags||[]).map(esc).join(", ")}</div>
-    <div class="label" style="margin:12px 0 4px">Hashtags</div><div class="chiprow">
-      ${(hs.small||[]).map(h=>`<span class="pill pill-mint">${esc(h)} · niche</span>`).join("")}
-      ${(hs.medium||[]).map(h=>`<span class="pill pill-lav">${esc(h)} · mid</span>`).join("")}
-      ${(hs.large||[]).map(h=>`<span class="pill pill-sak">${esc(h)} · big</span>`).join("")}</div>
-    <div class="label" style="margin:12px 0 4px">Description</div>${copyBox("ovDesc", r.description||"")}
+    <div class="card-head"><span class="label">✨ Optimized</span>${r.titleScore!=null?`<span class="pill" style="background:#eef0fa;color:${scoreColor(r.titleScore)};font-size:13px">Title score ${r.titleScore}/100</span>`:''}</div>
+    ${r.titleWhy?`<p class="soft" style="font-size:12px;margin:0 0 8px">${esc(r.titleWhy)}</p>`:''}
+    <div class="label" style="margin:6px 0 2px">Stronger titles ${copyBtn('vtitles','copy')}</div>${titleList(r.titles)}
+    <div class="label" style="margin:12px 0 2px">YouTube tags ${copyBtn('vtags','copy')}</div><div class="soft" style="font-size:12px">${(r.tags||[]).map(esc).join(", ")}</div>
+    <div class="label" style="margin:12px 0 4px">Hashtags ${copyBtn('vhash','copy')}</div>${hashChips(r.hashtags)}
+    <div class="label" style="margin:12px 0 4px">Description ${copyBtn('vdesc','copy')}</div>
+    <div class="soft-card" style="font-size:12px;white-space:pre-wrap">${esc(r.description||"")}</div>
   </section>`;
 }
 function optStreamResult(r){
   return `<section class="panel">
-    <div class="label" style="margin-bottom:4px">✨ Stream titles</div>
-    <ul style="padding-left:18px;font-size:13px">${(r.titles||[]).map(t=>`<li style="margin:5px 0">${esc(t)}</li>`).join("")}</ul>
-    ${r.goingLive?`<div class="label" style="margin:12px 0 4px">Going-live post</div><div class="soft-card" style="font-size:13px">${esc(r.goingLive)}</div>`:''}
-    <div class="label" style="margin:12px 0 4px">Tags</div><div class="soft" style="font-size:12px">${(r.tags||[]).map(esc).join(", ")}</div>
-    <div class="label" style="margin:12px 0 4px">Description</div>${copyBox("osDesc", r.description||"")}
+    <div class="label" style="margin-bottom:2px">✨ YouTube stream titles ${copyBtn('stitles','copy')}</div>${titleList(r.titles)}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <div class="soft-card"><div class="label">Twitch title ${copyBtn('twitch','copy')}</div><div style="font-size:12.5px;margin-top:4px">${esc(r.twitchTitle||"")}</div></div>
+      <div class="soft-card"><div class="label">X / Twitter title ${copyBtn('twitter','copy')}</div><div style="font-size:12.5px;margin-top:4px">${esc(r.twitterTitle||"")}</div></div>
+    </div>
+    <div class="label" style="margin:12px 0 4px">Hashtags ${copyBtn('shash','copy')}</div>${hashChips(r.hashtags)}
+    <div class="label" style="margin:12px 0 2px">Tags ${copyBtn('stags','copy')}</div><div class="soft" style="font-size:12px">${(r.tags||[]).map(esc).join(", ")}</div>
+    ${(r.tips||[]).length?`<div class="label" style="margin:12px 0 4px">Tips 🦊</div><ul style="padding-left:18px;font-size:12.5px">${(r.tips||[]).map(t=>`<li style="margin:4px 0">${esc(t)}</li>`).join("")}</ul>`:''}
+    <div class="label" style="margin:12px 0 4px">Description ${copyBtn('sdesc','copy')}</div>
+    <div class="soft-card" style="font-size:12px;white-space:pre-wrap">${esc(r.description||"")}</div>
   </section>`;
 }
-function channelBlock(ch){
+function channelBlock(sn){
   return `<div class="soft-card" style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px">
-      <div><div class="label">Subscribers</div><div class="bignum">${Number(ch.subs||0).toLocaleString()}</div></div>
-      <div><div class="label">Total views</div><div class="bignum">${Number(ch.views||0).toLocaleString()}</div></div>
-      <div><div class="label">Videos</div><div class="bignum">${Number(ch.videos||0).toLocaleString()}</div></div></div>
-    ${(ch.recent||[]).length?`<div style="margin-top:10px">${ch.recent.map(r=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(r.title)}</span><span class="soft" style="font-size:11px">${Number(r.views||0).toLocaleString()} views</span></div>`).join("")}</div>`:''}`;
+      <div><div class="label">Subscribers</div><div class="bignum">${Number(sn.subscribers||0).toLocaleString()}</div></div>
+      <div><div class="label">Total views</div><div class="bignum">${Number(sn.views||0).toLocaleString()}</div></div>
+      <div><div class="label">Videos</div><div class="bignum">${Number(sn.videos||0).toLocaleString()}</div></div></div>
+    ${(sn.recent||[]).length?`<div style="margin-top:10px">${sn.recent.map(r=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(r.title)}</span><span class="soft" style="font-size:11px">${r.views!=null?Number(r.views).toLocaleString()+' views':''}</span></div>`).join("")}</div>`:''}`;
 }
 function thumbCard(){
-  const d=OPT.thumbData;
+  const d=OPT.thumbData, t=OPT.thumb;
   return `<section class="panel">
-    <div class="label" style="margin-bottom:6px">🖼️ Thumbnail check</div>
-    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Upload your thumbnail — see it at real feed sizes and get a click-potential read.</p>
+    <div class="card-head"><span class="label">🖼️ Thumbnail check</span>${t&&t.score!=null?`<span class="pill" style="background:#eef0fa;color:${scoreColor(t.score)};font-size:13px">${t.score}/100</span>`:''}</div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Upload your thumbnail — see it at real feed sizes and get a vidIQ-style click read.</p>
     <input class="inp" type="file" id="thumbFile" accept="image/*">
     ${d?`<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px">
         <div><img src="${d}" style="width:246px;height:138px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"><div class="label" style="text-align:center;margin-top:3px">grid 246×138</div></div>
@@ -978,7 +989,11 @@ function thumbCard(){
         <div><img src="${d}" style="width:120px;height:68px;object-fit:cover;border-radius:7px;border:1px solid var(--line)"><div class="label" style="text-align:center;margin-top:3px">mobile 120×68</div></div>
       </div>
       <button class="btn btn-grad" data-act="thumbCheck" style="margin-top:10px" ${OPT.busy==='thumb'?'disabled':''}>${OPT.busy==='thumb'?'reading…':'📈 check thumbnail'}</button>`:''}
-    ${OPT.thumbRead?`<div class="soft-card" style="margin-top:10px;font-size:12.5px;white-space:pre-wrap">${esc(OPT.thumbRead)}</div>`:''}
+    ${t?`<div class="soft-card" style="margin-top:10px;font-size:12.5px">
+        ${t.verdict?`<p style="margin:0 0 6px">${esc(t.verdict)}</p>`:''}
+        ${(t.strengths||[]).length?`<div class="label" style="color:#3a9d83">Working</div><ul style="padding-left:16px;margin:2px 0 8px">${t.strengths.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:''}
+        ${(t.improvements||[]).length?`<div class="label" style="color:var(--sakura-deep)">Tweak</div><ul style="padding-left:16px;margin:2px 0">${t.improvements.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:''}
+      </div>`:''}
   </section>`;
 }
 function viewOptimize(){
@@ -991,6 +1006,9 @@ function viewOptimize(){
         <button data-act="optMode" data-v="stream" class="${m==='stream'?'on':''}">🔴 Livestream</button>
       </div></div>
     ${m==='video'?optVideoForm():optStreamForm()}
+    <details class="acc" style="margin-top:10px"><summary>➕ Paste VidIQ data (optional)</summary><div class="acc-body">
+      <p class="soft" style="font-size:11px;margin:0 0 6px">VidIQ has no public API, so the engine bakes vidIQ-style judgment into the prompt. If you looked something up in VidIQ, paste it here and it'll be folded in.</p>
+      <textarea class="inp" id="optVidiq" placeholder="paste VidIQ keyword/score data… (optional)"></textarea></div></details>
     ${DEMO?`<div class="disc" style="margin-top:10px">${CONFIG.creator.snow}<span>The AI helper runs in <b>live</b> mode once the <b>ai</b> Edge Function is deployed (deploy-ai.ps1). ❄️</span></div>`:''}
   </section>
   ${OPT.err?`<div class="disc">⚠️<span>${esc(OPT.err)}</span></div>`:''}
@@ -1106,16 +1124,20 @@ const H={
   // --- Optimize ---
   optMode(el){ OPT.mode=el.dataset.v; OPT.err=""; render(); },
   optDrops(){ OPT.drops=!OPT.drops; render(); },
-  async optChannel(){ OPT.busy="channel"; OPT.err=""; render(); try{ OPT.channel=await aiCall("channel",{}); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
-  async optVideo(){ const title=oval("ovTitle"),about=oval("ovAbout"); if(!title&&!about){ toast("add a title or topic first"); return; }
-    OPT.busy="video"; OPT.err=""; render(); try{ OPT.video=await aiCall("video",{title,format:oval("ovFormat"),platform:oval("ovPlatform"),about}); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
-  async optStream(){ const game=oval("osGame"); if(!game){ toast("name the game/focus first"); return; }
-    const special=(OPT.drops?"DROPS ARE ACTIVE. ":"")+oval("osSpecial");
-    OPT.busy="stream"; OPT.err=""; render(); try{ OPT.stream=await aiCall("stream",{game,special}); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async optChannel(){ OPT.busy="channel"; OPT.err=""; render(); try{ const d=await aiCall("channelSnapshot",{handle:CONFIG.youtube.handle,channelId:CONFIG.youtube.channelId}); OPT.channel=d.snapshot||d; }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async optVideo(){ const title=oval("ovTitle"),topic=oval("ovAbout"),format=oval("ovFormat"),platform=oval("ovPlatform"),vidiq=oval("optVidiq");
+    if(!title&&!topic){ toast("add a title or topic first"); return; }
+    OPT.busy="video"; OPT.err=""; render();
+    try{ OPT.video=await aiCall("optimize",{kind:"video",title,format,platform,topic,footer:CONFIG.descFooter}, vidiq||null); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async optStream(){ const game=oval("osGame"),special=oval("osSpecial"),vidiq=oval("optVidiq"); if(!game){ toast("name the game/focus first"); return; }
+    const topic=(OPT.drops?"DROPS ARE ACTIVE. ":"")+special;
+    OPT.busy="stream"; OPT.err=""; render();
+    try{ OPT.stream=await aiCall("optimize",{kind:"livestream",title:game,topic,footer:CONFIG.descFooter}, vidiq||null); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
   async thumbCheck(){ if(!OPT.thumbData){ toast("upload a thumbnail first"); return; }
-    OPT.busy="thumb"; OPT.err=""; render(); try{ const d=await aiCall("thumbnail",{image:OPT.thumbData,kind:OPT.mode}); OPT.thumbRead=d.read; }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
-  copyBox(el){ const t=document.getElementById(el.dataset.v); if(!t)return; const ok=()=>toast("copied 📋");
-    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t.value).then(ok,()=>{t.select();document.execCommand('copy');ok();}); } else { t.select(); document.execCommand('copy'); ok(); } },
+    const title=oval("ovTitle")||oval("osGame");
+    OPT.busy="thumb"; OPT.err=""; render(); try{ OPT.thumb=await aiCall("thumbnail",{image:OPT.thumbData,title}); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  copyText(el){ const t=optCopy(el.dataset.k); const ok=()=>toast("copied 📋");
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(ok,()=>ok()); } else { ok(); } },
 };
 async function addSub(taskId,text){ text=(text||"").trim(); if(!text) return;
   await setSent(n=>({...n,tasks:(n.tasks||[]).map(t=>t.id===taskId?{...t,sub:[...(t.sub||[]),{id:"s"+Date.now(),text,done:false}]}:t)})); render(); }
@@ -1132,7 +1154,7 @@ document.addEventListener("change",e=>{
   if(t.id==="thumbFile"){
     const f=t.files&&t.files[0]; if(!f) return;
     if(f.size>4*1024*1024){ toast("image a bit big — try under 4MB"); return; }
-    const r=new FileReader(); r.onload=()=>{ OPT.thumbData=r.result; OPT.thumbRead=null; render(); }; r.readAsDataURL(f);
+    const r=new FileReader(); r.onload=()=>{ OPT.thumbData=r.result; OPT.thumb=null; render(); }; r.readAsDataURL(f);
   } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value;
     setSent(n=>({...n,schedule:(n.schedule||[]).map(r=>r.id===id?{...r,[k]:v}:r)})); // fire-and-forget; no re-render mid-edit
   }
