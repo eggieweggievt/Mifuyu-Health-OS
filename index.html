@@ -1,16 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mifuyu Health OS ❄️🦊</title>
+<title>Mifuyu Health OS â„ï¸ðŸ¦Š</title>
 <link rel="icon" type="image/png" href="snowflake.png" />
 <link rel="apple-touch-icon" href="Film_YCH_20260424215925.png" />
 <!-- =========================================================================
-  Mifuyu Health OS — a gentle, private snowfox health companion for Mifu 🦊❄️
-  PCOS patterns · Mounjaro (tirzepatide) journey · weight (trend-first) ·
-  mental-health Care tools · gentle pattern-spotter. NOT a medical device.
-  Self-tracking, not diagnosis — her care team's plan always comes first.
+  Mifuyu Health OS â€” a gentle, private snowfox health companion for Mifu ðŸ¦Šâ„ï¸
+  PCOS patterns Â· Mounjaro (tirzepatide) journey Â· weight (trend-first) Â·
+  mental-health Care tools Â· gentle pattern-spotter. NOT a medical device.
+  Self-tracking, not diagnosis â€” her care team's plan always comes first.
 
   CONFIGURE: paste your Supabase URL + publishable key in CONFIG below, then
   run setup.sql. Leave blank to run in demo mode (seeded, instant).
@@ -111,7 +111,7 @@
   details.acc{border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden;}
   details.acc>summary{list-style:none;cursor:pointer;padding:13px 16px;font-family:var(--display);font-size:15px;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px;}
   details.acc>summary::-webkit-details-marker{display:none;}
-  details.acc>summary::after{content:"▸";color:var(--muted);transition:transform .2s;}
+  details.acc>summary::after{content:"â–¸";color:var(--muted);transition:transform .2s;}
   details.acc[open]>summary::after{transform:rotate(90deg);}
   details.acc>.acc-body{padding:2px 16px 16px;}
   /* care: breathing bubble */
@@ -157,8 +157,8 @@
     <nav id="nav"></nav>
   </div>
   <div class="right">
-    <span id="status" class="chip">…</span>
-    <button class="chip" data-act="settings" title="Comfort &amp; display">⚙️</button>
+    <span id="status" class="chip">â€¦</span>
+    <button class="chip" data-act="settings" title="Comfort &amp; display">âš™ï¸</button>
     <span class="avatar"><img src="Film_YCH_20260424215925.png" alt="Mifu" /></span>
   </div>
 </div>
@@ -166,25 +166,25 @@
 <div id="toast" class="toast"></div>
 <div id="modal"></div>
 <div id="stickyLayer"></div>
-<button id="addStickyBtn" data-act="addSticky" title="New sticky note">🗒️+</button>
-<button id="restBtn" data-act="toggleRest" title="Breathing &amp; rest timer">🫧</button>
+<button id="addStickyBtn" data-act="addSticky" title="New sticky note">ðŸ—’ï¸+</button>
+<button id="restBtn" data-act="toggleRest" title="Breathing &amp; rest timer">ðŸ«§</button>
 <div id="restWidget" class="hidden"></div>
 
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
 const CONFIG = {
-  url: "",          // Supabase project URL — blank = demo mode
-  anonKey: "",      // sb_publishable_... — blank = demo mode
+  url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL â€” blank = demo mode
+  anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE",      // sb_publishable_... â€” blank = demo mode
   userId: "mifuyu",
   creator: {
-    name:"Mifu", fullName:"Yukitsune Mifuyu", emoji:"🦊", snow:"❄️",
+    name:"Mifu", fullName:"Yukitsune Mifuyu", emoji:"ðŸ¦Š", snow:"â„ï¸",
     greeting:"Konfuyu~!", pronouns:"she/they",
     tagline:"your cute and chaotic Snowfox Shrine maiden",
   },
   palette:{ periwinkle:"#758ac6", blueLav:"#99a6d5", sakura:"#ff9ed8", orchid:"#c8a8ca",
             lavender:"#a98fe0", ice:"#f4f8ff", ink:"#3a3550", ringFrom:"#758ac6", ringTo:"#ff9ed8" },
-  // Mounjaro reference (display/tracking only — NOT advice):
+  // Mounjaro reference (display/tracking only â€” NOT advice):
   mounjaro:{ doses:[2.5,5,7.5,10,12.5,15], maxDose:15, minWeeksBetweenIncreases:4,
              sites:["L abdomen","R abdomen","L thigh","R thigh","L upper arm","R upper arm"] },
   weightUnit:"kg",
@@ -239,14 +239,14 @@ function seedDemo(){
     weightLog:[ {date:dayAgo(-42),w:84.6},{date:dayAgo(-35),w:84.1},{date:dayAgo(-28),w:83.2},
       {date:dayAgo(-21),w:82.7},{date:dayAgo(-14),w:82.0},{date:dayAgo(-7),w:81.4},{date:TODAY,w:80.9} ],
     measurements:[ {date:dayAgo(-28),waist:88},{date:TODAY,waist:85} ],
-    nsv:[ {id:"n1",t:"Climbed the shrine steps without stopping ⛩️",date:dayAgo(-5)},
+    nsv:[ {id:"n1",t:"Climbed the shrine steps without stopping â›©ï¸",date:dayAgo(-5)},
       {id:"n2",t:"Cravings were quiet all afternoon",date:dayAgo(-2)} ],
     cycle:{ lastStart:dayAgo(-39), history:[{start:dayAgo(-39),end:dayAgo(-34),flow:"med"}] },
     joyJar:["a warm cup of hojicha","fox plushie cuddle","cozy game + soft blanket","slow morning, no alarm",
             "snow falling outside the window","a favourite comfort song","stretch + sunshine","draw something silly"],
     helps:"Warm shower, hojicha, lo-fi, and a 10-min walk usually resets me. Protein breakfast = calmer day.",
-    stickies:[ {id:"sk1",text:"refill Mounjaro pen before Fri ❄️",color:"#fde2f2",x:0.62,y:0.30},
-               {id:"sk2",text:"ask Dr about cycle gap 🦊",color:"#e6ecfb",x:0.72,y:0.50} ],
+    stickies:[ {id:"sk1",text:"refill Mounjaro pen before Fri â„ï¸",color:"#fde2f2",x:0.62,y:0.30},
+               {id:"sk2",text:"ask Dr about cycle gap ðŸ¦Š",color:"#e6ecfb",x:0.72,y:0.50} ],
     appConfig:{},
   };
   return daily;
@@ -291,12 +291,12 @@ function applyPrefs(){
 }
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false };
 
-const TABS=[["home","🏠 Home"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","ðŸ  Home"],["pcos","â„ï¸ Health"],["mj","ðŸ’‰ Mounjaro"],["weight","âš–ï¸ Weight"],["care","ðŸ«‚ Care"],["trends","ðŸ“ˆ Trends"],["settings","âš™ï¸ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
-const SLIPS=["Rest is productive. ❄️","A slow day is still a valid day.","You don't have to earn rest.",
-  "Your worth isn't a number on a scale.","Konfuyu~ — be soft with yourself today. 🦊",
+const SLIPS=["Rest is productive. â„ï¸","A slow day is still a valid day.","You don't have to earn rest.",
+  "Your worth isn't a number on a scale.","Konfuyu~ â€” be soft with yourself today. ðŸ¦Š",
   "Tap what fits. You don't have to fill everything.","Bodies fluctuate. The trend is the story, not today.",
   "A gap in tracking is just a rest day. That's okay.","Feelings are visitors, not residents.",
   "You're doing better than the anxious voice says."];
@@ -304,13 +304,13 @@ const slip=()=>SLIPS[new Date().getDate()%SLIPS.length];
 const slipBanner=(mb)=>`<div class="slip"${mb?' style="margin-bottom:16px"':''}><img class="deco" src="snowflake.png" alt=""/><span class="slip-txt">${esc(slip())}</span><img class="deco" src="sakura.png" alt=""/></div>`;
 
 /* ===================== shared builders ===================== */
-const DISCLAIMER=`<div class="disc">${CONFIG.creator.snow}<span><b>Gentle reminder:</b> this is your own self-tracking — noticing patterns, not a diagnosis. Your care team's plan always comes first. ${CONFIG.creator.emoji}</span></div>`;
+const DISCLAIMER=`<div class="disc">${CONFIG.creator.snow}<span><b>Gentle reminder:</b> this is your own self-tracking â€” noticing patterns, not a diagnosis. Your care team's plan always comes first. ${CONFIG.creator.emoji}</span></div>`;
 
 function scaleRow(label,act,field,val,lo="none",hi="a lot",max=5){
   let b=""; for(let i=0;i<=max;i++) b+=`<button data-act="${act}" data-f="${field}" data-v="${i}" class="${val===i?'on':''}">${i}</button>`;
   return `<div class="field"><div class="label">${label}</div><div class="scale">${b}</div><div class="scale-ends"><span>${lo}</span><span>${hi}</span></div></div>`;
 }
-function chiptog(label,act,field,on){ return `<button class="chiptog ${on?'on':''}" data-act="${act}" data-f="${field}"><span>${on?'✓':'＋'}</span>${label}</button>`; }
+function chiptog(label,act,field,on){ return `<button class="chiptog ${on?'on':''}" data-act="${act}" data-f="${field}"><span>${on?'âœ“':'ï¼‹'}</span>${label}</button>`; }
 
 /* sparkline from array with possible nulls; max scales the bars */
 function spark(vals,max){
@@ -323,7 +323,7 @@ function spark(vals,max){
 async function render(){
   applyPrefs();
   $("#nav").innerHTML = TABS.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
-  const st=$("#status"); st.textContent=DEMO?"◇ demo data":"● live"; st.className="chip"+(DEMO?" demo":" on");
+  const st=$("#status"); st.textContent=DEMO?"â—‡ demo data":"â— live"; st.className="chip"+(DEMO?" demo":" on");
   const v=$("#view");
   try{
     state.sentinel = await DB.daily(SENTINEL);
@@ -332,7 +332,7 @@ async function render(){
     const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     v.innerHTML = fn();
     renderStickies();
-  }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
+  }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup â„ï¸</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
 }
 
 /* ===================== HOME ===================== */
@@ -347,59 +347,59 @@ function viewHome(){
   if(PREF.focus){
     return `<div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
       ${slipBanner()}
-      <section class="panel"><div class="card-head"><span class="label">Just today 🌙</span><button class="btn" data-act="pref" data-f="focus">exit focus</button></div>
+      <section class="panel"><div class="card-head"><span class="label">Just today ðŸŒ™</span><button class="btn" data-act="pref" data-f="focus">exit focus</button></div>
         <h2 style="font-size:20px">${greeting()}, ${esc(CONFIG.creator.name)} ${CONFIG.creator.emoji}</h2>
-        <p class="soft" style="font-size:12.5px;margin:4px 0 12px">One gentle tap at a time. That's a whole check-in. ❄️</p>
-        ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+        <p class="soft" style="font-size:12.5px;margin:4px 0 12px">One gentle tap at a time. That's a whole check-in. â„ï¸</p>
+        ${scaleRow("Mood â€” low â†’ bright","mindSet","mood",m.mood,"low","bright")}
         ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
         ${scaleRow("Energy","mindSet","energy",m.energy,"empty","full")}
       </section>
       <section class="panel"><div class="label" style="margin-bottom:6px">Brain-dump</div>
-        <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="park a thought on a sticky…"/><button class="btn btn-grad" data-act="capSticky">add</button></div></section>
+        <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="park a thought on a stickyâ€¦"/><button class="btn btn-grad" data-act="capSticky">add</button></div></section>
     </div>${DISCLAIMER}`;
   }
 
   return `<div class="grid-home">
     <div class="col">
       <section class="panel">
-        <div class="card-head"><span class="label">Snowfox</span><span class="pill pill-mint">● here for you</span></div>
+        <div class="card-head"><span class="label">Snowfox</span><span class="pill pill-mint">â— here for you</span></div>
         <div style="display:flex;gap:12px;align-items:center">
           <div class="avatar" style="width:52px;height:52px"><img src="Film_YCH_20260424215925.png" alt="Mifu"/></div>
           <div><div style="font-family:var(--display);font-size:18px">${esc(CONFIG.creator.name)}</div><div class="label" style="margin-top:1px">${esc(CONFIG.creator.pronouns)}</div></div>
         </div>
         <div class="soft-card" style="margin-top:12px;font-style:italic;font-size:12.5px" class="soft">${esc(CONFIG.creator.tagline)}</div>
-        <div style="margin-top:12px"><div class="label" style="margin-bottom:5px">Energy today 🥄</div>
-          <div class="seg">${[["1","🌙","Low"],["3","🌤","Med"],["5","🌞","High"]].map(([v,e,l])=>`<button data-act="energySet" data-v="${v}" class="${energy==v?'on':''}">${e} ${l}</button>`).join("")}</div></div>
+        <div style="margin-top:12px"><div class="label" style="margin-bottom:5px">Energy today ðŸ¥„</div>
+          <div class="seg">${[["1","ðŸŒ™","Low"],["3","ðŸŒ¤","Med"],["5","ðŸŒž","High"]].map(([v,e,l])=>`<button data-act="energySet" data-v="${v}" class="${energy==v?'on':''}">${e} ${l}</button>`).join("")}</div></div>
       </section>
       ${slipBanner()}
     </div>
 
     <div class="col">
       <section class="panel">
-        <h2 style="font-size:19px">${CONFIG.creator.greeting} ${greeting()}, ${esc(CONFIG.creator.name)} ✿</h2>
-        <p class="soft" style="font-size:12.5px;margin:4px 0 10px">How are you today? Three taps is a whole check-in. 💗</p>
-        ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+        <h2 style="font-size:19px">${CONFIG.creator.greeting} ${greeting()}, ${esc(CONFIG.creator.name)} âœ¿</h2>
+        <p class="soft" style="font-size:12.5px;margin:4px 0 10px">How are you today? Three taps is a whole check-in. ðŸ’—</p>
+        ${scaleRow("Mood â€” low â†’ bright","mindSet","mood",m.mood,"low","bright")}
         ${scaleRow("Anxiety / overwhelm","mindSet","anxiety",m.anxiety,"calm","high")}
         ${scaleRow("Energy","mindSet","energy",m.energy,"empty","full")}
         <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
       </section>
-      <section class="panel"><div class="label" style="margin-bottom:6px">Brain-dump 🧠</div>
-        <p class="soft" style="font-size:12px;margin:0 0 8px">Park whatever's swirling on a sticky note — no structure needed.</p>
-        <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="anything on your mind…"/><button class="btn btn-grad" data-act="capSticky">add sticky</button></div></section>
+      <section class="panel"><div class="label" style="margin-bottom:6px">Brain-dump ðŸ§ </div>
+        <p class="soft" style="font-size:12px;margin:0 0 8px">Park whatever's swirling on a sticky note â€” no structure needed.</p>
+        <div style="display:flex;gap:8px"><input class="inp" id="capInput" placeholder="anything on your mindâ€¦"/><button class="btn btn-grad" data-act="capSticky">add sticky</button></div></section>
     </div>
 
     <div class="col">
       <section class="panel">
         <div class="card-head"><span class="label">Today at a glance</span></div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <span class="pill pill-ice" style="padding:6px 11px">💉 ${lastShot?"Last shot "+fmtDate(lastShot.date):"No shot logged yet"}</span>
-          ${nextDose?`<span class="pill pill-lav" style="padding:6px 11px">📅 Next dose ${fmtDate(nextDose)}${dueIn!=null?` · ${dueIn<=0?'around now':'in '+dueIn+'d'}`:''}</span>`:''}
-          <span class="pill pill-peri" style="padding:6px 11px">💊 ${(s.medsList||[]).length} meds tracked</span>
+          <span class="pill pill-ice" style="padding:6px 11px">ðŸ’‰ ${lastShot?"Last shot "+fmtDate(lastShot.date):"No shot logged yet"}</span>
+          ${nextDose?`<span class="pill pill-lav" style="padding:6px 11px">ðŸ“… Next dose ${fmtDate(nextDose)}${dueIn!=null?` Â· ${dueIn<=0?'around now':'in '+dueIn+'d'}`:''}</span>`:''}
+          <span class="pill pill-peri" style="padding:6px 11px">ðŸ’Š ${(s.medsList||[]).length} meds tracked</span>
         </div>
-        <p class="soft" style="font-size:11.5px;margin-top:8px;text-align:center">No pressure — just a soft snapshot. ❄️</p>
+        <p class="soft" style="font-size:11.5px;margin-top:8px;text-align:center">No pressure â€” just a soft snapshot. â„ï¸</p>
       </section>
       <section class="panel">
-        <div class="card-head"><span class="label">Weight trend</span><button class="btn" data-act="tab" data-tab="weight">open →</button></div>
+        <div class="card-head"><span class="label">Weight trend</span><button class="btn" data-act="tab" data-tab="weight">open â†’</button></div>
         ${wl.length?spark(wl.map(x=>x.w),Math.max(...wl.map(x=>x.w))):'<p class="soft" style="font-size:12px">No weigh-ins yet.</p>'}
         <p class="soft" style="font-size:11.5px;margin-top:6px;text-align:center">The trend is the story, not any single day.</p>
       </section>
@@ -414,9 +414,9 @@ function viewPcos(){
   const longGap=dayX!=null&&dayX>=45;
   return `
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">❄️ PCOS — your patterns</h2><span class="pill pill-gray">tap what fits</span></div>
+    <div class="card-head"><h2 style="font-size:18px">â„ï¸ PCOS â€” your patterns</h2><span class="pill pill-gray">tap what fits</span></div>
     <div class="soft-card">
-      <div class="label" style="margin-bottom:6px">🌙 Cycle</div>
+      <div class="label" style="margin-bottom:6px">ðŸŒ™ Cycle</div>
       ${cyc.lastStart?`<div style="display:flex;align-items:baseline;gap:10px"><span class="bignum">Day ${dayX}</span><span class="soft" style="font-size:12px">since last period started (${fmtDate(cyc.lastStart)})</span></div>`
         :`<p class="soft" style="font-size:12.5px;margin:0">No period start logged yet.</p>`}
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -425,22 +425,22 @@ function viewPcos(){
       </div>
       <div class="field"><div class="label">Flow today (optional)</div><div class="chiprow">
         ${["light","med","heavy"].map(f=>`<button class="sitebtn ${state.today.flow===f?'on':''}" data-act="pcosSet" data-f="flow" data-v="${f}">${f}</button>`).join("")}</div></div>
-      ${longGap?`<div class="disc" style="margin-top:8px">${CONFIG.creator.snow}<span>It's been a longer stretch without a period. With PCOS that happens — but a long gap can be worth a gentle mention to your doctor whenever you next chat. No alarm, just a note. 🦊</span></div>`:''}
+      ${longGap?`<div class="disc" style="margin-top:8px">${CONFIG.creator.snow}<span>It's been a longer stretch without a period. With PCOS that happens â€” but a long gap can be worth a gentle mention to your doctor whenever you next chat. No alarm, just a note. ðŸ¦Š</span></div>`:''}
     </div>
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:4px">📊 How's today feeling?</div>
+    <div class="label" style="margin-bottom:4px">ðŸ“Š How's today feeling?</div>
     ${scaleRow("Energy / fatigue","pcosSet","fatigue",p.fatigue,"none","heavy")}
     ${scaleRow("Bloating","pcosSet","bloating",p.bloating)}
     ${scaleRow("Sugar / carb cravings","pcosSet","cravings",p.cravings,"quiet","loud")}
     ${scaleRow("Acne flare","pcosSet","acne",p.acne)}
     ${scaleRow("Scalp hair shedding","pcosSet","shedding",p.shedding)}
-    <div class="label" style="margin:14px 0 4px">🌷 Mood &amp; anxiety</div>
-    ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+    <div class="label" style="margin:14px 0 4px">ðŸŒ· Mood &amp; anxiety</div>
+    ${scaleRow("Mood â€” low â†’ bright","mindSet","mood",m.mood,"low","bright")}
     ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
-    <div class="label" style="margin:14px 0 6px">🌱 Gentle, supportive habits</div>
-    <p class="soft" style="font-size:11.5px;margin:0 0 8px">No targets to fail — just a soft tally on the days they happen.</p>
+    <div class="label" style="margin:14px 0 6px">ðŸŒ± Gentle, supportive habits</div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">No targets to fail â€” just a soft tally on the days they happen.</p>
     <div class="chiprow">
       ${chiptog("Moved my body","pcosToggle","moved",p.moved)}
       ${chiptog("Balanced meals","pcosToggle","balanced",p.balanced)}
@@ -449,11 +449,11 @@ function viewPcos(){
     </div>
   </section>
 
-  <details class="acc"><summary>🪶 Weekly / occasional notes</summary><div class="acc-body">
+  <details class="acc"><summary>ðŸª¶ Weekly / occasional notes</summary><div class="acc-body">
     ${scaleRow("Unwanted hair / hirsutism (check in weekly)","pcosSet","hirsutism",p.hirsutism)}
   </div></details>
-  <details class="acc"><summary>💗 What helps me</summary><div class="acc-body">
-    <textarea class="inp" id="helpsNote" placeholder="things that make a PCOS day softer…">${esc(state.sentinel.helps||"")}</textarea>
+  <details class="acc"><summary>ðŸ’— What helps me</summary><div class="acc-body">
+    <textarea class="inp" id="helpsNote" placeholder="things that make a PCOS day softerâ€¦">${esc(state.sentinel.helps||"")}</textarea>
     <div style="margin-top:8px"><button class="btn btn-grad" data-act="saveHelps">Save</button></div>
   </div></details>
   ${DISCLAIMER}`;
@@ -465,7 +465,7 @@ function siteHint(){
   const last=(state.sentinel.injectionLog||[]).slice(-1)[0]; if(!last) return "Pick any site to start your rotation.";
   const sites=CONFIG.mounjaro.sites; const i=sites.indexOf(last.site);
   const sug=sites[(i+1+Math.floor(sites.length/2))%sites.length];
-  return `Last site: <b>${esc(last.site)}</b> → maybe try <b>${esc(sug)}</b> this week (rotating spots helps absorption &amp; avoids lumps).`;
+  return `Last site: <b>${esc(last.site)}</b> â†’ maybe try <b>${esc(sug)}</b> this week (rotating spots helps absorption &amp; avoids lumps).`;
 }
 function viewMj(){
   const mj=state.today.mounjaro||{}, cur=currentDose();
@@ -474,17 +474,17 @@ function viewMj(){
   const doses=CONFIG.mounjaro.doses, sites=CONFIG.mounjaro.sites;
   return `
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">💉 Mounjaro journey</h2><span class="pill pill-ice">once weekly</span></div>
-    <p class="soft" style="font-size:12px;margin:0 0 10px">Tracking and reflecting only — never advice. Dose changes are always your doctor's call. 🦊</p>
+    <div class="card-head"><h2 style="font-size:18px">ðŸ’‰ Mounjaro journey</h2><span class="pill pill-ice">once weekly</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">Tracking and reflecting only â€” never advice. Dose changes are always your doctor's call. ðŸ¦Š</p>
     <div class="soft-card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-      <div><div class="label">Current dose</div><div class="bignum">${cur?cur.dose:'—'} mg</div></div>
+      <div><div class="label">Current dose</div><div class="bignum">${cur?cur.dose:'â€”'} mg</div></div>
       <div><div class="label">Weeks at this dose</div><div class="bignum">${weeksAt}</div></div>
-      <div class="grow" style="min-width:160px"><p class="soft" style="font-size:11.5px;margin:0">You've been at this dose ${weeksAt} week${weeksAt===1?'':'s'}. Tirzepatide steps up slowly (≥${CONFIG.mounjaro.minWeeksBetweenIncreases} weeks between increases, max ${CONFIG.mounjaro.maxDose} mg) — but if &amp; when is entirely your doctor's decision. ❄️</p></div>
+      <div class="grow" style="min-width:160px"><p class="soft" style="font-size:11.5px;margin:0">You've been at this dose ${weeksAt} week${weeksAt===1?'':'s'}. Tirzepatide steps up slowly (â‰¥${CONFIG.mounjaro.minWeeksBetweenIncreases} weeks between increases, max ${CONFIG.mounjaro.maxDose} mg) â€” but if &amp; when is entirely your doctor's decision. â„ï¸</p></div>
     </div>
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:6px">💉 Log this week's shot</div>
+    <div class="label" style="margin-bottom:6px">ðŸ’‰ Log this week's shot</div>
     <p class="soft" style="font-size:12px;margin:0 0 10px">${siteHint()}</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><div class="label">Date</div><input class="inp" type="date" id="shotDate" value="${TODAY}"></div>
@@ -494,15 +494,15 @@ function viewMj(){
     <div class="field"><div class="label">Injection site (rotate!)</div><div class="chiprow" id="siteRow">
       ${sites.map(stt=>`<button class="sitebtn" data-act="pickSite" data-v="${esc(stt)}">${esc(stt)}</button>`).join("")}</div>
       <input type="hidden" id="shotSite" value=""></div>
-    <div class="field" id="afterField"><div class="label">~30 min after — how do you feel?</div>
+    <div class="field" id="afterField"><div class="label">~30 min after â€” how do you feel?</div>
       <div class="scale">${[0,1,2,3,4,5].map(i=>`<button data-act="mjAfter" data-v="${i}">${i}</button>`).join("")}</div>
       <div class="scale-ends"><span>rough</span><span>fine</span></div></div>
-    <div class="field"><div class="label">Note (optional)</div><input class="inp" type="text" id="shotNote" placeholder="how it went…"></div>
-    <button class="btn btn-grad" data-act="logShot">Log shot ❄️</button>
+    <div class="field"><div class="label">Note (optional)</div><input class="inp" type="text" id="shotNote" placeholder="how it wentâ€¦"></div>
+    <button class="btn btn-grad" data-act="logShot">Log shot â„ï¸</button>
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:4px">🩹 Side-effect check (optional)</div>
+    <div class="label" style="margin-bottom:4px">ðŸ©¹ Side-effect check (optional)</div>
     <p class="soft" style="font-size:11.5px;margin:0 0 8px">Usually loudest at the start and just after a dose step, then it eases. Logging helps the pattern-spotter.</p>
     ${scaleRow("Nausea","mjSet","nausea",mj.nausea)}
     ${scaleRow("Constipation","mjSet","constipation",mj.constipation)}
@@ -511,7 +511,7 @@ function viewMj(){
     ${scaleRow("Bloating / stomach pain","mjSet","belly",mj.belly)}
     ${scaleRow("Fatigue","mjSet","fatigue",mj.fatigue)}
     ${scaleRow("Appetite / 'food noise'","mjSet","foodnoise",mj.foodnoise,"quiet","loud")}
-    <div class="label" style="margin:14px 0 6px">🌿 Supportive habits</div>
+    <div class="label" style="margin:14px 0 6px">ðŸŒ¿ Supportive habits</div>
     <div class="chiprow">
       ${chiptog("Protein with meals","mjToggle","proteinMeals",mj.proteinMeals)}
       ${chiptog("Smaller meals","mjToggle","smallerMeals",mj.smallerMeals)}
@@ -519,26 +519,26 @@ function viewMj(){
       ${chiptog("Gentle movement","mjToggle","gentleMove",mj.gentleMove)}
     </div>
     <div class="field"><div class="label">Water today</div>
-      <div class="hcount"><button class="step" data-act="mjWater" data-v="-1">−</button><span>${mj.water||0}</span><button class="step" data-act="mjWater" data-v="1">＋</button><span class="soft" style="font-size:12px;font-family:var(--sans)">cups 🥤</span></div></div>
+      <div class="hcount"><button class="step" data-act="mjWater" data-v="-1">âˆ’</button><span>${mj.water||0}</span><button class="step" data-act="mjWater" data-v="1">ï¼‹</button><span class="soft" style="font-size:12px;font-family:var(--sans)">cups ðŸ¥¤</span></div></div>
   </section>
 
-  <details class="acc"><summary>🩺 When to check in with your doctor</summary><div class="acc-body">
-    <p class="soft" style="font-size:12px">Most tummy stuff is normal and settles. Still, you know your body — these are gentle reasons to give your care team a call (a reminder, never a diagnosis):</p>
+  <details class="acc"><summary>ðŸ©º When to check in with your doctor</summary><div class="acc-body">
+    <p class="soft" style="font-size:12px">Most tummy stuff is normal and settles. Still, you know your body â€” these are gentle reasons to give your care team a call (a reminder, never a diagnosis):</p>
     <ul style="font-size:12px;color:var(--ink-soft);padding-left:18px">
-      <li>Severe stomach pain that won't ease — especially if it radiates to your back (can be a sign of something urgent like pancreatitis, worth prompt medical attention)</li>
+      <li>Severe stomach pain that won't ease â€” especially if it radiates to your back (can be a sign of something urgent like pancreatitis, worth prompt medical attention)</li>
       <li>Relentless vomiting, or signs of dehydration (very dry mouth, dizziness, barely peeing)</li>
       <li>Gallbladder-type pain (upper-right belly), fever, or yellowing skin/eyes</li>
       <li>Anything that simply feels wrong or frightening to you</li>
     </ul>
-    <p class="peri" style="font-size:12px;font-weight:700">You know your body — this is a reminder, not a diagnosis. ❄️</p>
+    <p class="peri" style="font-size:12px;font-weight:700">You know your body â€” this is a reminder, not a diagnosis. â„ï¸</p>
   </div></details>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:6px">📜 Injection history</div>
-    ${log.length?log.map(s=>`<div class="listrow"><div><b>${fmtDate(s.date)}</b> ${s.time?`<span class="soft">· ${esc(s.time)}</span>`:''}
-      <div class="soft" style="font-size:11.5px">${s.dose} mg · ${esc(s.site||'—')}${s.after!=null?` · after ${s.after}/5`:''}${s.note?` · ${esc(s.note)}`:''}</div></div>
-      <span class="grow"></span><button class="x" data-act="delShot" data-v="${s.id}">✕</button></div>`).join("")
-      :`<p class="soft" style="font-size:12.5px">No shots logged yet. Your first one starts the rotation helper. 🦊</p>`}
+    <div class="label" style="margin-bottom:6px">ðŸ“œ Injection history</div>
+    ${log.length?log.map(s=>`<div class="listrow"><div><b>${fmtDate(s.date)}</b> ${s.time?`<span class="soft">Â· ${esc(s.time)}</span>`:''}
+      <div class="soft" style="font-size:11.5px">${s.dose} mg Â· ${esc(s.site||'â€”')}${s.after!=null?` Â· after ${s.after}/5`:''}${s.note?` Â· ${esc(s.note)}`:''}</div></div>
+      <span class="grow"></span><button class="x" data-act="delShot" data-v="${s.id}">âœ•</button></div>`).join("")
+      :`<p class="soft" style="font-size:12.5px">No shots logged yet. Your first one starts the rotation helper. ðŸ¦Š</p>`}
   </section>
   ${DISCLAIMER}`;
 }
@@ -557,28 +557,28 @@ function viewWeight(){
     bars=`<div class="spark" style="height:54px">${vals.map(v=>`<span style="height:${Math.round(((v-mn)/rng)*86+12)}%"></span>`).join("")}</div>`; }
   return `
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">⚖️ The gentle journey</h2><span class="pill pill-gray">trend-first</span></div>
-    <p class="soft" style="font-size:12px;margin:0 0 10px">The <b>trend</b> is the story — bodies fluctuate day to day, especially with PCOS and a GLP-1. We lean on the weekly average, not any single morning.</p>
+    <div class="card-head"><h2 style="font-size:18px">âš–ï¸ The gentle journey</h2><span class="pill pill-gray">trend-first</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">The <b>trend</b> is the story â€” bodies fluctuate day to day, especially with PCOS and a GLP-1. We lean on the weekly average, not any single morning.</p>
     <div class="soft-card">
-      ${showNum?`<div class="label">Rolling weekly avg</div><div class="bignum" id="numSlot">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`
+      ${showNum?`<div class="label">Rolling weekly avg</div><div class="bignum" id="numSlot">${avg!=null?avg.toFixed(1):'â€”'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`
         :`<div id="numSlot"><button class="btn" data-act="revealNum">Tap to peek at the number</button></div>`}
       ${bars}
-      <p class="soft" style="font-size:11.5px;text-align:center;margin:6px 0 0">A calm line over time — no good days or bad days here. ❄️</p>
+      <p class="soft" style="font-size:11.5px;text-align:center;margin:6px 0 0">A calm line over time â€” no good days or bad days here. â„ï¸</p>
     </div>
-    <div class="field"><div class="label" style="margin-bottom:6px">${dueWeekly?'🗓️ Time for a gentle weekly weigh-in':'✅ Weighed in recently — no rush'}</div>
+    <div class="field"><div class="label" style="margin-bottom:6px">${dueWeekly?'ðŸ—“ï¸ Time for a gentle weekly weigh-in':'âœ… Weighed in recently â€” no rush'}</div>
       <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="wInput" placeholder="${CONFIG.weightUnit}" style="max-width:140px"><button class="btn btn-grad" data-act="logWeight">Log it</button></div>
-      <p class="soft" style="font-size:11px;margin-top:6px">Tip: same day &amp; time each week makes the trend cleaner — but a missed week is totally fine.</p></div>
+      <p class="soft" style="font-size:11px;margin-top:6px">Tip: same day &amp; time each week makes the trend cleaner â€” but a missed week is totally fine.</p></div>
   </section>
 
   <section class="panel">
-    <div class="card-head"><span class="label">🌟 Non-scale victories</span></div>
-    <p class="soft" style="font-size:12px;margin:0 0 8px">The wins the scale can't see. Celebrate these <b>loudly</b>. ❄️</p>
-    ${nsv.length?nsv.map(v=>`<div class="listrow"><span class="grow">${esc(v.t)} <span class="soft" style="font-size:11px">· ${fmtDate(v.date)}</span></span><button class="x" data-act="delNSV" data-v="${v.id}">✕</button></div>`).join("")
-      :`<p class="soft" style="font-size:12.5px">Add one whenever you notice it — "clothes fit better", "more energy", "cravings quieter"…</p>`}
-    <div style="display:flex;gap:8px;margin-top:10px"><input class="inp" id="nsvInput" placeholder="a little win…"><button class="btn btn-grad" data-act="addNSV">Add 🌸</button></div>
+    <div class="card-head"><span class="label">ðŸŒŸ Non-scale victories</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">The wins the scale can't see. Celebrate these <b>loudly</b>. â„ï¸</p>
+    ${nsv.length?nsv.map(v=>`<div class="listrow"><span class="grow">${esc(v.t)} <span class="soft" style="font-size:11px">Â· ${fmtDate(v.date)}</span></span><button class="x" data-act="delNSV" data-v="${v.id}">âœ•</button></div>`).join("")
+      :`<p class="soft" style="font-size:12.5px">Add one whenever you notice it â€” "clothes fit better", "more energy", "cravings quieter"â€¦</p>`}
+    <div style="display:flex;gap:8px;margin-top:10px"><input class="inp" id="nsvInput" placeholder="a little winâ€¦"><button class="btn btn-grad" data-act="addNSV">Add ðŸŒ¸</button></div>
   </section>
 
-  <details class="acc"><summary>📏 Optional measurements</summary><div class="acc-body">
+  <details class="acc"><summary>ðŸ“ Optional measurements</summary><div class="acc-body">
     <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="waistInput" placeholder="waist (cm)" style="max-width:160px"><button class="btn btn-grad" data-act="setMeasure">Save</button></div>
     ${meas.length?`<p class="soft" style="font-size:12px;margin-top:8px">Latest waist: <b>${meas.slice(-1)[0].waist} cm</b> (${fmtDate(meas.slice(-1)[0].date)})</p>`:''}
   </div></details>
@@ -587,25 +587,25 @@ function viewWeight(){
 
 /* ===================== CARE ===================== */
 const FIRSTAID=[
-  {e:"🖐️",t:"5-4-3-2-1 grounding",tint:"#e6ecfb",b:["Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.","It pulls you out of the spiral and back into right now.","Slow down on each one — no rushing."]},
-  {e:"🟦",t:"Box breathing",tint:"#dcf3eb",b:["In 4 · hold 4 · out 4 · hold 4.","A few rounds steadies a racing heart.","The 🫧 bubble timer in the corner can pace you."]},
-  {e:"🏷️",t:"Name it to tame it",tint:"#fde2f2",b:["Say the feeling out loud: \"this is anxiety.\"","Naming gives your thinking brain something to hold.","Feelings aren't facts — they can be huge and still not be true."]},
-  {e:"❄️",t:"Cool water",tint:"#e2f0fb",b:["Cool water on your wrists or face nudges your nervous system toward calm.","A cold drink, a cool cloth — small resets count."]},
-  {e:"🚪",t:"Step outside",tint:"#ece2fb",b:["Even 2 minutes of fresh air and a wider view can reset an overwhelm spike.","A change of room counts too."]},
-  {e:"💬",t:"Text a friend",tint:"#fdeadb",b:["You don't have to carry it alone.","A small \"hey, rough moment\" is enough."]},
+  {e:"ðŸ–ï¸",t:"5-4-3-2-1 grounding",tint:"#e6ecfb",b:["Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.","It pulls you out of the spiral and back into right now.","Slow down on each one â€” no rushing."]},
+  {e:"ðŸŸ¦",t:"Box breathing",tint:"#dcf3eb",b:["In 4 Â· hold 4 Â· out 4 Â· hold 4.","A few rounds steadies a racing heart.","The ðŸ«§ bubble timer in the corner can pace you."]},
+  {e:"ðŸ·ï¸",t:"Name it to tame it",tint:"#fde2f2",b:["Say the feeling out loud: \"this is anxiety.\"","Naming gives your thinking brain something to hold.","Feelings aren't facts â€” they can be huge and still not be true."]},
+  {e:"â„ï¸",t:"Cool water",tint:"#e2f0fb",b:["Cool water on your wrists or face nudges your nervous system toward calm.","A cold drink, a cool cloth â€” small resets count."]},
+  {e:"ðŸšª",t:"Step outside",tint:"#ece2fb",b:["Even 2 minutes of fresh air and a wider view can reset an overwhelm spike.","A change of room counts too."]},
+  {e:"ðŸ’¬",t:"Text a friend",tint:"#fdeadb",b:["You don't have to carry it alone.","A small \"hey, rough moment\" is enough."]},
 ];
 const REFRAMES=[
-  {e:"🦋",t:"Feelings are visitors",tint:"#e6ecfb",b:["…not residents. This one is passing through, even if it knocked loudly."]},
-  {e:"🌊",t:"This is a wave",tint:"#dcf3eb",b:["It will crest and pass. You've ridden every one so far.","Ride ~10 minutes; most urges soften if you don't feed them."]},
-  {e:"🫂",t:"Talk to yourself like a friend",tint:"#fde2f2",b:["What would you say to someone you love feeling this? Say that to you."]},
-  {e:"🌱",t:"Good enough is enough",tint:"#fdeadb",b:["You don't have to do it perfectly. Showing up softly counts.","A low-demand day is care, not falling behind."]},
+  {e:"ðŸ¦‹",t:"Feelings are visitors",tint:"#e6ecfb",b:["â€¦not residents. This one is passing through, even if it knocked loudly."]},
+  {e:"ðŸŒŠ",t:"This is a wave",tint:"#dcf3eb",b:["It will crest and pass. You've ridden every one so far.","Ride ~10 minutes; most urges soften if you don't feed them."]},
+  {e:"ðŸ«‚",t:"Talk to yourself like a friend",tint:"#fde2f2",b:["What would you say to someone you love feeling this? Say that to you."]},
+  {e:"ðŸŒ±",t:"Good enough is enough",tint:"#fdeadb",b:["You don't have to do it perfectly. Showing up softly counts.","A low-demand day is care, not falling behind."]},
 ];
 function flipCard(c){
   return `<div class="flip" data-act="flip"><div class="flip-inner">
     <div class="flip-face" style="background:${c.tint}">
       <div style="font-size:30px">${c.e}</div>
       <div style="font-family:var(--display);font-size:15px;margin-top:6px">${c.t}</div>
-      <div class="label" style="margin-top:auto;padding-top:10px">tap to open →</div>
+      <div class="label" style="margin-top:auto;padding-top:10px">tap to open â†’</div>
     </div>
     <div class="flip-face flip-back"><ul style="padding-left:16px;margin:2px 0">${c.b.map(x=>`<li>${x}</li>`).join("")}</ul></div>
   </div></div>`;
@@ -615,33 +615,33 @@ function viewCare(){
   return `
   ${slipBanner(true)}
   <section class="panel" style="text-align:center">
-    <div class="label">🫧 Breathing bubble</div>
-    <p class="soft" style="font-size:12px;margin:4px 0 6px">In 4 · hold 2 · out 6 — a longer exhale tells your body it's safe.</p>
+    <div class="label">ðŸ«§ Breathing bubble</div>
+    <p class="soft" style="font-size:12px;margin:4px 0 6px">In 4 Â· hold 2 Â· out 6 â€” a longer exhale tells your body it's safe.</p>
     <div class="breath-wrap"><div class="breath-bubble" id="bubble"></div><div class="breath-label" id="breathLabel">ready</div></div>
     <button class="btn btn-grad" data-act="breath">${state.breathOn?'Stop':'Start'}</button>
-    ${PREF.calm?'<p class="soft" style="font-size:11px;margin-top:8px">Calm mode on — the bubble holds still; breathe with the words at your own pace.</p>':''}
+    ${PREF.calm?'<p class="soft" style="font-size:11px;margin-top:8px">Calm mode on â€” the bubble holds still; breathe with the words at your own pace.</p>':''}
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:4px">🌤️ Gentle check-in</div>
-    <p class="soft" style="font-size:12px;margin:0 0 8px">How's the weather inside today? No wrong answer. 🌧️→🌞</p>
-    ${scaleRow("Weather inside","mindSet","weather",m.weather,"🌧️ stormy","🌞 bright")}
-    ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+    <div class="label" style="margin-bottom:4px">ðŸŒ¤ï¸ Gentle check-in</div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">How's the weather inside today? No wrong answer. ðŸŒ§ï¸â†’ðŸŒž</p>
+    ${scaleRow("Weather inside","mindSet","weather",m.weather,"ðŸŒ§ï¸ stormy","ðŸŒž bright")}
+    ${scaleRow("Mood â€” low â†’ bright","mindSet","mood",m.mood,"low","bright")}
     ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
     <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:8px">🆘 Anxiety first-aid — tap a card</div>
+    <div class="label" style="margin-bottom:8px">ðŸ†˜ Anxiety first-aid â€” tap a card</div>
     <div class="deck">${FIRSTAID.map(flipCard).join("")}</div>
   </section>
   <section class="panel">
-    <div class="label" style="margin-bottom:8px">🌸 Soft reframes</div>
+    <div class="label" style="margin-bottom:8px">ðŸŒ¸ Soft reframes</div>
     <div class="deck">${REFRAMES.map(flipCard).join("")}</div>
   </section>
 
   <section class="panel" style="text-align:center">
-    <div class="label">🫙 Joy jar</div>
+    <div class="label">ðŸ«™ Joy jar</div>
     <p class="soft" style="font-size:12px;margin:4px 0 8px">Pull out a little joy when you need one.</p>
     <div class="jar-stage">
       <svg width="120" height="130" viewBox="0 0 120 130">
@@ -651,11 +651,11 @@ function viewCare(){
         <g class="jar-bub" style="animation-delay:-1.5s"><circle cx="72" cy="86" r="11" fill="#a98fe0" opacity=".7"/></g>
         <g class="jar-bub" style="animation-delay:-2.8s"><circle cx="60" cy="60" r="7" fill="#9fc3e8" opacity=".8"/></g>
       </svg>
-      <div class="joy-pick" id="joyPick">tap below to draw a joy ✿</div>
+      <div class="joy-pick" id="joyPick">tap below to draw a joy âœ¿</div>
     </div>
-    <button class="btn btn-grad" data-act="drawJoy" style="margin-top:6px">Pull a joy 🦊</button>
-    <div style="display:flex;gap:8px;margin-top:10px"><input class="inp" id="joyInput" placeholder="add your own little joy…"><button class="btn" data-act="addJoy">Add</button></div>
-    <p class="soft" style="font-size:11px;margin-top:6px">${jar.length} joys in the jar ❄️</p>
+    <button class="btn btn-grad" data-act="drawJoy" style="margin-top:6px">Pull a joy ðŸ¦Š</button>
+    <div style="display:flex;gap:8px;margin-top:10px"><input class="inp" id="joyInput" placeholder="add your own little joyâ€¦"><button class="btn" data-act="addJoy">Add</button></div>
+    <p class="soft" style="font-size:11px;margin-top:6px">${jar.length} joys in the jar â„ï¸</p>
   </section>
   ${DISCLAIMER}`;
 }
@@ -673,23 +673,23 @@ function buildSeries(){
 }
 function patternSpotter(byDate){
   const rows=Object.entries(byDate).filter(([d])=>d!==SENTINEL).map(([,n])=>n).filter(Boolean);
-  if(rows.length<5) return `<p class="soft" style="font-size:12.5px">A few more tracked days (about 5) and gentle patterns will start to appear here. No rush — gaps are fine. ❄️</p>`;
+  if(rows.length<5) return `<p class="soft" style="font-size:12.5px">A few more tracked days (about 5) and gentle patterns will start to appear here. No rush â€” gaps are fine. â„ï¸</p>`;
   const obs=[];
   const split=(P,Y)=>{ let hi=[],lo=[]; rows.forEach(r=>{const p=P(r),y=Y(r); if(p==null||y==null)return; (p?hi:lo).push(y);});
     const a=z=>z.length?z.reduce((x,y)=>x+y,0)/z.length:null; return {hi:a(hi),lo:a(lo),nHi:hi.length,nLo:lo.length}; };
   let s=split(r=>r.mounjaro&&r.mounjaro.water!=null?r.mounjaro.water>=6:null,r=>r.mounjaro?r.mounjaro.nausea:null);
-  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.nLo>=2&&s.hi<s.lo-0.3)obs.push("🥤 On higher-water days you noted less nausea.");
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.nLo>=2&&s.hi<s.lo-0.3)obs.push("ðŸ¥¤ On higher-water days you noted less nausea.");
   s=split(r=>r.mounjaro?(!!r.mounjaro.proteinMeals&&!!r.mounjaro.smallerMeals):null,r=>r.mounjaro?r.mounjaro.nausea:null);
-  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("🍳 Nausea ran lower on days with protein + smaller meals.");
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("ðŸ³ Nausea ran lower on days with protein + smaller meals.");
   s=split(r=>r.sleep!=null?r.sleep>=7:null,r=>r.mind?r.mind.mood:null);
-  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.nLo>=2&&s.hi>s.lo+0.3)obs.push("😴 Mood tended to be gentler after longer sleep.");
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.nLo>=2&&s.hi>s.lo+0.3)obs.push("ðŸ˜´ Mood tended to be gentler after longer sleep.");
   s=split(r=>r.mind&&r.mind.anxiety!=null?r.mind.anxiety>=3:null,r=>r.mind?r.mind.mood:null);
-  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("🌧️ Mood tended to dip on higher-anxiety days — those may deserve extra softness.");
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("ðŸŒ§ï¸ Mood tended to dip on higher-anxiety days â€” those may deserve extra softness.");
   s=split(r=>r.pcos?!!r.pcos.moved:null,r=>r.pcos?r.pcos.cravings:null);
-  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("🍩 Cravings were lower on days you moved your body.");
-  if(!obs.length)obs.push("Nothing jumping out yet — your logs look gently varied. That's perfectly okay. ❄️");
+  if(s.hi!=null&&s.lo!=null&&s.nHi>=2&&s.hi<s.lo-0.3)obs.push("ðŸ© Cravings were lower on days you moved your body.");
+  if(!obs.length)obs.push("Nothing jumping out yet â€” your logs look gently varied. That's perfectly okay. â„ï¸");
   return `<ul style="padding-left:18px;font-size:13px">${obs.map(o=>`<li style="margin:6px 0">${o}</li>`).join("")}</ul>
-    <p class="soft" style="font-size:11px;margin-top:6px">Gentle observations from your own logs — patterns, not proof, and never a diagnosis. Worth a mention to your care team if something rings true. ❄️🦊</p>`;
+    <p class="soft" style="font-size:11px;margin-top:6px">Gentle observations from your own logs â€” patterns, not proof, and never a diagnosis. Worth a mention to your care team if something rings true. â„ï¸ðŸ¦Š</p>`;
 }
 function viewTrends(){
   const {byDate,series}=buildSeries();
@@ -697,13 +697,13 @@ function viewTrends(){
     ["Nausea",series.nausea,5],["Cravings",series.cravings,5],["Water (cups)",series.water,10],["Sleep (hrs)",series.sleep,10]];
   return `
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">📈 Last 14 days</h2><span class="pill pill-gray">gaps = rest days</span></div>
-    <p class="soft" style="font-size:12px;margin:0 0 8px">A gap just means a rest day from tracking — shown faint, no guilt. ❄️</p>
+    <div class="card-head"><h2 style="font-size:18px">ðŸ“ˆ Last 14 days</h2><span class="pill pill-gray">gaps = rest days</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">A gap just means a rest day from tracking â€” shown faint, no guilt. â„ï¸</p>
     ${rows.map(([lab,arr,mx])=>{ const latest=[...arr].reverse().find(v=>v!=null);
-      return `<div class="sparkrow"><span class="lab">${lab}</span>${spark(arr,mx)}<span class="now">${latest!=null?latest:'–'}</span></div>`; }).join("")}
+      return `<div class="sparkrow"><span class="lab">${lab}</span>${spark(arr,mx)}<span class="now">${latest!=null?latest:'â€“'}</span></div>`; }).join("")}
   </section>
   <section class="panel">
-    <div class="label" style="margin-bottom:6px">🔎 Gentle pattern-spotter</div>
+    <div class="label" style="margin-bottom:6px">ðŸ”Ž Gentle pattern-spotter</div>
     ${patternSpotter(byDate)}
   </section>
   ${DISCLAIMER}`;
@@ -714,7 +714,7 @@ function viewSettings(){
   const meds=state.sentinel.medsList||[];
   return `
   <section class="panel">
-    <div class="label" style="margin-bottom:8px">⚙️ Comfort &amp; display</div>
+    <div class="label" style="margin-bottom:8px">âš™ï¸ Comfort &amp; display</div>
     <p class="soft" style="font-size:12px;margin:0 0 10px">However today needs to feel. Saved on this device.</p>
     <div class="chiprow">
       ${chiptog("Calm mode (less motion, softer colours)","pref","calm",PREF.calm)}
@@ -724,8 +724,8 @@ function viewSettings(){
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:8px">💊 Meds &amp; supplements</div>
-    ${meds.length?meds.map(m=>`<div class="listrow"><span class="grow"><b>${esc(m.name)}</b> <span class="soft" style="font-size:11.5px">${esc(m.dose||'')} ${m.time?'· '+esc(m.time):''}</span></span><button class="x" data-act="delMed" data-v="${m.id}">✕</button></div>`).join("")
+    <div class="label" style="margin-bottom:8px">ðŸ’Š Meds &amp; supplements</div>
+    ${meds.length?meds.map(m=>`<div class="listrow"><span class="grow"><b>${esc(m.name)}</b> <span class="soft" style="font-size:11.5px">${esc(m.dose||'')} ${m.time?'Â· '+esc(m.time):''}</span></span><button class="x" data-act="delMed" data-v="${m.id}">âœ•</button></div>`).join("")
       :`<p class="soft" style="font-size:12.5px">No meds added yet.</p>`}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
       <input class="inp" id="medName" placeholder="name (e.g. Metformin)">
@@ -734,7 +734,7 @@ function viewSettings(){
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:8px">📝 Your details</div>
+    <div class="label" style="margin-bottom:8px">ðŸ“ Your details</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><div class="label">Name</div><input class="inp" id="cfgName" value="${esc(CONFIG.creator.name)}"></div>
       <div class="field"><div class="label">Greeting</div><input class="inp" id="cfgGreet" value="${esc(CONFIG.creator.greeting)}"></div>
@@ -749,18 +749,18 @@ function viewSettings(){
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:8px">🎨 Palette</div>
+    <div class="label" style="margin-bottom:8px">ðŸŽ¨ Palette</div>
     <div class="chiprow">${Object.entries(CONFIG.palette).map(([k,v])=>`<div title="${k}: ${v}" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:${v}"></div>`).join("")}</div>
-    <p class="soft" style="font-size:11px;margin-top:8px">Snowfox winter: periwinkle → sakura, with lavender &amp; ice. ❄️🌸</p>
+    <p class="soft" style="font-size:11px;margin-top:8px">Snowfox winter: periwinkle â†’ sakura, with lavender &amp; ice. â„ï¸ðŸŒ¸</p>
   </section>
 
   <section class="panel">
-    <div class="label" style="margin-bottom:8px">💾 Your data</div>
+    <div class="label" style="margin-bottom:8px">ðŸ’¾ Your data</div>
     <p class="soft" style="font-size:12px;margin:0 0 8px">It's yours. Back it up anytime.</p>
     <button class="btn btn-grad" data-act="export">Export all my data (JSON)</button>
-    <details class="acc" style="margin-top:12px"><summary>🔒 Privacy upgrade (optional)</summary><div class="acc-body">
-      <p class="soft" style="font-size:12px">Right now this is a private, single-user app. When you're ready, you can lock it behind Supabase Auth so only you can open it — an option, never a requirement. The included <b>setup.sql</b> notes where to tighten the row-level security policy. ❄️</p></div></details>
-    <p class="soft" style="font-size:11px;margin-top:10px">${DEMO?'Running in <b>demo mode</b> — seeded sample data; changes preview this session but are not saved to a backend. Add your Supabase URL + publishable key in the CONFIG block at the top of index.html to go live.':'Connected to Supabase ✓'}</p>
+    <details class="acc" style="margin-top:12px"><summary>ðŸ”’ Privacy upgrade (optional)</summary><div class="acc-body">
+      <p class="soft" style="font-size:12px">Right now this is a private, single-user app. When you're ready, you can lock it behind Supabase Auth so only you can open it â€” an option, never a requirement. The included <b>setup.sql</b> notes where to tighten the row-level security policy. â„ï¸</p></div></details>
+    <p class="soft" style="font-size:11px;margin-top:10px">${DEMO?'Running in <b>demo mode</b> â€” seeded sample data; changes preview this session but are not saved to a backend. Add your Supabase URL + publishable key in the CONFIG block at the top of index.html to go live.':'Connected to Supabase âœ“'}</p>
   </section>
   ${DISCLAIMER}`;
 }
@@ -776,31 +776,31 @@ const H={
   async energySet(el){ await setToday(n=>({...n,energy:Number(el.dataset.v)})); render(); },
 
   async mindSet(el){ const f=el.dataset.f,v=Number(el.dataset.v);
-    await setToday(n=>{ const mind={...(n.mind||{})}; mind[f]=v; return {...n,mind}; }); toast("saved 💗"); render(); },
+    await setToday(n=>{ const mind={...(n.mind||{})}; mind[f]=v; return {...n,mind}; }); toast("saved ðŸ’—"); render(); },
   async mindToggle(el){ const f=el.dataset.f;
     await setToday(n=>{ const mind={...(n.mind||{})}; mind[f]=!mind[f]; return {...n,mind}; }); render(); },
 
   async pcosSet(el){ const f=el.dataset.f,raw=el.dataset.v,v=isNaN(Number(raw))?raw:Number(raw);
-    await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[f]=v; const ex={}; if(f==="flow")ex.flow=raw; return {...n,pcos,...ex}; }); toast("saved 💗"); render(); },
+    await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[f]=v; const ex={}; if(f==="flow")ex.flow=raw; return {...n,pcos,...ex}; }); toast("saved ðŸ’—"); render(); },
   async pcosToggle(el){ const f=el.dataset.f;
     await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[f]=!pcos[f]; return {...n,pcos}; }); render(); },
 
   async mjSet(el){ const f=el.dataset.f,v=Number(el.dataset.v);
-    await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=v; return {...n,mounjaro}; }); toast("saved 💗"); render(); },
+    await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=v; return {...n,mounjaro}; }); toast("saved ðŸ’—"); render(); },
   async mjToggle(el){ const f=el.dataset.f;
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=!mounjaro[f]; return {...n,mounjaro}; }); render(); },
   async mjWater(el){ const d=Number(el.dataset.v);
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro.water=Math.max(0,(mounjaro.water||0)+d); return {...n,mounjaro}; }); render(); },
 
-  async saveHelps(){ const t=$("#helpsNote").value; await setSent(n=>({...n,helps:t})); toast("saved 💗"); },
+  async saveHelps(){ const t=$("#helpsNote").value; await setSent(n=>({...n,helps:t})); toast("saved ðŸ’—"); },
 
-  async cycleStart(){ await setSent(n=>{ const cycle={...(n.cycle||{}),lastStart:TODAY}; cycle.history=[...(cycle.history||[]),{start:TODAY,end:null,flow:state.today.flow||"med"}]; return {...n,cycle}; }); toast("logged ❄️"); render(); },
+  async cycleStart(){ await setSent(n=>{ const cycle={...(n.cycle||{}),lastStart:TODAY}; cycle.history=[...(cycle.history||[]),{start:TODAY,end:null,flow:state.today.flow||"med"}]; return {...n,cycle}; }); toast("logged â„ï¸"); render(); },
   async cycleEnd(){ const c=state.sentinel.cycle; if(!c||!c.history||!c.history.length){ toast("log a start first"); return; }
-    await setSent(n=>{ const cycle={...n.cycle}; cycle.history=cycle.history.map((h,i)=>i===cycle.history.length-1?{...h,end:TODAY}:h); return {...n,cycle}; }); toast("logged ❄️"); render(); },
+    await setSent(n=>{ const cycle={...n.cycle}; cycle.history=cycle.history.map((h,i)=>i===cycle.history.length-1?{...h,end:TODAY}:h); return {...n,cycle}; }); toast("logged â„ï¸"); render(); },
 
   pickSite(el){ document.querySelectorAll('#siteRow .sitebtn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); $("#shotSite").value=el.dataset.v; },
   mjAfter(el){ document.querySelectorAll('#afterField .scale button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); },
-  async logShot(){ const site=$("#shotSite").value; if(!site){ toast("pick a site first 🦊"); return; }
+  async logShot(){ const site=$("#shotSite").value; if(!site){ toast("pick a site first ðŸ¦Š"); return; }
     const afterEl=document.querySelector('#afterField .scale button.on');
     const shot={ id:"i"+Date.now(), date:$("#shotDate").value||TODAY, time:$("#shotTime").value, dose:Number($("#shotDose").value),
       site, after:afterEl?Number(afterEl.dataset.v):null, note:$("#shotNote").value };
@@ -808,34 +808,34 @@ const H={
       let dh=n.doseHistory||[]; const cur=dh.slice().sort((a,b)=>a.started<b.started?-1:1).slice(-1)[0];
       if(!cur||cur.dose!==shot.dose) dh=[...dh,{dose:shot.dose,started:shot.date}];
       return {...n,injectionLog:log,doseHistory:dh}; });
-    toast("shot logged ❄️"); render(); },
+    toast("shot logged â„ï¸"); render(); },
   async delShot(el){ await setSent(n=>({...n,injectionLog:(n.injectionLog||[]).filter(s=>s.id!==el.dataset.v)})); render(); },
 
   async logWeight(){ const v=parseFloat($("#wInput").value); if(isNaN(v)){ toast("enter a number"); return; }
-    await setSent(n=>({...n,weightLog:[...(n.weightLog||[]),{date:TODAY,w:v}]})); toast("logged — trend is the story ❄️"); render(); },
+    await setSent(n=>({...n,weightLog:[...(n.weightLog||[]),{date:TODAY,w:v}]})); toast("logged â€” trend is the story â„ï¸"); render(); },
   revealNum(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); const avg=rollingAvg(wl);
-    const slot=$("#numSlot"); if(slot) slot.innerHTML=`<div class="label">Rolling weekly avg</div><div class="bignum">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`; },
-  async addNSV(){ const t=$("#nsvInput").value.trim(); if(!t)return; await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t,date:TODAY}]})); toast("yay! 🌟"); render(); },
+    const slot=$("#numSlot"); if(slot) slot.innerHTML=`<div class="label">Rolling weekly avg</div><div class="bignum">${avg!=null?avg.toFixed(1):'â€”'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`; },
+  async addNSV(){ const t=$("#nsvInput").value.trim(); if(!t)return; await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t,date:TODAY}]})); toast("yay! ðŸŒŸ"); render(); },
   async delNSV(el){ await setSent(n=>({...n,nsv:(n.nsv||[]).filter(x=>x.id!==el.dataset.v)})); render(); },
   async setMeasure(){ const v=parseFloat($("#waistInput").value); if(isNaN(v)){ toast("enter a number"); return; }
-    await setSent(n=>({...n,measurements:[...(n.measurements||[]),{date:TODAY,waist:v}]})); toast("saved ❄️"); render(); },
+    await setSent(n=>({...n,measurements:[...(n.measurements||[]),{date:TODAY,waist:v}]})); toast("saved â„ï¸"); render(); },
 
   breath(){ state.breathOn=!state.breathOn; if(state.breathOn) startBreath(); else stopBreath(); render(); },
   flip(el){ el.closest('.flip').classList.toggle('open'); },
-  drawJoy(){ const jar=state.sentinel.joyJar||[]; const el=$("#joyPick"); if(!jar.length){ el.textContent="add a joy first ✿"; return; }
-    el.textContent="✿ "+jar[Math.floor(Math.random()*jar.length)]+" ✿"; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); },
-  async addJoy(){ const t=$("#joyInput").value.trim(); if(!t)return; await setSent(n=>({...n,joyJar:[...(n.joyJar||[]),t]})); toast("added to the jar 🫙"); render(); },
+  drawJoy(){ const jar=state.sentinel.joyJar||[]; const el=$("#joyPick"); if(!jar.length){ el.textContent="add a joy first âœ¿"; return; }
+    el.textContent="âœ¿ "+jar[Math.floor(Math.random()*jar.length)]+" âœ¿"; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); },
+  async addJoy(){ const t=$("#joyInput").value.trim(); if(!t)return; await setSent(n=>({...n,joyJar:[...(n.joyJar||[]),t]})); toast("added to the jar ðŸ«™"); render(); },
 
   pref(el){ const f=el.dataset.f; const cur=localStorage.getItem("mifu-"+f)==="1"; localStorage.setItem("mifu-"+f,cur?"0":"1"); applyPrefs(); render(); },
   async addMed(){ const name=$("#medName").value.trim(); if(!name){ toast("name needed"); return; }
-    await setSent(n=>({...n,medsList:[...(n.medsList||[]),{id:"m"+Date.now(),name,dose:$("#medDose").value.trim(),time:$("#medTime").value.trim()}]})); toast("added 💊"); render(); },
+    await setSent(n=>({...n,medsList:[...(n.medsList||[]),{id:"m"+Date.now(),name,dose:$("#medDose").value.trim(),time:$("#medTime").value.trim()}]})); toast("added ðŸ’Š"); render(); },
   async delMed(el){ await setSent(n=>({...n,medsList:(n.medsList||[]).filter(m=>m.id!==el.dataset.v)})); render(); },
   saveCfg(){ CONFIG.creator.name=$("#cfgName").value||CONFIG.creator.name; CONFIG.creator.greeting=$("#cfgGreet").value||CONFIG.creator.greeting;
-    CONFIG.weightUnit=$("#cfgUnit").value; CONFIG.weightDisplay=$("#cfgWdisp").value; toast("details saved ✿"); render(); },
+    CONFIG.weightUnit=$("#cfgUnit").value; CONFIG.weightDisplay=$("#cfgWdisp").value; toast("details saved âœ¿"); render(); },
   async export(){ const rows=await DB.exportAll(); const blob=new Blob([JSON.stringify(rows,null,2)],{type:"application/json"});
-    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="mifuyu-health-backup-"+TODAY+".json"; a.click(); toast("backup downloaded 💾"); },
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="mifuyu-health-backup-"+TODAY+".json"; a.click(); toast("backup downloaded ðŸ’¾"); },
 
-  async capSticky(){ const inp=$("#capInput"); const t=(inp.value||"").trim(); if(!t)return; await addSticky(t); inp.value=""; toast("on a sticky 🗒️"); },
+  async capSticky(){ const inp=$("#capInput"); const t=(inp.value||"").trim(); if(!t)return; await addSticky(t); inp.value=""; toast("on a sticky ðŸ—’ï¸"); },
   async addSticky(){ await addSticky(""); },
   async toggleRest(){ toggleRest(); },
 };
@@ -847,7 +847,7 @@ let breathRAF=null;
 function startBreath(){
   const bub=$("#bubble"), lab=$("#breathLabel"); if(!bub)return;
   if(PREF.calm){ // static: just cycle the words
-    let phase=0; const words=["breathe in… (4)","hold… (2)","breathe out… (6)"]; const durs=[4000,2000,6000];
+    let phase=0; const words=["breathe inâ€¦ (4)","holdâ€¦ (2)","breathe outâ€¦ (6)"]; const durs=[4000,2000,6000];
     lab.textContent=words[0]; let t=0;
     breathRAF=setInterval(()=>{ phase=(phase+1)%3; lab.textContent=words[phase]; },4000); return;
   }
@@ -855,9 +855,9 @@ function startBreath(){
   const t0=performance.now();
   function frame(now){
     const t=(now-t0)%CYCLE; let scale,word;
-    if(t<IN){ scale=MIN+(MAX-MIN)*(t/IN); word="breathe in…"; }
-    else if(t<IN+HOLD){ scale=MAX; word="hold…"; }
-    else { const o=(t-IN-HOLD)/OUT; scale=MAX-(MAX-MIN)*o; word="breathe out…"; }
+    if(t<IN){ scale=MIN+(MAX-MIN)*(t/IN); word="breathe inâ€¦"; }
+    else if(t<IN+HOLD){ scale=MAX; word="holdâ€¦"; }
+    else { const o=(t-IN-HOLD)/OUT; scale=MAX-(MAX-MIN)*o; word="breathe outâ€¦"; }
     bub.style.transform="scale("+scale.toFixed(3)+")"; lab.textContent=word;
     breathRAF=requestAnimationFrame(frame);
   }
@@ -879,8 +879,8 @@ function renderStickies(){
   layer.innerHTML=list.map(s=>{ const left=Math.round((s.x||0.5)*Math.max(0,window.innerWidth-190));
     const top=Math.round((s.y||0.4)*Math.max(0,window.innerHeight-150));
     return `<div class="sticky" data-id="${s.id}" style="left:${left}px;top:${top}px;background:${s.color}">
-      <div class="sticky-head" data-drag="${s.id}"><button class="sticky-x" data-stx="${s.id}">✕</button></div>
-      <textarea data-sttext="${s.id}" placeholder="…">${esc(s.text)}</textarea></div>`; }).join("");
+      <div class="sticky-head" data-drag="${s.id}"><button class="sticky-x" data-stx="${s.id}">âœ•</button></div>
+      <textarea data-sttext="${s.id}" placeholder="â€¦">${esc(s.text)}</textarea></div>`; }).join("");
   // wire events
   layer.querySelectorAll('[data-stx]').forEach(b=>b.onclick=async()=>{ const id=b.dataset.stx;
     await setSent(n=>({...n,stickies:(n.stickies||[]).filter(x=>x.id!==id)})); renderStickies(); });
@@ -906,7 +906,7 @@ function toggleRest(){ restState.open=!restState.open; $("#restWidget").classLis
 function drawRest(){
   const w=$("#restWidget"); const mm=String(Math.floor(restState.secs/60)).padStart(2,'0'), ss=String(restState.secs%60).padStart(2,'0');
   const pct=restState.total?(1-restState.secs/restState.total):0; const R=42,C=2*Math.PI*R;
-  w.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="label">A soft rest 🫧</span><button class="x" data-rclose>✕</button></div>
+  w.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="label">A soft rest ðŸ«§</span><button class="x" data-rclose>âœ•</button></div>
     <svg width="110" height="110" viewBox="0 0 110 110" style="display:block;margin:6px auto">
       <circle cx="55" cy="55" r="${R}" fill="none" stroke="#eee5f3" stroke-width="8"/>
       <circle cx="55" cy="55" r="${R}" fill="none" stroke="url(#rg)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${(C*(1-pct)).toFixed(1)}" transform="rotate(-90 55 55)"/>
@@ -914,12 +914,12 @@ function drawRest(){
     <div class="ring-time">${mm}:${ss}</div>
     <div class="seg" style="margin:8px auto 6px;justify-content:center;display:flex">${[5,15,25].map(m=>`<button data-rest="${m}" class="${restState.total===m*60?'on':''}">${m}m</button>`).join("")}</div>
     <div style="display:flex;gap:6px;justify-content:center"><button class="btn btn-grad" data-restact="toggle">${restState.running?'Pause':'Start'}</button><button class="btn" data-restact="reset">Reset</button></div>
-    <p class="soft" style="font-size:10.5px;text-align:center;margin:8px 0 0">No goal but rest. Stop whenever. ❄️</p>`;
+    <p class="soft" style="font-size:10.5px;text-align:center;margin:8px 0 0">No goal but rest. Stop whenever. â„ï¸</p>`;
   w.querySelectorAll('[data-rest]').forEach(b=>b.onclick=()=>{ const m=Number(b.dataset.rest); restState.total=m*60; restState.secs=m*60; restState.running=false; clearInterval(restState.iv); drawRest(); });
   w.querySelectorAll('[data-restact]').forEach(b=>b.onclick=()=>{ const a=b.dataset.restact;
     if(a==="reset"){ restState.secs=restState.total; restState.running=false; clearInterval(restState.iv); }
     else { restState.running=!restState.running; clearInterval(restState.iv);
-      if(restState.running) restState.iv=setInterval(()=>{ restState.secs=Math.max(0,restState.secs-1); if(restState.secs===0){ restState.running=false; clearInterval(restState.iv); toast("rest done — well done 🦊"); } drawRest(); },1000); }
+      if(restState.running) restState.iv=setInterval(()=>{ restState.secs=Math.max(0,restState.secs-1); if(restState.secs===0){ restState.running=false; clearInterval(restState.iv); toast("rest done â€” well done ðŸ¦Š"); } drawRest(); },1000); }
     drawRest(); });
   w.querySelectorAll('[data-rclose]').forEach(b=>b.onclick=()=>toggleRest());
 }
@@ -927,9 +927,9 @@ function drawRest(){
 /* ===================== BOOT ===================== */
 // Safety net: surface any uncaught runtime error on-screen instead of a blank page.
 window.addEventListener('error',ev=>{ const v=document.getElementById('view');
-  if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p><p class="soft" style="font-size:11px">Screenshot this for me and I’ll fix it.</p></div>'; } });
+  if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup â„ï¸</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p><p class="soft" style="font-size:11px">Screenshot this for me and Iâ€™ll fix it.</p></div>'; } });
 window.addEventListener('unhandledrejection',ev=>{ const v=document.getElementById('view');
-  if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc((ev.reason&&ev.reason.message)||ev.reason||'unknown')+'</p></div>'; } });
+  if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup â„ï¸</h3><p class="soft">'+esc((ev.reason&&ev.reason.message)||ev.reason||'unknown')+'</p></div>'; } });
 function start(){
   // Demo mode: render immediately, no external library needed.
   if(DEMO){ applyPrefs(); render(); return; }
