@@ -192,6 +192,24 @@
   .tr-dot{transform-box:fill-box;transform-origin:center;transform:scale(0);animation:trpop .45s cubic-bezier(.3,1.4,.5,1) backwards;}
   @keyframes trpop{to{transform:scale(1)}}
   body.calm .tr-line,body.calm .tr-area,body.calm .tr-bar,body.calm .tr-stem,body.calm .tr-dot{animation:none!important;stroke-dashoffset:0!important;opacity:1!important;transform:none!important;}
+  /* kiko AI pet */
+  #kiko{position:fixed;right:18px;bottom:74px;z-index:81;cursor:pointer;display:grid;place-items:center;filter:drop-shadow(0 6px 9px rgba(120,110,160,.4));}
+  #kiko .kiko-sprite{image-rendering:auto;animation:kikoFloat 4.6s ease-in-out infinite;}
+  @keyframes kikoFloat{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-7px) rotate(1.5deg)}}
+  #kiko:hover .kiko-sprite{animation:kikoHop .55s ease;}
+  @keyframes kikoHop{0%{transform:translateY(0)}30%{transform:translateY(-13px) scale(1.06)}65%{transform:translateY(0) scale(1)}100%{transform:translateY(0)}}
+  #kiko.think .kiko-sprite{animation:kikoFloat 1.2s ease-in-out infinite;}
+  body.calm #kiko .kiko-sprite{animation:none!important;}
+  #kikoBubble{position:fixed;right:104px;bottom:118px;z-index:81;max-width:210px;background:#fff;border:1px solid var(--line);border-radius:14px;border-bottom-right-radius:4px;padding:9px 12px;font-size:12.5px;color:var(--ink);box-shadow:var(--shadow);cursor:pointer;}
+  #kikoChat{position:fixed;right:18px;bottom:18px;z-index:84;width:310px;max-width:calc(100vw - 36px);height:440px;max-height:74vh;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 42px rgba(120,110,160,.32);display:flex;flex-direction:column;overflow:hidden;}
+  #kikoChat.hidden,#kikoBubble.hidden,#kiko.hidden{display:none!important;}
+  .kiko-head{display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid var(--line);background:linear-gradient(120deg,#eef2fb,#fdeaf6);}
+  .kiko-av{width:34px;height:34px;border-radius:999px;background:linear-gradient(135deg,var(--peri),var(--sakura));display:grid;place-items:center;font-size:18px;flex:0 0 auto;}
+  .kiko-log{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .kiko-msg{font-size:12.5px;line-height:1.45;padding:8px 11px;border-radius:14px;max-width:86%;white-space:pre-wrap;word-break:break-word;}
+  .kiko-msg.me{align-self:flex-end;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;border-bottom-right-radius:4px;}
+  .kiko-msg.pet{align-self:flex-start;background:var(--panel-soft);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:4px;}
+  .kiko-input{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line);}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(70,66,100,.30);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto;}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(90,80,140,.3);width:100%;max-width:560px;padding:20px;}
@@ -216,6 +234,9 @@
 <button id="addStickyBtn" data-act="addSticky" title="New sticky note">🗒️+</button>
 <button id="restBtn" data-act="toggleRest" title="Breathing &amp; rest timer">🫧</button>
 <div id="restWidget" class="hidden"></div>
+<div id="kiko" data-act="kikoToggle" title="Ask Kiko ❄️"><div class="kiko-sprite" id="kikoSprite"></div></div>
+<div id="kikoBubble" class="hidden" data-act="kikoToggle"></div>
+<div id="kikoChat" class="hidden"></div>
 
 <script>
 "use strict";
@@ -245,6 +266,8 @@ const CONFIG = {
             ["X","https://x.com/mifuyuvt"],["TikTok","https://www.tiktok.com/@mifuyuvt"],
             ["Instagram","https://www.instagram.com/mifuyuvt"],["Bluesky","https://bsky.app/profile/mifuyuvt.bsky.social"],
             ["Kick","https://kick.com/mifuyuvt"],["Discord","https://discord.gg/mifuyu"] ],
+  // Kiko pet sprite — one frame cropped from the sheet. If the framing looks off, nudge fx/fy/fw/fh.
+  pet:{ sheet:"fox.png", sheetW:213, sheetH:267, fx:2, fy:2, fw:58, fh:62, scale:1.4 },
 };
 
 /* ===================== SUPABASE / DEMO ===================== */
@@ -1453,6 +1476,17 @@ const H={
   trendMetric(el){ state.trendMetric=el.dataset.v; render(); },
   trendType(el){ state.trendType=el.dataset.v; state.trendAuto=false; render(); },
   trendAuto(){ state.trendAuto = (state.trendAuto===false); render(); },
+  kikoToggle(){ KIKO.open=!KIKO.open;
+    if(KIKO.open){ $("#kikoBubble").classList.add("hidden"); $("#kiko").classList.add("hidden"); $("#kikoChat").classList.remove("hidden"); paintKiko(); }
+    else { $("#kikoChat").classList.add("hidden"); $("#kiko").classList.remove("hidden"); } },
+  async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); if(!q||KIKO.busy)return;
+    KIKO.log.push({role:"me",text:q}); KIKO.busy=true; paintKiko(); $("#kiko").classList.add("think");
+    let ans;
+    try{
+      if(DEMO||!SB){ ans="I'm a sleepy demo kiko right now 💤 — once you connect me to the server I can really chat! ❄️"; }
+      else { const d=await aiCall("ask",{question:q}); ans=(d&&(d.answer||d.text))||"hmm, my whiskers twitched — ask me again? 🦊"; }
+    }catch(e){ ans="aw, I couldn't reach the server — "+(e.message||"try again")+" 🌧️"; }
+    KIKO.log.push({role:"pet",text:ans}); KIKO.busy=false; $("#kiko").classList.remove("think"); paintKiko(); },
 
   // --- Optimize ---
   optMode(el){ OPT.mode=el.dataset.v; OPT.err=""; render(); },
@@ -1481,6 +1515,7 @@ document.addEventListener("keydown",async e=>{
   else if(t.id==="capInput"){ e.preventDefault(); H.capAdd(); }
   else if(t.id==="goalWeek"){ e.preventDefault(); H.addGoal({dataset:{p:'week'}}); }
   else if(t.id==="goalMonth"){ e.preventDefault(); H.addGoal({dataset:{p:'month'}}); }
+  else if(t.id==="kikoInput"){ e.preventDefault(); H.kikoSend(); }
 });
 document.addEventListener("change",e=>{
   const t=e.target; if(!t) return;
@@ -1658,9 +1693,38 @@ async function popOutTimer(){
 window.addEventListener('error',ev=>{ const v=document.getElementById('view');
   if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p></div>'; } });
 
+/* ===================== KIKO — AI snowfox pet ===================== */
+const KIKO={ open:false, busy:false, log:[] };
+const KIKO_GREETS=["Konfuyu~! Need anything? ❄️","Pspsps… ask me something! 🦊","I'm right here if you need me 💗","Hi Mifu~ ✿","Wanna brainstorm? 🌸"];
+function styleKiko(elId,scale){
+  const p=CONFIG.pet, el=document.getElementById(elId); if(!el||!p)return; const s=scale||p.scale;
+  el.style.width=(p.fw*s)+"px"; el.style.height=(p.fh*s)+"px";
+  el.style.backgroundImage=`url(${p.sheet})`; el.style.backgroundRepeat="no-repeat";
+  el.style.backgroundPosition=`-${(p.fx*s).toFixed(1)}px -${(p.fy*s).toFixed(1)}px`;
+  el.style.backgroundSize=`${(p.sheetW*s).toFixed(1)}px ${(p.sheetH*s).toFixed(1)}px`;
+}
+function paintKiko(){
+  const c=$("#kikoChat"); if(!c)return;
+  const logHtml = KIKO.log.length
+    ? KIKO.log.map(m=>`<div class="kiko-msg ${m.role}">${esc(m.text)}</div>`).join("")
+    : `<div class="kiko-msg pet">Konfuyu~! I'm Kiko 🦊 Ask me anything — content ideas, a gentle pep talk, or whatever's on your mind. ❄️</div>`;
+  c.innerHTML=`<div class="kiko-head"><div class="kiko-av">🦊</div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoToggle">✕</button></div>
+    <div class="kiko-log" id="kikoLog">${logHtml}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
+    <div class="kiko-input"><input class="inp" id="kikoInput" placeholder="ask Kiko…" ${KIKO.busy?"disabled":""}><button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button></div>`;
+  const log=$("#kikoLog"); if(log) log.scrollTop=log.scrollHeight;
+  const inp=$("#kikoInput"); if(inp&&!KIKO.busy) try{ inp.focus(); }catch(_){}
+}
+function kikoGreet(){
+  if(KIKO.open) return; const b=$("#kikoBubble"); if(!b)return;
+  b.textContent=KIKO_GREETS[Math.floor(Math.random()*KIKO_GREETS.length)];
+  b.classList.remove("hidden");
+  clearTimeout(b._h); b._h=setTimeout(()=>b.classList.add("hidden"),6000);
+}
+
 function start(){
   applyPrefs();
   render();   // show the app instantly — never blank, even before/without Supabase
+  try{ styleKiko("kikoSprite"); setTimeout(kikoGreet,2500); }catch(e){ console.error(e); }
   if(!DEMO){
     const sc=document.createElement('script');
     sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
