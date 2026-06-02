@@ -180,6 +180,18 @@
   .cal-span.rcap{margin-right:-6px;border-top-right-radius:8px;border-bottom-right-radius:8px;}
   .cal-span.dragging{opacity:.45;}
   .cal-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;}
+  /* animated trends chart */
+  .trchart{width:100%;height:auto;display:block;}
+  .tr-line{stroke-dasharray:1;stroke-dashoffset:1;animation:trdraw 1.1s cubic-bezier(.4,.7,.3,1) forwards;}
+  @keyframes trdraw{to{stroke-dashoffset:0}}
+  .tr-area{opacity:0;animation:trfade .9s ease .35s forwards;}
+  @keyframes trfade{to{opacity:1}}
+  .tr-bar{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);animation:trgrow .55s cubic-bezier(.3,.8,.3,1) backwards;}
+  @keyframes trgrow{to{transform:scaleY(1)}}
+  .tr-stem{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);animation:trgrow .45s ease backwards;}
+  .tr-dot{transform-box:fill-box;transform-origin:center;transform:scale(0);animation:trpop .45s cubic-bezier(.3,1.4,.5,1) backwards;}
+  @keyframes trpop{to{transform:scale(1)}}
+  body.calm .tr-line,body.calm .tr-area,body.calm .tr-bar,body.calm .tr-stem,body.calm .tr-dot{animation:none!important;stroke-dashoffset:0!important;opacity:1!important;transform:none!important;}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(70,66,100,.30);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto;}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(90,80,140,.3);width:100%;max-width:560px;padding:20px;}
@@ -356,7 +368,7 @@ function applyPrefs(){
   document.body.classList.toggle("calm",PREF.calm);
   document.body.classList.toggle("text-lg",PREF.text);
 }
-const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all" };
+const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetric:"mood", trendType:"area", trendAuto:true };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
 const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
@@ -403,6 +415,7 @@ async function render(){
     renderStickies();
     if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
+    if(state.tab==='trends'){ try{ paintTrendChart(); startTrendsLoop(); }catch(e){ console.error(e); } } else { stopTrendsLoop(); }
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
 }
 
@@ -840,16 +853,97 @@ function patternSpotter(byDate){
   return `<ul style="padding-left:18px;font-size:13px">${obs.map(o=>`<li style="margin:6px 0">${o}</li>`).join("")}</ul>
     <p class="soft" style="font-size:11px;margin-top:6px">Gentle observations from your own logs — patterns, not proof, and never a diagnosis. Worth a mention to your care team if something rings true. ❄️🦊</p>`;
 }
+/* ----- animated visual trends chart ----- */
+const TREND_METRICS=[
+  ["mood","🌤️","Mood",5,"up",["🌧️","🌞"]],
+  ["anxiety","🫂","Anxiety",5,"down",["calm","high"]],
+  ["energy","⚡","Energy",5,"up",["💤","⚡"]],
+  ["nausea","🤢","Nausea",5,"down",["ok","rough"]],
+  ["cravings","🍩","Cravings",5,"down",["quiet","loud"]],
+  ["water","🥤","Water",10,"up",["low","lots"]],
+  ["sleep","🌙","Sleep",12,"up",["short","long"]],
+];
+const TREND_TYPES=["area","bars","dots"];
+function trendRuns(vals){ const r=[]; let cur=null; vals.forEach((v,i)=>{ if(v==null){ if(cur){r.push(cur);cur=null;} } else { if(!cur)cur=[]; cur.push({i,v}); } }); if(cur)r.push(cur); return r; }
+function buildChartSVG(metricKey,type){
+  const {series}=buildSeries();
+  const meta=TREND_METRICS.find(x=>x[0]===metricKey)||TREND_METRICS[0];
+  const vals=series[metricKey]||[]; const max=meta[3];
+  const W=600,H=220,padX=30,padT=20,padB=30, plotW=W-padX*2, plotH=H-padT-padB, base=padT+plotH, n=vals.length;
+  const xi=i=> padX + (n>1? i*(plotW/(n-1)) : plotW/2);
+  const yv=v=> padT + (1-(v/max))*plotH;
+  let grid=""; for(let g=0;g<=2;g++){ const yy=padT+g*(plotH/2); grid+=`<line x1="${padX}" y1="${yy.toFixed(0)}" x2="${W-padX}" y2="${yy.toFixed(0)}" stroke="#ece8f4" stroke-width="1"/>`; }
+  const days=[]; for(let i=13;i>=0;i--) days.push(dayAgo(-i));
+  let ticks=""; [0,Math.floor(n/2),n-1].forEach(i=>{ ticks+=`<text x="${xi(i).toFixed(0)}" y="${H-8}" text-anchor="middle" font-size="11" fill="#9b96b6">${fmtDate(days[i])}</text>`; });
+  const hint=`<text x="6" y="${(padT+9).toFixed(0)}" font-size="11" fill="#9b96b6">${meta[5][1]}</text><text x="6" y="${base.toFixed(0)}" font-size="11" fill="#9b96b6">${meta[5][0]}</text>`;
+  let body="";
+  if(type==="bars"){
+    vals.forEach((v,i)=>{ if(v==null)return; const x=xi(i), h=Math.max(2,(v/max)*plotH), y=base-h, bw=Math.min(28,plotW/n*0.62);
+      body+=`<rect x="${(x-bw/2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="6" fill="url(#trg)" class="tr-bar" style="animation-delay:${(i*0.045).toFixed(2)}s"/>`; });
+  } else if(type==="dots"){
+    vals.forEach((v,i)=>{ if(v==null)return; const x=xi(i), y=yv(v);
+      body+=`<line x1="${x.toFixed(1)}" y1="${base}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--peri)" stroke-width="2" opacity=".3" class="tr-stem" style="animation-delay:${(i*0.045).toFixed(2)}s"/>`;
+      body+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="url(#trg)" class="tr-dot" style="animation-delay:${(i*0.05).toFixed(2)}s"/>`; });
+  } else {
+    trendRuns(vals).forEach(run=>{
+      const pts=run.map(p=>`${xi(p.i).toFixed(1)} ${yv(p.v).toFixed(1)}`);
+      body+=`<path d="M${xi(run[0].i).toFixed(1)} ${base} L${pts.join(" L")} L${xi(run[run.length-1].i).toFixed(1)} ${base} Z" fill="url(#trgf)" class="tr-area"/>`;
+      body+=`<path d="M${pts.join(" L")}" pathLength="1" fill="none" stroke="url(#trg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="tr-line"/>`;
+      run.forEach(p=>{ body+=`<circle cx="${xi(p.i).toFixed(1)}" cy="${yv(p.v).toFixed(1)}" r="4" fill="#fff" stroke="var(--sakura)" stroke-width="2.5" class="tr-dot" style="animation-delay:${(p.i*0.04).toFixed(2)}s"/>`; });
+    });
+  }
+  return `<svg class="trchart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="trg" x1="0" x2="1"><stop offset="0" stop-color="#758ac6"/><stop offset="1" stop-color="#ff9ed8"/></linearGradient>
+    <linearGradient id="trgf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff9ed8" stop-opacity=".45"/><stop offset="1" stop-color="#758ac6" stop-opacity=".04"/></linearGradient></defs>
+    ${grid}${hint}${body}${ticks}</svg>`;
+}
+function trendWord(metricKey){
+  const {series}=buildSeries(); const vals=(series[metricKey]||[]).filter(v=>v!=null);
+  const meta=TREND_METRICS.find(x=>x[0]===metricKey)||TREND_METRICS[0]; const name=meta[2];
+  if(vals.length<4) return `A few more tracked days and I'll show ${name.toLowerCase()}'s direction. ❄️`;
+  const half=Math.max(2,Math.floor(vals.length/2)); const early=vals.slice(0,half), late=vals.slice(-half);
+  const avg=a=>a.reduce((p,c)=>p+c,0)/a.length; const d=avg(late)-avg(early);
+  const rising=d>0.4, falling=d<-0.4;
+  const W={
+    mood:{up:"Your mood's been gently lifting 🌤️",down:"Mood's dipped a little — be extra soft with yourself today 💗",flat:"Mood's been pretty steady lately ❄️"},
+    anxiety:{up:"Anxiety's run a bit higher — those days deserve extra care 🫂",down:"Anxiety's been easing off 🌿",flat:"Anxiety's held fairly steady ❄️"},
+    energy:{up:"Energy's been climbing ⚡",down:"Energy's been lower — rest is allowed 🌙",flat:"Energy's been pretty even ❄️"},
+    nausea:{up:"Nausea's been louder lately — water + smaller meals might help 🥤",down:"Nausea's been settling down 🌿",flat:"Nausea's been fairly steady ❄️"},
+    cravings:{up:"Cravings have been louder lately 🍩",down:"Cravings have been quieter ✨",flat:"Cravings have been steady ❄️"},
+    water:{up:"You've been drinking more water — lovely 🥤",down:"Water's dipped — a soft nudge to sip 💧",flat:"Water's been steady ❄️"},
+    sleep:{up:"You've been sleeping a little longer 🌙",down:"Sleep's been shorter lately — gentle nights ahead 🌙",flat:"Sleep's been fairly steady ❄️"},
+  };
+  const m=W[metricKey]||W.mood; return rising?m.up:falling?m.down:m.flat;
+}
+let TRENDS_IV=null;
+function paintTrendChart(){
+  const host=document.getElementById("trendChartHost"); if(!host)return;
+  const metric=state.trendMetric||"mood", type=state.trendType||"area";
+  host.innerHTML=buildChartSVG(metric,type);
+  const w=document.getElementById("trendWord"); if(w) w.textContent=trendWord(metric);
+  const ind=document.getElementById("trendTypeName"); if(ind) ind.textContent=({area:"soft line",bars:"bars",dots:"dots"})[type]||type;
+}
+function startTrendsLoop(){ stopTrendsLoop(); if(PREF.calm||state.trendAuto===false) return;
+  TRENDS_IV=setInterval(()=>{ const i=TREND_TYPES.indexOf(state.trendType||"area"); state.trendType=TREND_TYPES[(i+1)%TREND_TYPES.length]; paintTrendChart(); },4500); }
+function stopTrendsLoop(){ if(TRENDS_IV){ clearInterval(TRENDS_IV); TRENDS_IV=null; } }
+
 function viewTrends(){
-  const {byDate,series}=buildSeries();
-  const rows=[["Mood",series.mood,5],["Anxiety",series.anxiety,5],["Energy",series.energy,5],
-    ["Nausea",series.nausea,5],["Cravings",series.cravings,5],["Water (cups)",series.water,10],["Sleep (hrs)",series.sleep,10]];
+  const {byDate}=buildSeries();
+  const metric=state.trendMetric||"mood", auto=state.trendAuto!==false;
   return `
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">📈 Last 14 days</h2><span class="pill pill-gray">gaps = rest days</span></div>
-    <p class="soft" style="font-size:12px;margin:0 0 8px">A gap just means a rest day from tracking — shown faint, no guilt. ❄️</p>
-    ${rows.map(([lab,arr,mx])=>{ const latest=[...arr].reverse().find(v=>v!=null);
-      return `<div class="sparkrow"><span class="lab">${lab}</span>${spark(arr,mx)}<span class="now">${latest!=null?latest:'–'}</span></div>`; }).join("")}
+    <div class="card-head"><h2 style="font-size:18px">📈 Your last 14 days</h2><span class="pill pill-gray">a gentle picture</span></div>
+    <div class="chiprow" style="margin-bottom:10px">
+      ${TREND_METRICS.map(([k,e,l])=>`<button class="chiptog ${metric===k?'on':''}" data-act="trendMetric" data-v="${k}"><span>${e}</span>${l}</button>`).join("")}
+    </div>
+    <div id="trendChartHost"></div>
+    <p id="trendWord" style="text-align:center;font-family:var(--display);font-size:15px;color:var(--ink);margin:8px 0 0"></p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <span class="label">view: <span id="trendTypeName">soft line</span></span>
+      ${TREND_TYPES.map(t=>`<button class="btn ${(state.trendType||'area')===t?'btn-grad':''}" data-act="trendType" data-v="${t}" style="padding:5px 11px;font-size:14px" title="${({area:'soft line',bars:'bars',dots:'dots'})[t]}">${({area:'∿',bars:'▮',dots:'•'})[t]}</button>`).join("")}
+      <button class="btn ${auto?'btn-grad':''}" data-act="trendAuto" style="padding:5px 11px" title="auto-shift between views">🔁 auto</button>
+    </div>
+    <p class="soft" style="font-size:11px;text-align:center;margin-top:8px">Gaps just mean a rest day from tracking — no guilt. ❄️</p>
   </section>
   <section class="panel">
     <div class="label" style="margin-bottom:6px">🔎 Gentle pattern-spotter</div>
@@ -1356,6 +1450,9 @@ const H={
   async setGameColor(el){ await setSent(n=>({...n,gameColor:el.dataset.v})); toast("colour set 🎮"); render(); },
   calToggleStreams(){ state.calShowStreams = !(state.calShowStreams!==false); render(); },
   calToggleGames(){ state.calShowGames = !(state.calShowGames!==false); render(); },
+  trendMetric(el){ state.trendMetric=el.dataset.v; render(); },
+  trendType(el){ state.trendType=el.dataset.v; state.trendAuto=false; render(); },
+  trendAuto(){ state.trendAuto = (state.trendAuto===false); render(); },
 
   // --- Optimize ---
   optMode(el){ OPT.mode=el.dataset.v; OPT.err=""; render(); },
