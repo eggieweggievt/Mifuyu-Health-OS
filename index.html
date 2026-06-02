@@ -157,6 +157,23 @@
   .ring-time{font-family:var(--display);font-size:26px;color:var(--ink);text-align:center;}
   .timer-ic{border:none;background:none;color:var(--ink-soft);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:7px;}
   .timer-ic:hover{background:#f3eef6;color:var(--sakura-deep);}
+  /* calendar */
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .cal-dow{font-size:11px;text-align:center;color:var(--lav-deep);font-weight:600;padding:2px 0;}
+  .cal-cell{min-height:94px;border:1px solid var(--line);border-radius:12px;padding:5px 6px;background:rgba(255,255,255,.5);display:flex;flex-direction:column;gap:4px;cursor:pointer;transition:background .15s,border-color .15s,transform .12s;}
+  .cal-cell:hover{border-color:var(--lav);}
+  .cal-cell.other{opacity:.4;}
+  .cal-cell.today{border-color:var(--peri);box-shadow:inset 0 0 0 2px rgba(117,138,198,.25);}
+  .cal-cell.drag-over{background:rgba(169,143,224,.18);border-color:var(--lav-deep);transform:scale(1.03);}
+  .cal-daynum{font-size:11.5px;color:#8a7d92;align-self:flex-end;line-height:1;}
+  .cal-cell.today .cal-daynum{color:var(--peri-deep);font-weight:700;}
+  .cal-ev{font-size:11px;line-height:1.3;padding:3px 7px;border-radius:8px;color:#3a3550;cursor:grab;user-select:none;white-space:normal;overflow-wrap:anywhere;word-break:break-word;transition:transform .12s,opacity .12s,box-shadow .12s;}
+  .cal-ev:hover{box-shadow:0 2px 8px rgba(120,110,160,.28);}
+  .cal-ev:active{cursor:grabbing;} .cal-ev.dragging{opacity:.45;transform:scale(.95);}
+  .cal-ev.cont{opacity:.72;cursor:default;border-left:3px solid rgba(58,53,80,.25);}
+  .cal-stream{font-size:10.5px;line-height:1.25;padding:3px 7px;border-radius:8px;background:rgba(255,158,216,.16);color:var(--sakura-deep);border-left:3px solid var(--sakura);cursor:pointer;white-space:normal;overflow-wrap:anywhere;transition:background .12s;}
+  .cal-stream:hover{background:rgba(255,158,216,.30);}
+  .cal-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(70,66,100,.30);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto;}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(90,80,140,.3);width:100%;max-width:560px;padding:20px;}
@@ -283,6 +300,10 @@ function seedDemo(){
     goalsMonth:[ {id:"g3",text:"Keep the weight trend gentle",done:false},{id:"g4",text:"Start a song-cover WIP",done:false} ],
     schedule:[ {id:"sc1",day:"Wed",show:"REACT / POE2",time:"5PM"},{id:"sc2",day:"Thu",show:"REACT / POE2",time:"5PM"},{id:"sc3",day:"Sat",show:"Warframe Day",time:"5PM"} ],
     captures:[ {id:"cap1",text:"bit idea: rate chat's comfort games out of 10",date:TODAY},{id:"cap2",text:"ask Dr about the cycle gap at next appt",date:TODAY} ],
+    calendarEvents:[
+      {id:"ce1",title:"Collab stream with Eggie 🎀",date:dayAgo(-2),endDate:null,color:"#ff9ed8",time:"15:00",tz:"Europe/Amsterdam",note:"co-op horror"},
+      {id:"ce2",title:"Wuthering Waves 2.x update",date:dayAgo(-1),endDate:dayAgo(-22),color:"#f6cba9",time:"04:00",tz:"Asia/Tokyo",note:"new region + limited banners",src:"game"} ],
+    gameColor:"#f6cba9",
     appConfig:{},
   };
   return daily;
@@ -332,7 +353,7 @@ function applyPrefs(){
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all" };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -371,10 +392,11 @@ async function render(){
     state.sentinel = await DB.daily(SENTINEL);
     state.today = await DB.daily(TODAY);
     state.range = await DB.range(14);
-    const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,planner:viewPlanner,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,planner:viewPlanner,calendar:renderCalendar,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     v.innerHTML = fn();
     renderStickies();
     if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
+    if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
 }
 
@@ -885,6 +907,12 @@ function viewSettings(){
   </section>
 
   <section class="panel">
+    <div class="label" style="margin-bottom:8px">📅 Calendar</div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">Colour for the auto game-update events (refreshed every Friday).</p>
+    <div class="chiprow">${["#f6cba9","#9fc7f0","#c9b8f0","#a9e0cb","#ff9ed8","#b8d4f0","#d8c7a0"].map(c=>`<button class="cal-swatch" data-act="setGameColor" data-v="${c}" style="background:${c};border:2px solid ${(state.sentinel.gameColor||'#f6cba9')===c?'var(--ink)':'transparent'}"></button>`).join("")}</div>
+  </section>
+
+  <section class="panel">
     <div class="label" style="margin-bottom:8px">🦊 Mifu's links</div>
     <div class="chiprow">${(CONFIG.socials||[]).map(([n,u])=>`<a class="chiptog" href="${u}" target="_blank" rel="noopener" style="text-decoration:none">${esc(n)}</a>`).join("")}</div>
   </section>
@@ -1055,6 +1083,129 @@ function viewOptimize(){
   ${DISCLAIMER}`;
 }
 
+/* ===================== CALENDAR (front-end only; events on sentinel row) ===================== */
+const CAL_TZ_TARGET="Europe/Amsterdam";   // Mifu is CET — everything is shown in this zone
+const CAL_TZ_LABEL="CET";
+const CAL_TZS=[["Europe/Amsterdam","CET · Europe (your time)"],["Europe/London","UK"],["UTC","UTC"],["America/New_York","ET · Eastern"],["America/Chicago","CT · Central"],["America/Denver","MT · Mountain"],["America/Los_Angeles","PT · Pacific"],["Asia/Tokyo","JP · Japan"]];
+const CAL_TZ_SHORT={"Europe/Amsterdam":"CET","Europe/London":"UK","UTC":"UTC","America/New_York":"ET","America/Chicago":"CT","America/Denver":"MT","America/Los_Angeles":"PT","Asia/Tokyo":"JP"};
+const CAL_COLORS=["#9fc7f0","#c9b8f0","#a9e0cb","#ff9ed8","#b8d4f0"];   // sky · lavender · mint · sakura · ice
+const GAME_COLOR_DEFAULT="#f6cba9";
+let CAL_COLOR=CAL_COLORS[0];
+function tzOffsetMs(tz,utcMs){ const p=new Intl.DateTimeFormat("en-US",{timeZone:tz,hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}).formatToParts(new Date(utcMs)).reduce((a,x)=>(a[x.type]=x.value,a),{}); const asUTC=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second); return asUTC-utcMs; }
+function wallToUtc(dateStr,timeStr,tz){ const [Y,M,D]=dateStr.split("-").map(Number); const [h,m]=(timeStr||"00:00").split(":").map(Number); const guess=Date.UTC(Y,M-1,D,h,m); let off=tzOffsetMs(tz,guess); off=tzOffsetMs(tz,guess-off); return guess-off; }
+function toLocal(dateStr,timeStr,tz){ if(!timeStr)return null; const utc=wallToUtc(dateStr,timeStr,tz||CAL_TZ_TARGET); const p=new Intl.DateTimeFormat("en-US",{timeZone:CAL_TZ_TARGET,hour:"numeric",minute:"2-digit",hour12:true,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(utc)).reduce((a,x)=>(a[x.type]=x.value,a),{}); const lDate=`${p.year}-${p.month}-${p.day}`; return { tTime:`${p.hour}:${p.minute} ${p.dayPeriod}`, tDate:lDate, dayDiff:lDate!==dateStr }; }
+function fmt12(timeStr){ if(!timeStr)return ""; const [h,m]=timeStr.split(":").map(Number); const ap=h<12?"AM":"PM"; const hh=h%12||12; return `${hh}:${String(m).padStart(2,"0")} ${ap}`; }
+function calShift(iso,delta){ const d=new Date(iso+"T00:00"); d.setDate(d.getDate()+delta); return d.toLocaleDateString("en-CA"); }
+
+function renderCalendar(){
+  const sent=state.sentinel||{};
+  const events=sent.calendarEvents||[];
+  const schedule=sent.schedule||[];
+  const gameColor=sent.gameColor||GAME_COLOR_DEFAULT;
+  if(!state.calRef){ const t=new Date(); state.calRef=new Date(t.getFullYear(),t.getMonth(),1); }
+  const ref=state.calRef, y=ref.getFullYear(), m=ref.getMonth();
+  const startDow=new Date(y,m,1).getDay();
+  const gridStart=new Date(y,m,1-startDow);
+  const monthName=ref.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+  const dows=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const dayShortFull=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  let cells="";
+  for(let i=0;i<42;i++){
+    const d=new Date(gridStart); d.setDate(gridStart.getDate()+i);
+    const ds=d.toLocaleDateString("en-CA");
+    const inMonth=d.getMonth()===m, isToday=ds===TODAY;
+    const dayShort=dayShortFull[d.getDay()];
+    const streamChips=schedule.filter(s=>s.day===dayShort).map(s=>`<div class="cal-stream" data-act="editSchedule" title="Stream day — tap to edit your schedule">🔴 ${s.time?esc(s.time)+" · ":""}${esc(s.show||s.title||"Stream")}</div>`).join("");
+    const chips=events.filter(ev=> ds>=ev.date && ds<=(ev.endDate||ev.date))
+      .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")).map(ev=>{
+        const bg = ev.src==="game" ? gameColor : (ev.color||CAL_COLORS[0]);
+        const ic = ev.src==="game" ? "🎮 " : "";
+        if(ds===ev.date){
+          const et=toLocal(ev.date,ev.time,ev.tz);
+          const tlabel=et?`<b>${et.tTime}${et.dayDiff?" (+1d)":""}</b> `:"";
+          const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(ev.note?" — "+ev.note:""));
+          return `<div class="cal-ev" draggable="true" data-eid="${ev.id}" data-act="calEvent" style="background:${bg}" title="${tip}">${ic}${tlabel}${esc(ev.title)}${ev.endDate&&ev.endDate>ev.date?" →":""}${ev.note?" 📝":""}</div>`;
+        }
+        return `<div class="cal-ev cont" data-eid="${ev.id}" data-act="calEvent" style="background:${bg}">${ic}↪ ${esc(ev.title)}</div>`;
+      }).join("");
+    cells+=`<div class="cal-cell ${inMonth?"":"other"} ${isToday?"today":""}" data-date="${ds}" data-act="calAdd"><span class="cal-daynum">${d.getDate()}</span>${streamChips}${chips}</div>`;
+  }
+  return `<div class="panel" style="max-width:920px;margin:0 auto">
+    <div class="card-head"><div><h2 style="font-size:18px">📅 ${monthName}</h2><div class="label" style="margin-top:2px">tap a day to add · drag to move · 🔴 streams · 🎮 game updates ❄️🦊</div></div>
+      <div style="display:flex;gap:6px"><button class="btn" data-act="calPrev" title="previous month">‹</button><button class="btn" data-act="calToday">today</button><button class="btn" data-act="calNext" title="next month">›</button></div></div>
+    <div class="cal-grid" style="margin-bottom:6px">${dows.map(d=>`<div class="cal-dow">${d}</div>`).join("")}</div>
+    <div class="cal-grid">${cells}</div>
+    <p class="soft" style="font-size:11.5px;margin-top:12px">Konfuyu~ nothing here is set in stone — drag things around whenever your week shifts. 💗 Game updates refresh automatically every Friday.</p>
+  </div>`;
+}
+
+async function calEventModal(date,eid){
+  const sent=await DB.daily(SENTINEL);
+  const events=sent.calendarEvents||[];
+  const ev=eid?events.find(e=>e.id===eid):null;
+  CAL_COLOR=ev?(ev.color||CAL_COLORS[0]):CAL_COLORS[0];
+  const theDate=ev?ev.date:date;
+  const curTz=ev?(ev.tz||CAL_TZ_TARGET):CAL_TZ_TARGET;
+  document.getElementById("modal").innerHTML=`<div class="modal-bg" data-act="closeModal"><div class="modal" data-act="noop" style="max-width:420px;width:100%;max-height:92vh;overflow:auto"><div class="card-head"><h3 style="font-size:16px">${ev?"✏️ Edit event":"➕ New event"}</h3><button class="btn" data-act="closeModal">✕</button></div>
+    <input type="hidden" id="calEid" value="${ev?ev.id:""}" />
+    <div class="label" style="margin-bottom:4px">What's happening?</div>
+    <input class="inp" id="calTitle" value="${ev?esc(ev.title):""}" placeholder="e.g. Collab stream 🎀" />
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <div style="flex:1"><div class="label" style="margin-bottom:4px">Date</div><input class="inp" id="calDate" type="date" value="${theDate}" /></div>
+      <div style="flex:1"><div class="label" style="margin-bottom:4px">Ends (optional)</div><input class="inp" id="calEndDate" type="date" value="${ev&&ev.endDate?ev.endDate:""}" /></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:110px"><div class="label" style="margin-bottom:4px">Time</div><input class="inp" id="calTime" type="time" value="${ev&&ev.time?ev.time:""}" /></div>
+      <div style="flex:2;min-width:150px"><div class="label" style="margin-bottom:4px">Happening in</div><select class="inp" id="calTz">${CAL_TZS.map(([v,l])=>`<option value="${v}" ${v===curTz?"selected":""}>${l}</option>`).join("")}</select></div>
+    </div>
+    <div id="calConv" class="soft-card" style="margin-top:10px;font-size:12.5px;display:none"></div>
+    <div class="label" style="margin:12px 0 4px">Note</div>
+    <textarea class="inp" id="calNote" rows="2" placeholder="anything to remember… 🌸">${ev&&ev.note?esc(ev.note):""}</textarea>
+    <div class="label" style="margin:12px 0 4px">Colour</div>
+    <div id="calColors" style="display:flex;gap:8px">${CAL_COLORS.map(c=>`<button class="cal-swatch" data-color="${c}" style="background:${c};border:2px solid ${c===CAL_COLOR?"var(--ink)":"transparent"}"></button>`).join("")}</div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-grad" data-act="saveCalEvent" style="flex:1">💾 save</button>
+      ${ev?`<button class="btn" data-act="delCalEvent" data-eid="${ev.id}" style="color:var(--sakura-deep)">delete</button>`:""}
+    </div></div></div>`;
+  document.querySelectorAll("#calColors .cal-swatch").forEach(b=>b.addEventListener("click",()=>{
+    CAL_COLOR=b.dataset.color;
+    document.querySelectorAll("#calColors .cal-swatch").forEach(x=>x.style.borderColor="transparent");
+    b.style.borderColor="var(--ink)";
+  }));
+  const conv=document.getElementById("calConv");
+  function refreshConv(){
+    const t=document.getElementById("calTime").value, tz=document.getElementById("calTz").value, dt=document.getElementById("calDate").value;
+    if(!t){ conv.style.display="none"; return; }
+    const et=toLocal(dt,t,tz);
+    if(tz===CAL_TZ_TARGET){ conv.style.display="block"; conv.innerHTML=`🕒 <b>${et.tTime} ${CAL_TZ_LABEL}</b> — already in your time zone 💗`; return; }
+    conv.style.display="block";
+    conv.innerHTML=`🕒 ${fmt12(t)} ${CAL_TZ_SHORT[tz]||""} → <b>${et.tTime} ${CAL_TZ_LABEL}</b>${et.dayDiff?` <span class="muted">(${et.tDate})</span>`:""}`;
+  }
+  ["calTime","calTz","calDate"].forEach(idn=>document.getElementById(idn).addEventListener("input",refreshConv));
+  refreshConv();
+}
+
+function wireCalDnD(){
+  let dragEid=null;
+  document.querySelectorAll(".cal-ev[draggable='true']").forEach(ev=>{
+    ev.addEventListener("dragstart",e=>{ dragEid=ev.dataset.eid; ev.classList.add("dragging"); if(e.dataTransfer){e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",dragEid);}catch(_){}}});
+    ev.addEventListener("dragend",()=>{ ev.classList.remove("dragging"); document.querySelectorAll(".cal-cell.drag-over").forEach(c=>c.classList.remove("drag-over")); });
+  });
+  document.querySelectorAll(".cal-cell").forEach(cell=>{
+    cell.addEventListener("dragover",e=>{ e.preventDefault(); if(e.dataTransfer)e.dataTransfer.dropEffect="move"; cell.classList.add("drag-over"); });
+    cell.addEventListener("dragleave",()=>cell.classList.remove("drag-over"));
+    cell.addEventListener("drop",async e=>{
+      e.preventDefault(); cell.classList.remove("drag-over");
+      const eid=dragEid||(e.dataTransfer&&e.dataTransfer.getData("text/plain"));
+      const date=cell.dataset.date;
+      if(!eid||!date)return;
+      await DB.saveDaily(SENTINEL,n=>{ const evs=(n.calendarEvents||[]).slice(); const t=evs.find(x=>x.id===eid);
+        if(t){ if(t.endDate&&t.endDate>t.date){ const delta=daysBetween(t.date,date); t.endDate=calShift(t.endDate,delta); } t.date=date; } return {...n,calendarEvents:evs}; });
+      state.sentinel=await DB.daily(SENTINEL); render();
+    });
+  });
+}
+
 /* ===================== HANDLERS ===================== */
 async function setToday(merge){ state.today=await DB.saveDaily(TODAY,n=>merge(n)); }
 async function setSent(merge){ state.sentinel=await DB.saveDaily(SENTINEL,n=>merge(n)); }
@@ -1156,6 +1307,29 @@ const H={
     await setSent(n=>({...n,captures:[...(n.captures||[]),{id:'cap'+Date.now(),text:t,date:TODAY}]})); toast("parked 🧠"); render(); },
   async capDel(el){ const id=el.dataset.v; await setSent(n=>({...n,captures:(n.captures||[]).filter(c=>c.id!==id)})); render(); },
   async capPin(el){ const c=(state.sentinel.captures||[]).find(x=>x.id===el.dataset.v); if(!c)return; await addSticky(c.text); toast("pinned to a sticky 📌"); },
+
+  // --- Calendar ---
+  calPrev(){ state.calRef=new Date(state.calRef.getFullYear(),state.calRef.getMonth()-1,1); render(); },
+  calNext(){ state.calRef=new Date(state.calRef.getFullYear(),state.calRef.getMonth()+1,1); render(); },
+  calToday(){ const t=new Date(); state.calRef=new Date(t.getFullYear(),t.getMonth(),1); render(); },
+  calAdd(el){ calEventModal(el.dataset.date); },
+  calEvent(el){ calEventModal(null,el.dataset.eid); },
+  closeModal(){ $("#modal").innerHTML=""; },
+  noop(){},
+  editSchedule(){ $("#modal").innerHTML=""; state.tab="home"; state.schedEdit=true; render(); },
+  async saveCalEvent(){
+    const title=($("#calTitle").value||"").trim(), date=$("#calDate").value, eid=$("#calEid").value;
+    const endRaw=$("#calEndDate").value||null, time=$("#calTime").value, tz=$("#calTz").value, note=($("#calNote").value||"").trim();
+    if(!title){ toast("give it a name 🌸"); return; }
+    const endDate=(endRaw&&endRaw>date)?endRaw:null;
+    await DB.saveDaily(SENTINEL,n=>{ const evs=(n.calendarEvents||[]).slice();
+      if(eid){ const t=evs.find(x=>x.id===eid); if(t){ t.title=title;t.date=date;t.endDate=endDate;t.color=CAL_COLOR;t.time=time;t.tz=tz;t.note=note; } }
+      else { evs.push({id:uid(),title,date,endDate,color:CAL_COLOR,time,tz,note}); }
+      return {...n,calendarEvents:evs}; });
+    state.sentinel=await DB.daily(SENTINEL); $("#modal").innerHTML=""; toast("saved 💗"); render();
+  },
+  async delCalEvent(el){ const eid=el.dataset.eid; await DB.saveDaily(SENTINEL,n=>({...n,calendarEvents:(n.calendarEvents||[]).filter(x=>x.id!==eid)})); state.sentinel=await DB.daily(SENTINEL); $("#modal").innerHTML=""; toast("removed"); render(); },
+  async setGameColor(el){ await setSent(n=>({...n,gameColor:el.dataset.v})); toast("colour set 🎮"); render(); },
 
   // --- Optimize ---
   optMode(el){ OPT.mode=el.dataset.v; OPT.err=""; render(); },
