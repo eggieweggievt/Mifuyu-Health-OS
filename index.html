@@ -306,7 +306,7 @@ function applyPrefs(){
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all" };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumbRead:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["optimize","🎯 Optimize"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -347,6 +347,7 @@ async function render(){
     const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,planner:viewPlanner,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     v.innerHTML = fn();
     renderStickies();
+    if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
 }
 
@@ -988,7 +989,7 @@ const H={
   async setMeasure(){ const v=parseFloat($("#waistInput").value); if(isNaN(v)){ toast("enter a number"); return; }
     await setSent(n=>({...n,measurements:[...(n.measurements||[]),{date:TODAY,waist:v}]})); toast("saved ❄️"); render(); },
 
-  breath(){ state.breathOn=!state.breathOn; if(state.breathOn) startBreath(); else stopBreath(); render(); },
+  async breath(){ state.breathOn=!state.breathOn; await render(); if(state.breathOn) startBreath(); else stopBreath(); },
   flip(el){ el.closest('.flip').classList.toggle('open'); },
   drawJoy(){ const jar=state.sentinel.joyJar||[]; const el=$("#joyPick"); if(!jar.length){ el.textContent="add a joy first ✿"; return; }
     el.textContent="✿ "+jar[Math.floor(Math.random()*jar.length)]+" ✿"; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); },
@@ -1053,6 +1054,7 @@ document.addEventListener("click",async e=>{ const el=e.target.closest("[data-ac
 let breathRAF=null;
 function startBreath(){
   const bub=$("#bubble"), lab=$("#breathLabel"); if(!bub)return;
+  if(breathRAF){ cancelAnimationFrame(breathRAF); clearInterval(breathRAF); breathRAF=null; } // idempotent — never stack loops
   if(PREF.calm){
     let phase=0; const words=["breathe in… (4)","hold… (2)","breathe out… (6)"];
     lab.textContent=words[0];
