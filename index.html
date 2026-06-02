@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Mifuyu Health OS ❄️🦊</title>
-<link rel="icon" type="image/png" href="snowflake.png" />
+<link rel="icon" type="image/png" href="sakura.png" />
 <link rel="apple-touch-icon" href="Film_YCH_20260424215925.png" />
 <!-- =========================================================================
   Mifuyu Health OS — a gentle, private snowfox health companion for Mifu 🦊❄️
@@ -259,10 +259,13 @@ function seedDemo(){
     doseHistory:[ {dose:2.5,started:start},{dose:5,started:dayAgo(-44+28)},{dose:7.5,started:dayAgo(-7)} ],
     weightLog:[ {date:dayAgo(-42),w:84.6},{date:dayAgo(-35),w:84.1},{date:dayAgo(-28),w:83.2},
       {date:dayAgo(-21),w:82.7},{date:dayAgo(-14),w:82.0},{date:dayAgo(-7),w:81.4},{date:TODAY,w:80.9} ],
-    measurements:[ {date:dayAgo(-28),waist:88},{date:TODAY,waist:85} ],
+    measurements:[ {date:dayAgo(-28),bust:96,waist:88,hips:102,thighs:60,arms:31},{date:TODAY,bust:94,waist:85,hips:100,thighs:58,arms:30} ],
     nsv:[ {id:"n1",t:"Climbed the shrine steps without stopping ⛩️",date:dayAgo(-5)},
       {id:"n2",t:"Cravings were quiet all afternoon",date:dayAgo(-2)} ],
-    cycle:{ lastStart:dayAgo(-39), history:[{start:dayAgo(-39),end:dayAgo(-34),flow:"med"}] },
+    cycle:{ lastStart:dayAgo(-39), history:[
+      {start:dayAgo(-180),end:dayAgo(-175),flow:"med"},
+      {start:dayAgo(-110),end:dayAgo(-106),flow:"light"},
+      {start:dayAgo(-39),end:dayAgo(-34),flow:"med"} ] },
     joyJar:["a warm cup of hojicha","fox plushie cuddle","cozy game + soft blanket","slow morning, no alarm",
             "snow falling outside the window","a favourite comfort song","stretch + sunshine","draw something silly"],
     helps:"Warm shower, hojicha, lo-fi, and a 10-min walk usually resets me. Protein breakfast = calmer day.",
@@ -496,24 +499,44 @@ function viewHome(){
 }
 
 /* ===================== PCOS / HEALTH ===================== */
+function cycleStats(cyc){
+  const h=(cyc.history||[]).filter(x=>x&&x.start).slice().sort((a,b)=>a.start<b.start?-1:1);
+  const gaps=[]; for(let i=1;i<h.length;i++) gaps.push(daysBetween(h[i-1].start,h[i].start));
+  const lens=h.filter(x=>x.end).map(x=>Math.max(1,daysBetween(x.start,x.end)+1));
+  const avg=a=>a.length?Math.round(a.reduce((p,c)=>p+c,0)/a.length):null;
+  const withGap=h.map((x,i)=>({...x, gap:i>0?daysBetween(h[i-1].start,x.start):null}));
+  return { h:withGap, count:h.length, gaps, avgGap:avg(gaps), minGap:gaps.length?Math.min(...gaps):null, maxGap:gaps.length?Math.max(...gaps):null, avgLen:avg(lens) };
+}
 function viewPcos(){
   const p=state.today.pcos||{}, m=state.today.mind||{}, cyc=state.sentinel.cycle||{};
-  const dayX=cyc.lastStart?daysBetween(cyc.lastStart,TODAY):null;
-  const longGap=dayX!=null&&dayX>=45;
+  const st=cycleStats(cyc);
+  const dx=cyc.lastStart?daysBetween(cyc.lastStart,TODAY):null;
+  const months=dx!=null?dx/30.44:null;
+  const longGap=dx!=null&&dx>=45;
   return `
   <section class="panel">
     <div class="card-head"><h2 style="font-size:18px">❄️ PCOS — your patterns</h2><span class="pill pill-gray">tap what fits</span></div>
     <div class="soft-card">
-      <div class="label" style="margin-bottom:6px">🌙 Cycle</div>
-      ${cyc.lastStart?`<div style="display:flex;align-items:baseline;gap:10px"><span class="bignum">Day ${dayX}</span><span class="soft" style="font-size:12px">since last period started (${fmtDate(cyc.lastStart)})</span></div>`
-        :`<p class="soft" style="font-size:12.5px;margin:0">No period start logged yet.</p>`}
+      <div class="label" style="margin-bottom:6px">🌙 Cycle <span class="soft" style="text-transform:none;letter-spacing:0;font-weight:500">· built for irregular cycles</span></div>
+      ${cyc.lastStart
+        ? `<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="bignum">Day ${dx}</span><span class="soft" style="font-size:12px">since your last period started (${fmtDate(cyc.lastStart)})${months>=1.5?` · ~${months.toFixed(1)} months`:''}</span></div>`
+        : `<p class="soft" style="font-size:12.5px;margin:0">No period logged yet — log your next start whenever it comes. ❄️</p>`}
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="btn btn-grad" data-act="cycleStart">Log period start</button>
         <button class="btn" data-act="cycleEnd">Log period end</button>
       </div>
       <div class="field"><div class="label">Flow today (optional)</div><div class="chiprow">
         ${["light","med","heavy"].map(f=>`<button class="sitebtn ${state.today.flow===f?'on':''}" data-act="pcosSet" data-f="flow" data-v="${f}">${f}</button>`).join("")}</div></div>
-      ${longGap?`<div class="disc" style="margin-top:8px">${CONFIG.creator.snow}<span>It's been a longer stretch without a period. With PCOS that happens — but a long gap can be worth a gentle mention to your doctor whenever you next chat. No alarm, just a note. 🦊</span></div>`:''}
+      ${st.count?`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+          <div><div class="label">Logged</div><div style="font-weight:700">${st.count} period${st.count===1?'':'s'}</div></div>
+          ${st.avgGap?`<div><div class="label">Avg cycle</div><div style="font-weight:700">~${st.avgGap}d</div></div>`:''}
+          ${st.gaps.length>1?`<div><div class="label">Range</div><div style="font-weight:700">${st.minGap}–${st.maxGap}d</div></div>`:''}
+          ${st.avgLen?`<div><div class="label">Avg length</div><div style="font-weight:700">~${st.avgLen}d</div></div>`:''}
+        </div>`:''}
+      <p class="soft" style="font-size:11px;margin-top:8px">Cycles vary a lot with PCOS — long or skipped months are common, and that's okay. This just helps you and your doctor see the bigger pattern. 🦊</p>
+      ${longGap?`<div class="disc" style="margin-top:8px">${CONFIG.creator.snow}<span>It's been ${months>=2?`about ${Math.round(months)} months`:'a longer stretch'} since your last period. With PCOS that happens — but a long gap is worth a gentle mention to your doctor whenever you next chat. No alarm, just a note. 🦊</span></div>`:''}
+      ${st.count?`<details style="margin-top:8px;border:none;background:transparent;padding:0;box-shadow:none"><summary style="font-size:12px">📜 Period history (${st.count})</summary>
+        <div style="margin-top:6px">${st.h.slice().reverse().map(x=>`<div class="listrow"><span class="grow" style="font-size:12px">${fmtDate(x.start)}${x.end?` – ${fmtDate(x.end)}`:''} ${x.flow?`<span class="soft">· ${esc(x.flow)}</span>`:''}</span>${x.gap!=null?`<span class="soft" style="font-size:11px" title="days since previous">+${x.gap}d</span>`:''}</div>`).join("")}</div></details>`:''}
     </div>
   </section>
 
@@ -666,8 +689,19 @@ function viewWeight(){
   </section>
 
   <details class="acc"><summary>📏 Optional measurements</summary><div class="acc-body">
-    <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="waistInput" placeholder="waist (cm)" style="max-width:160px"><button class="btn btn-grad" data-act="setMeasure">Save</button></div>
-    ${meas.length?`<p class="soft" style="font-size:12px;margin-top:8px">Latest waist: <b>${meas.slice(-1)[0].waist} cm</b> (${fmtDate(meas.slice(-1)[0].date)})</p>`:''}
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Fill in any you like (cm) and save — they don't all need a value.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${[["bust","Bust"],["waist","Waist"],["hips","Hips"],["thighs","Thighs"],["arms","Arms"]].map(([k,l])=>`<div class="field" style="margin:4px 0"><div class="label">${l}</div><input class="inp" type="number" step="0.1" id="meas_${k}" placeholder="cm"></div>`).join("")}
+    </div>
+    <button class="btn btn-grad" data-act="setMeasure">Save measurements</button>
+    ${(function(){
+      const keys=[["bust","Bust"],["waist","Waist"],["hips","Hips"],["thighs","Thighs"],["arms","Arms"]];
+      const rows=keys.map(([k,l])=>{ const ent=meas.filter(m=>m[k]!=null); if(!ent.length) return "";
+        const last=ent[ent.length-1], prev=ent.length>1?ent[ent.length-2]:null;
+        const d=prev?(last[k]-prev[k]):null; const ds=d!=null?` <span class="soft" style="font-size:11px">(${d>0?'+':''}${d.toFixed(1)})</span>`:'';
+        return `<div class="listrow"><span class="grow" style="font-size:12.5px">${l} <span class="soft" style="font-size:10.5px">· ${fmtDate(last.date)}</span></span><span style="font-weight:700">${last[k]} cm${ds}</span></div>`; }).join("");
+      return rows?`<div style="margin-top:12px">${rows}</div>`:'';
+    })()}
   </div></details>
   ${DISCLAIMER}`;
 }
@@ -1073,8 +1107,10 @@ const H={
     const slot=$("#numSlot"); if(slot) slot.innerHTML=`<div class="label">Rolling weekly avg</div><div class="bignum">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`; },
   async addNSV(){ const t=$("#nsvInput").value.trim(); if(!t)return; await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t,date:TODAY}]})); toast("yay! 🌟"); render(); },
   async delNSV(el){ await setSent(n=>({...n,nsv:(n.nsv||[]).filter(x=>x.id!==el.dataset.v)})); render(); },
-  async setMeasure(){ const v=parseFloat($("#waistInput").value); if(isNaN(v)){ toast("enter a number"); return; }
-    await setSent(n=>({...n,measurements:[...(n.measurements||[]),{date:TODAY,waist:v}]})); toast("saved ❄️"); render(); },
+  async setMeasure(){ const entry={date:TODAY}; let any=false;
+    ["bust","waist","hips","thighs","arms"].forEach(k=>{ const el=$("#meas_"+k); const v=el?parseFloat(el.value):NaN; if(!isNaN(v)){ entry[k]=v; any=true; } });
+    if(!any){ toast("enter at least one measurement"); return; }
+    await setSent(n=>({...n,measurements:[...(n.measurements||[]),entry]})); toast("saved ❄️"); render(); },
 
   async breath(){ state.breathOn=!state.breathOn; await render(); if(state.breathOn) startBreath(); else stopBreath(); },
   flip(el){ el.closest('.flip').classList.toggle('open'); },
