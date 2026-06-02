@@ -23,9 +23,18 @@ if (-not $sb) {
   Read-Host "Press Enter to exit"; exit 1
 }
 
-# 2) Sign in (opens a browser the first time).
-Write-Host "Signing you in to Supabase if needed..." -ForegroundColor Cyan
-supabase login
+# 2) Auth. We use a Supabase ACCESS TOKEN (not 'supabase login'), because
+#    'secrets set' needs the token explicitly — this is what fixes the
+#    "Access token not provided" error you saw.
+#    Get one (30 seconds): https://supabase.com/dashboard/account/tokens
+#    -> "Generate new token" -> copy it.
+Write-Host "Open https://supabase.com/dashboard/account/tokens and generate a token." -ForegroundColor Cyan
+$token = Read-Host "Paste your Supabase access token (starts with sbp_)"
+if ([string]::IsNullOrWhiteSpace($token)) {
+  Write-Host "No token entered. Run again with a token." -ForegroundColor Yellow
+  Read-Host "Press Enter to exit"; exit 1
+}
+$env:SUPABASE_ACCESS_TOKEN = $token.Trim()
 
 # 3) Collect the keys (typed into YOUR terminal; sent only to YOUR Supabase project).
 Write-Host ""
@@ -38,7 +47,7 @@ if ([string]::IsNullOrWhiteSpace($anthropic) -or [string]::IsNullOrWhiteSpace($y
   Read-Host "Press Enter to exit"; exit 1
 }
 
-# 4) Store secrets + deploy the function.
+# 4) Store secrets + deploy the function (both use $env:SUPABASE_ACCESS_TOKEN).
 Write-Host "Saving secrets to your Supabase project..." -ForegroundColor Cyan
 supabase secrets set "ANTHROPIC_API_KEY=$anthropic" "YOUTUBE_API_KEY=$youtube" "YT_HANDLE=@mifuyu" --project-ref $ProjectRef
 

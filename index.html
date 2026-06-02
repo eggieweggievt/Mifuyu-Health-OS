@@ -304,9 +304,9 @@ function applyPrefs(){
   document.body.classList.toggle("text-lg",PREF.text);
 }
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all" };
-const OPT={ channel:null, titles:null, ideas:null, busy:"", err:"" }; // Optimize tab results
+const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumbRead:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["planner","🗒️ Planner"],["optimize","🎯 Optimize"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["optimize","🎯 Optimize"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -833,52 +833,103 @@ function viewPlanner(){
 }
 
 /* ===================== OPTIMIZE (YouTube + AI, via Edge Function) ===================== */
-async function aiCall(mode,input){
+const OPT_FORMATS=["Long form","Short form","Community / X post"];
+const OPT_PLATFORMS=["YouTube","TikTok","Instagram","X","Twitch"];
+const oval=id=>{ const e=document.getElementById(id); return e?e.value.trim():""; };
+async function aiCall(mode,payload){
   if(!SB) throw new Error("This needs live mode — connect Supabase first.");
-  const { data, error } = await SB.functions.invoke(CONFIG.aiFn, { body:{ mode, input } });
+  const { data, error } = await SB.functions.invoke(CONFIG.aiFn, { body:{ mode, ...(payload||{}) } });
   if(error) throw new Error(error.message||"AI helper error");
   if(data && data.error) throw new Error(data.error);
   return data;
 }
-function optList(items){ return `<div class="soft-card" style="margin-top:10px"><ul style="padding-left:18px;margin:4px 0;font-size:13px">${(items||[]).map(t=>`<li style="margin:5px 0">${esc(t)}</li>`).join("")}</ul></div>`; }
+function copyBox(id,text){
+  return `<textarea class="inp" id="${id}" rows="7" readonly style="font-size:12px">${esc(text)}</textarea>
+    <button class="btn" data-act="copyBox" data-v="${id}" style="margin-top:6px">📋 Copy</button>`;
+}
+function scoreColor(s){ return s>=75?'#3a9d83':s>=50?'var(--peri-deep)':'var(--sakura-deep)'; }
+function optVideoForm(){
+  return `<p class="soft" style="font-size:12px;margin:6px 0 10px">Title score, stronger titles, tags, 1S/2M/2L hashtags, and a full description — in your voice. ✨</p>
+  <div class="field"><div class="label">Title / working title</div><input class="inp" id="ovTitle" placeholder="e.g. I tried VTubing on a $0 budget"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div class="field"><div class="label">Format</div><select class="inp" id="ovFormat">${OPT_FORMATS.map(l=>`<option>${l}</option>`).join("")}</select></div>
+    <div class="field"><div class="label">Platform</div><select class="inp" id="ovPlatform">${OPT_PLATFORMS.map(l=>`<option>${l}</option>`).join("")}</select></div>
+  </div>
+  <div class="field"><div class="label">What's it about? (topic, hook, key points)</div><textarea class="inp" id="ovAbout" placeholder="the angle, what happens, who it's for…"></textarea></div>
+  <button class="btn btn-grad" data-act="optVideo" ${OPT.busy==='video'?'disabled':''}>${OPT.busy==='video'?'optimizing…':'✨ optimize'}</button>`;
+}
+function optStreamForm(){
+  return `<p class="soft" style="font-size:12px;margin:6px 0 10px">Stream titles (your format + the game), a ready-to-paste description with your links, tags, and a going-live post. ✨</p>
+  <div class="field"><div class="label">Game / stream focus</div><input class="inp" id="osGame" placeholder="e.g. Elden Ring DLC — first deathless attempt"></div>
+  <div class="field"><div class="label">Drops?</div><div class="chiprow"><button class="chiptog ${OPT.drops?'on':''}" data-act="optDrops"><span>${OPT.drops?'✓':'＋'}</span>Drops active</button></div></div>
+  <div class="field"><div class="label">Anything special this stream? (vibe, goal, milestone)</div><textarea class="inp" id="osSpecial" placeholder="subathon, first playthrough, chill vibes, charity goal…"></textarea></div>
+  <button class="btn btn-grad" data-act="optStream" ${OPT.busy==='stream'?'disabled':''}>${OPT.busy==='stream'?'optimizing…':'✨ optimize'}</button>`;
+}
+function optVideoResult(r){
+  const hs=r.hashtags||{};
+  return `<section class="panel">
+    <div class="card-head"><span class="label">✨ Optimized</span>${r.score!=null?`<span class="pill" style="background:#eef0fa;color:${scoreColor(r.score)};font-size:13px">Title score ${r.score}/100</span>`:''}</div>
+    ${r.scoreNote?`<p class="soft" style="font-size:12px;margin:0 0 8px">${esc(r.scoreNote)}</p>`:''}
+    <div class="label" style="margin:6px 0 4px">Stronger titles</div>
+    <ul style="padding-left:18px;font-size:13px">${(r.titles||[]).map(t=>`<li style="margin:5px 0">${esc(t)}</li>`).join("")}</ul>
+    <div class="label" style="margin:12px 0 4px">Tags</div><div class="soft" style="font-size:12px">${(r.tags||[]).map(esc).join(", ")}</div>
+    <div class="label" style="margin:12px 0 4px">Hashtags</div><div class="chiprow">
+      ${(hs.small||[]).map(h=>`<span class="pill pill-mint">${esc(h)} · niche</span>`).join("")}
+      ${(hs.medium||[]).map(h=>`<span class="pill pill-lav">${esc(h)} · mid</span>`).join("")}
+      ${(hs.large||[]).map(h=>`<span class="pill pill-sak">${esc(h)} · big</span>`).join("")}</div>
+    <div class="label" style="margin:12px 0 4px">Description</div>${copyBox("ovDesc", r.description||"")}
+  </section>`;
+}
+function optStreamResult(r){
+  return `<section class="panel">
+    <div class="label" style="margin-bottom:4px">✨ Stream titles</div>
+    <ul style="padding-left:18px;font-size:13px">${(r.titles||[]).map(t=>`<li style="margin:5px 0">${esc(t)}</li>`).join("")}</ul>
+    ${r.goingLive?`<div class="label" style="margin:12px 0 4px">Going-live post</div><div class="soft-card" style="font-size:13px">${esc(r.goingLive)}</div>`:''}
+    <div class="label" style="margin:12px 0 4px">Tags</div><div class="soft" style="font-size:12px">${(r.tags||[]).map(esc).join(", ")}</div>
+    <div class="label" style="margin:12px 0 4px">Description</div>${copyBox("osDesc", r.description||"")}
+  </section>`;
+}
+function channelBlock(ch){
+  return `<div class="soft-card" style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px">
+      <div><div class="label">Subscribers</div><div class="bignum">${Number(ch.subs||0).toLocaleString()}</div></div>
+      <div><div class="label">Total views</div><div class="bignum">${Number(ch.views||0).toLocaleString()}</div></div>
+      <div><div class="label">Videos</div><div class="bignum">${Number(ch.videos||0).toLocaleString()}</div></div></div>
+    ${(ch.recent||[]).length?`<div style="margin-top:10px">${ch.recent.map(r=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(r.title)}</span><span class="soft" style="font-size:11px">${Number(r.views||0).toLocaleString()} views</span></div>`).join("")}</div>`:''}`;
+}
+function thumbCard(){
+  const d=OPT.thumbData;
+  return `<section class="panel">
+    <div class="label" style="margin-bottom:6px">🖼️ Thumbnail check</div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Upload your thumbnail — see it at real feed sizes and get a click-potential read.</p>
+    <input class="inp" type="file" id="thumbFile" accept="image/*">
+    ${d?`<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px">
+        <div><img src="${d}" style="width:246px;height:138px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"><div class="label" style="text-align:center;margin-top:3px">grid 246×138</div></div>
+        <div><img src="${d}" style="width:168px;height:94px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><div class="label" style="text-align:center;margin-top:3px">sidebar 168×94</div></div>
+        <div><img src="${d}" style="width:120px;height:68px;object-fit:cover;border-radius:7px;border:1px solid var(--line)"><div class="label" style="text-align:center;margin-top:3px">mobile 120×68</div></div>
+      </div>
+      <button class="btn btn-grad" data-act="thumbCheck" style="margin-top:10px" ${OPT.busy==='thumb'?'disabled':''}>${OPT.busy==='thumb'?'reading…':'📈 check thumbnail'}</button>`:''}
+    ${OPT.thumbRead?`<div class="soft-card" style="margin-top:10px;font-size:12.5px;white-space:pre-wrap">${esc(OPT.thumbRead)}</div>`:''}
+  </section>`;
+}
 function viewOptimize(){
-  const ch=OPT.channel;
-  const setupHint = DEMO
-    ? `<div class="disc" style="margin-top:6px">${CONFIG.creator.snow}<span>The Optimize helper runs once you're in <b>live</b> mode with the AI Edge Function deployed (see <b>deploy-ai.ps1</b>). Until then this tab is just a preview. ❄️</span></div>` : "";
+  const m=OPT.mode;
   return `
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">🎯 Optimize</h2><span class="pill pill-gray">content helper</span></div>
-    <p class="soft" style="font-size:12px;margin:0 0 6px">Gentle content tools — a channel snapshot and an AI sounding-board for titles &amp; ideas. Suggestions only; your voice always wins. 🦊</p>
-    ${setupHint}
-  </section>
-
-  <section class="panel">
-    <div class="card-head"><span class="label">📺 Channel snapshot</span><button class="btn btn-grad" data-act="optChannel" ${OPT.busy==='channel'?'disabled':''}>${OPT.busy==='channel'?'…':'Pull '+esc(CONFIG.youtube.handle)}</button></div>
-    ${ch?`<div class="soft-card" style="display:flex;gap:18px;flex-wrap:wrap">
-        <div><div class="label">Subscribers</div><div class="bignum">${Number(ch.subs||0).toLocaleString()}</div></div>
-        <div><div class="label">Total views</div><div class="bignum">${Number(ch.views||0).toLocaleString()}</div></div>
-        <div><div class="label">Videos</div><div class="bignum">${Number(ch.videos||0).toLocaleString()}</div></div>
-      </div>
-      ${(ch.recent||[]).length?`<div style="margin-top:10px">${ch.recent.map(r=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(r.title)}</span><span class="soft" style="font-size:11px">${Number(r.views||0).toLocaleString()} views</span></div>`).join("")}</div>`:''}`
-      :`<p class="soft" style="font-size:12.5px">Tap the button to fetch your latest YouTube stats.</p>`}
-  </section>
-
-  <section class="panel">
-    <div class="card-head"><span class="label">✏️ Title helper</span></div>
-    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Describe the video — get a few title options to riff on.</p>
-    <textarea class="inp" id="optTitleInput" placeholder="e.g. cozy late-night Genshin exploration, found a secret area…"></textarea>
-    <div style="margin-top:8px"><button class="btn btn-grad" data-act="optTitles" ${OPT.busy==='titles'?'disabled':''}>${OPT.busy==='titles'?'thinking…':'Get title ideas ✨'}</button></div>
-    ${OPT.titles?optList(OPT.titles):''}
-  </section>
-
-  <section class="panel">
-    <div class="card-head"><span class="label">💡 Idea spark</span></div>
-    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Give a theme — get gentle video/short ideas that fit your cozy gacha vibe.</p>
-    <textarea class="inp" id="optIdeaInput" placeholder="e.g. ideas for ZZZ content this week…"></textarea>
-    <div style="margin-top:8px"><button class="btn btn-grad" data-act="optIdeas" ${OPT.busy==='ideas'?'disabled':''}>${OPT.busy==='ideas'?'thinking…':'Spark ideas 🌱'}</button></div>
-    ${OPT.ideas?optList(OPT.ideas):''}
+    <div class="card-head"><h2 style="font-size:18px">🎯 ${m==='video'?'Video':'Livestream'} optimization</h2>
+      <div class="seg">
+        <button data-act="optMode" data-v="video" class="${m==='video'?'on':''}">📹 Video</button>
+        <button data-act="optMode" data-v="stream" class="${m==='stream'?'on':''}">🔴 Livestream</button>
+      </div></div>
+    ${m==='video'?optVideoForm():optStreamForm()}
+    ${DEMO?`<div class="disc" style="margin-top:10px">${CONFIG.creator.snow}<span>The AI helper runs in <b>live</b> mode once the <b>ai</b> Edge Function is deployed (deploy-ai.ps1). ❄️</span></div>`:''}
   </section>
   ${OPT.err?`<div class="disc">⚠️<span>${esc(OPT.err)}</span></div>`:''}
+  ${m==='video'?(OPT.video?optVideoResult(OPT.video):''):(OPT.stream?optStreamResult(OPT.stream):'')}
+  ${thumbCard()}
+  <details class="acc" style="margin-top:14px"><summary>📺 Channel snapshot</summary><div class="acc-body">
+    <button class="btn btn-grad" data-act="optChannel" ${OPT.busy==='channel'?'disabled':''}>${OPT.busy==='channel'?'…':'Pull '+esc(CONFIG.youtube.handle)}</button>
+    ${OPT.channel?channelBlock(OPT.channel):''}
+  </div></details>
   ${DISCLAIMER}`;
 }
 
@@ -967,11 +1018,18 @@ const H={
     await setSent(n=>({...n,tasks:(n.tasks||[]).map(t=>t.id===id?{...t,sub:(t.sub||[]).map(s=>s.id===sid?{...s,done:!s.done}:s)}:t)})); render(); },
 
   // --- Optimize ---
-  async optChannel(){ OPT.busy="channel"; OPT.err=""; render(); try{ OPT.channel=await aiCall("channel",""); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
-  async optTitles(){ const input=($("#optTitleInput").value||"").trim(); if(!input){ toast("describe the video first"); return; }
-    OPT.busy="titles"; OPT.err=""; render(); try{ const d=await aiCall("titles",input); OPT.titles=d.items||d.titles||[]; }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
-  async optIdeas(){ const input=($("#optIdeaInput").value||"").trim(); if(!input){ toast("give a theme first"); return; }
-    OPT.busy="ideas"; OPT.err=""; render(); try{ const d=await aiCall("ideas",input); OPT.ideas=d.items||d.ideas||[]; }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  optMode(el){ OPT.mode=el.dataset.v; OPT.err=""; render(); },
+  optDrops(){ OPT.drops=!OPT.drops; render(); },
+  async optChannel(){ OPT.busy="channel"; OPT.err=""; render(); try{ OPT.channel=await aiCall("channel",{}); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async optVideo(){ const title=oval("ovTitle"),about=oval("ovAbout"); if(!title&&!about){ toast("add a title or topic first"); return; }
+    OPT.busy="video"; OPT.err=""; render(); try{ OPT.video=await aiCall("video",{title,format:oval("ovFormat"),platform:oval("ovPlatform"),about}); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async optStream(){ const game=oval("osGame"); if(!game){ toast("name the game/focus first"); return; }
+    const special=(OPT.drops?"DROPS ARE ACTIVE. ":"")+oval("osSpecial");
+    OPT.busy="stream"; OPT.err=""; render(); try{ OPT.stream=await aiCall("stream",{game,special}); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async thumbCheck(){ if(!OPT.thumbData){ toast("upload a thumbnail first"); return; }
+    OPT.busy="thumb"; OPT.err=""; render(); try{ const d=await aiCall("thumbnail",{image:OPT.thumbData,kind:OPT.mode}); OPT.thumbRead=d.read; }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  copyBox(el){ const t=document.getElementById(el.dataset.v); if(!t)return; const ok=()=>toast("copied 📋");
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t.value).then(ok,()=>{t.select();document.execCommand('copy');ok();}); } else { t.select(); document.execCommand('copy'); ok(); } },
 };
 async function addSub(taskId,text){ text=(text||"").trim(); if(!text) return;
   await setSent(n=>({...n,tasks:(n.tasks||[]).map(t=>t.id===taskId?{...t,sub:[...(t.sub||[]),{id:"s"+Date.now(),text,done:false}]}:t)})); render(); }
@@ -980,6 +1038,13 @@ document.addEventListener("keydown",async e=>{
   if(t.id==="plnText"){ e.preventDefault(); H.addTask(); }
   else if(t.dataset && t.dataset.subfor){ e.preventDefault(); const id=t.dataset.subfor, v=t.value; t.value=""; await addSub(id,v); }
   else if(t.id==="capInput"){ e.preventDefault(); H.capSticky(); }
+});
+document.addEventListener("change",e=>{
+  if(e.target && e.target.id==="thumbFile"){
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    if(f.size>4*1024*1024){ toast("image a bit big — try under 4MB"); return; }
+    const r=new FileReader(); r.onload=()=>{ OPT.thumbData=r.result; OPT.thumbRead=null; render(); }; r.readAsDataURL(f);
+  }
 });
 document.addEventListener("click",async e=>{ const el=e.target.closest("[data-act]"); if(!el)return; const fn=H[el.dataset.act];
   if(fn){ try{ await fn(el); }catch(err){ console.error(err); toast("hmm, try again"); } } });
