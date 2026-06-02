@@ -167,12 +167,17 @@
   .cal-cell.drag-over{background:rgba(169,143,224,.18);border-color:var(--lav-deep);transform:scale(1.03);}
   .cal-daynum{font-size:11.5px;color:#8a7d92;align-self:flex-end;line-height:1;}
   .cal-cell.today .cal-daynum{color:var(--peri-deep);font-weight:700;}
-  .cal-ev{font-size:11px;line-height:1.3;padding:3px 7px;border-radius:8px;color:#3a3550;cursor:grab;user-select:none;white-space:normal;overflow-wrap:anywhere;word-break:break-word;transition:transform .12s,opacity .12s,box-shadow .12s;}
+  .cal-ev{font-size:11px;line-height:1.45;padding:2px 7px;border-radius:8px;color:#3a3550;cursor:grab;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .12s,opacity .12s,box-shadow .12s;}
   .cal-ev:hover{box-shadow:0 2px 8px rgba(120,110,160,.28);}
   .cal-ev:active{cursor:grabbing;} .cal-ev.dragging{opacity:.45;transform:scale(.95);}
-  .cal-ev.cont{opacity:.72;cursor:default;border-left:3px solid rgba(58,53,80,.25);}
-  .cal-stream{font-size:10.5px;line-height:1.25;padding:3px 7px;border-radius:8px;background:rgba(255,158,216,.16);color:var(--sakura-deep);border-left:3px solid var(--sakura);cursor:pointer;white-space:normal;overflow-wrap:anywhere;transition:background .12s;}
+  .cal-stream{font-size:10.5px;line-height:1.4;padding:2px 7px;border-radius:8px;background:rgba(255,158,216,.16);color:var(--sakura-deep);border-left:3px solid var(--sakura);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .12s;}
   .cal-stream:hover{background:rgba(255,158,216,.30);}
+  /* multi-day continuous bar */
+  .cal-span{font-size:11px;line-height:18px;height:18px;padding:0 7px;color:#3a3550;cursor:grab;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 -12px;border-radius:0;transition:opacity .12s,box-shadow .12s;}
+  .cal-span:hover{box-shadow:0 2px 8px rgba(120,110,160,.28);}
+  .cal-span.lcap{margin-left:-6px;border-top-left-radius:8px;border-bottom-left-radius:8px;}
+  .cal-span.rcap{margin-right:-6px;border-top-right-radius:8px;border-bottom-right-radius:8px;}
+  .cal-span.dragging{opacity:.45;}
   .cal-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(70,66,100,.30);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto;}
@@ -1116,19 +1121,27 @@ function renderCalendar(){
     const inMonth=d.getMonth()===m, isToday=ds===TODAY;
     const dayShort=dayShortFull[d.getDay()];
     const streamChips=schedule.filter(s=>s.day===dayShort).map(s=>`<div class="cal-stream" data-act="editSchedule" title="Stream day — tap to edit your schedule">🔴 ${s.time?esc(s.time)+" · ":""}${esc(s.show||s.title||"Stream")}</div>`).join("");
-    const chips=events.filter(ev=> ds>=ev.date && ds<=(ev.endDate||ev.date))
-      .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")).map(ev=>{
-        const bg = ev.src==="game" ? gameColor : (ev.color||CAL_COLORS[0]);
-        const ic = ev.src==="game" ? "🎮 " : "";
-        if(ds===ev.date){
-          const et=toLocal(ev.date,ev.time,ev.tz);
-          const tlabel=et?`<b>${et.tTime}${et.dayDiff?" (+1d)":""}</b> `:"";
-          const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(ev.note?" — "+ev.note:""));
-          return `<div class="cal-ev" draggable="true" data-eid="${ev.id}" data-act="calEvent" style="background:${bg}" title="${tip}">${ic}${tlabel}${esc(ev.title)}${ev.endDate&&ev.endDate>ev.date?" →":""}${ev.note?" 📝":""}</div>`;
-        }
-        return `<div class="cal-ev cont" data-eid="${ev.id}" data-act="calEvent" style="background:${bg}">${ic}↪ ${esc(ev.title)}</div>`;
+    const dow=d.getDay();
+    const dayEvents=events.filter(ev=> ds>=ev.date && ds<=(ev.endDate||ev.date));
+    // multi-day events → one continuous bar (rendered first so they line up across cells)
+    const spanBars=dayEvents.filter(ev=>ev.endDate&&ev.endDate>ev.date)
+      .sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id)).map(ev=>{
+        const bg=ev.src==="game"?gameColor:(ev.color||CAL_COLORS[0]);
+        const ic=ev.src==="game"?"🎮 ":"";
+        const isStart=ds===ev.date, isEnd=ds===ev.endDate, leftCap=isStart||dow===0, rightCap=isEnd||dow===6, showTitle=isStart||dow===0;
+        const tip=esc(ic+ev.title+(ev.note?" — "+ev.note:""));
+        return `<div class="cal-span${leftCap?' lcap':''}${rightCap?' rcap':''}" data-eid="${ev.id}" data-act="calEvent" draggable="${isStart?'true':'false'}" style="background:${bg}" title="${tip}">${showTitle?ic+esc(ev.title):"&nbsp;"}</div>`;
       }).join("");
-    cells+=`<div class="cal-cell ${inMonth?"":"other"} ${isToday?"today":""}" data-date="${ds}" data-act="calAdd"><span class="cal-daynum">${d.getDate()}</span>${streamChips}${chips}</div>`;
+    // single-day events → compact pill, just a short title (time + note open in the event)
+    const singleChips=dayEvents.filter(ev=>!(ev.endDate&&ev.endDate>ev.date))
+      .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")).map(ev=>{
+        const bg=ev.src==="game"?gameColor:(ev.color||CAL_COLORS[0]);
+        const ic=ev.src==="game"?"🎮 ":"";
+        const et=toLocal(ev.date,ev.time,ev.tz);
+        const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(ev.note?" — "+ev.note:""));
+        return `<div class="cal-ev" draggable="true" data-eid="${ev.id}" data-act="calEvent" style="background:${bg}" title="${tip}">${ic}${esc(ev.title)}</div>`;
+      }).join("");
+    cells+=`<div class="cal-cell ${inMonth?"":"other"} ${isToday?"today":""}" data-date="${ds}" data-act="calAdd"><span class="cal-daynum">${d.getDate()}</span>${spanBars}${streamChips}${singleChips}</div>`;
   }
   return `<div class="panel" style="max-width:920px;margin:0 auto">
     <div class="card-head"><div><h2 style="font-size:18px">📅 ${monthName}</h2><div class="label" style="margin-top:2px">tap a day to add · drag to move · 🔴 streams · 🎮 game updates ❄️🦊</div></div>
@@ -1187,7 +1200,7 @@ async function calEventModal(date,eid){
 
 function wireCalDnD(){
   let dragEid=null;
-  document.querySelectorAll(".cal-ev[draggable='true']").forEach(ev=>{
+  document.querySelectorAll(".cal-ev[draggable='true'],.cal-span[draggable='true']").forEach(ev=>{
     ev.addEventListener("dragstart",e=>{ dragEid=ev.dataset.eid; ev.classList.add("dragging"); if(e.dataTransfer){e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",dragEid);}catch(_){}}});
     ev.addEventListener("dragend",()=>{ ev.classList.remove("dragging"); document.querySelectorAll(".cal-cell.drag-over").forEach(c=>c.classList.remove("drag-over")); });
   });
