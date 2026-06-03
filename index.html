@@ -95,13 +95,29 @@
   .sitebtn.on{background:linear-gradient(135deg,var(--peri),var(--sakura));border-color:var(--peri);color:#fff;}
   /* entrance / transition animations */
   @keyframes viewFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  @keyframes popIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+  @keyframes popUp{from{opacity:0;transform:translateY(13px) scale(.99)}to{opacity:1;transform:none}}
+  @keyframes softPop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   #view.anim{animation:viewFade .30s cubic-bezier(.22,.7,.3,1);}
+  /* gentle staggered pop-in of cards on page change (only while .anim is present) */
+  #view.anim .panel,#view.anim .slip,#view.anim>details.acc{animation:popUp .44s cubic-bezier(.2,.75,.3,1) backwards;}
+  #view.anim .panel:nth-of-type(2){animation-delay:.05s}
+  #view.anim .panel:nth-of-type(3){animation-delay:.1s}
+  #view.anim .panel:nth-of-type(4){animation-delay:.15s}
+  #view.anim .panel:nth-of-type(n+5){animation-delay:.2s}
+  #view.anim .col{animation:fadeIn .4s ease backwards}
+  #view.anim .col:nth-of-type(2){animation-delay:.07s} #view.anim .col:nth-of-type(3){animation-delay:.14s}
+  /* modal + pet chat scale-in */
+  .modal-bg{animation:fadeIn .18s ease;}
+  .modal{animation:softPop .26s cubic-bezier(.2,.8,.3,1);}
+  #kikoChat:not(.hidden){animation:softPop .24s cubic-bezier(.2,.8,.3,1);}
   .tab{transition:background .16s,color .16s,transform .12s;}
   .tab:active{transform:scale(.95);}
   .btn,.btn-grad,.chip{transition:transform .12s,filter .15s,border-color .15s,color .15s,background .15s;}
   .btn:active,.btn-grad:active{transform:scale(.96);}
   .pill{transition:transform .12s;}
+  .scale button,.chiptog,.sitebtn,.tog{transition:transform .12s,background .15s,border-color .15s,color .15s;}
+  .scale button:active,.chiptog:active,.sitebtn:active{transform:scale(.93);}
   /* sparkline bars */
   .spark{display:flex;align-items:flex-end;gap:2px;height:40px;}
   .spark span{flex:1;background:linear-gradient(180deg,var(--sakura),var(--peri));border-radius:3px 3px 0 0;min-height:2px;opacity:.9;}
@@ -416,7 +432,8 @@ async function render(){
   $("#nav").innerHTML = TABS.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
   const st=$("#status"); st.textContent=DEMO?"◇ demo data":(SB?"● live":"◌ connecting…"); st.className="chip"+(DEMO?" demo":(SB?" on":""));
   const v=$("#view");
-  if(state._lastTab!==state.tab){ v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim'); state._lastTab=state.tab; } // gentle fade on tab change only
+  if(state._lastTab!==state.tab){ v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim'); state._lastTab=state.tab;
+    clearTimeout(state._animT); state._animT=setTimeout(()=>{ const vv=$("#view"); if(vv) vv.classList.remove('anim'); },720); } // pop-in only on real page changes (no flicker on in-tab taps)
   try{
     state.sentinel = await DB.daily(SENTINEL);
     state.today = await DB.daily(TODAY);
