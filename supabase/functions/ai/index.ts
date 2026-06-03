@@ -19,6 +19,12 @@ const YT_KEY = Deno.env.get("YOUTUBE_API_KEY") || "";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const HANDLE = Deno.env.get("YT_HANDLE") || "@mifuyu";
 const MODEL = Deno.env.get("AI_MODEL") || "claude-sonnet-4-6";
+// reminders (email) — optional; only used by the "remind" mode triggered by a daily cron
+const SB_URL = Deno.env.get("SUPABASE_URL") || "";
+const SB_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const RESEND_KEY = Deno.env.get("RESEND_API_KEY") || "";
+const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Mifuyu Health OS <onboarding@resend.dev>";
+const REMIND_TZ = Deno.env.get("REMIND_TZ") || "Europe/Amsterdam";
 
 // ===================== 🔒 BRAND system prompt =====================
 const BRAND = `You are the content strategist living inside "Mifuyu Health OS", the personal operating system of Mifuyu / Mifu (@mifuyuvt) — a cozy, sweet, slightly chaotic VTuber and snowfox shrine maiden. Your voice is warm, welcoming, high-energy but gentle, spoon-theory-aware (sustainable, not hustle-culture), with the occasional ❄️ or 🦊. You are practical and specific, never preachy.
@@ -262,6 +268,57 @@ async function agent(input: any) {
   return out;
 }
 
+// ===================== REMINDERS (daily email; triggered by cron) =====================
+function todayInTz(tz: string): string {
+  const p = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return p; // YYYY-MM-DD
+}
+function daysBetweenISO(a: string, b: string): number {
+  return Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
+}
+function nextBirthdayISO(month: number, day: number, todayISO: string): string {
+  const y = Number(todayISO.slice(0, 4));
+  const mk = (yy: number) => `${yy}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  let iso = mk(y);
+  if (daysBetweenISO(todayISO, iso) < 0) iso = mk(y + 1);
+  return iso;
+}
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!RESEND_KEY) throw new Error("RESEND_API_KEY not set");
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: RESEND_FROM, to, subject, html }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error("Resend error: " + (j && (j.message || JSON.stringify(j))));
+  return j;
+}
+async function remind(_input: any) {
+  if (!SB_URL || !SB_SERVICE_KEY) return { ok: false, error: "Supabase service env not set" };
+  // pull every sentinel/config row that has email reminders turned on
+  const url = `${SB_URL}/rest/v1/daily_logs?date=eq.2000-01-01&select=user_id,notes`;
+  const res = await fetch(url, { headers: { apikey: SB_SERVICE_KEY, Authorization: "Bearer " + SB_SERVICE_KEY } });
+  const rows = await res.json();
+  if (!Array.isArray(rows)) return { ok: false, error: "could not read rows", detail: rows };
+  const today = todayInTz(REMIND_TZ);
+  let sent = 0; const results: any[] = [];
+  for (const row of rows) {
+    const n = row.notes || {}; const rem = n.reminders || {};
+    if (!rem.email || !rem.emailAddr) continue;
+    const offs: number[] = Array.isArray(rem.offsets) ? rem.offsets : [0, 1];
+    const due: string[] = [];
+    (n.calendarEvents || []).forEach((ev: any) => { const d = daysBetweenISO(today, ev.date); if (offs.includes(d)) due.push(`<li>${d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : "In " + d + " days"} — ${escapeHtml(ev.title)}${ev.time ? " · " + escapeHtml(ev.time) : ""}</li>`); });
+    (n.birthdays || []).forEach((b: any) => { const iso = nextBirthdayISO(Number(b.month), Number(b.day), today); const d = daysBetweenISO(today, iso); if (offs.includes(d)) due.push(`<li>${d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : "In " + d + " days"} — 🎂 ${escapeHtml(b.name)}'s birthday</li>`); });
+    if (!due.length) continue;
+    const html = `<div style="font-family:system-ui,sans-serif;color:#3a3550"><h2 style="color:#8d6fd1">❄️ Mifuyu reminders</h2><p>Here's what's coming up, cozy one:</p><ul>${due.join("")}</ul><p style="color:#9b96b6;font-size:12px">From your Mifuyu Health OS · gentle nudges, no pressure 💗🦊</p></div>`;
+    try { await sendEmail(rem.emailAddr, "❄️ Your Mifuyu reminders", html); sent++; results.push({ to: rem.emailAddr, items: due.length }); }
+    catch (e) { results.push({ to: rem.emailAddr, error: (e as Error).message }); }
+  }
+  return { ok: true, sent, results };
+}
+function escapeHtml(s: string){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]||c)); }
+
 // ===================== router =====================
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -272,6 +329,7 @@ Deno.serve(async (req) => {
     if (mode === "analyze") return json(await analyze(input, vidiq));
     if (mode === "ask") return json(await ask(input));
     if (mode === "agent") return json(await agent(input));
+    if (mode === "remind") return json(await remind(input));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);

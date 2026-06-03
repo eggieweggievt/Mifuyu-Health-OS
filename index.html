@@ -199,6 +199,15 @@
   .cal-ev:active{cursor:grabbing;} .cal-ev.dragging{opacity:.45;transform:scale(.95);}
   .cal-stream{font-size:10.5px;line-height:1.4;padding:2px 7px;border-radius:8px;background:rgba(255,158,216,.16);color:var(--sakura-deep);border-left:3px solid var(--sakura);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .12s;}
   .cal-stream:hover{background:rgba(255,158,216,.30);}
+  .cal-bday{font-size:10.5px;line-height:1.4;padding:2px 7px;border-radius:8px;background:rgba(201,184,240,.20);color:#6a52a6;border-left:3px solid var(--lav);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .12s;}
+  .cal-bday:hover{background:rgba(201,184,240,.36);}
+  /* agenda / reminders */
+  .agenda-row{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:13px;}
+  .agenda-row:last-child{border-bottom:none;}
+  .agenda-when{flex:0 0 auto;min-width:92px;font-size:11.5px;color:var(--ink-soft);}
+  .agenda-when b{color:var(--sakura-deep);font-size:12px;}
+  .agenda-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  @media(max-width:600px){ .agenda-cols{grid-template-columns:1fr!important;} }
   /* multi-day continuous bar */
   .cal-span{font-size:11px;line-height:18px;height:18px;padding:0 7px;color:#3a3550;cursor:grab;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 -12px;border-radius:0;transition:opacity .12s,box-shadow .12s;}
   .cal-span:hover{box-shadow:0 2px 8px rgba(120,110,160,.28);}
@@ -1319,6 +1328,7 @@ function renderCalendar(){
     const inMonth=d.getMonth()===m, isToday=ds===TODAY;
     const dayShort=dayShortFull[d.getDay()];
     const streamChips=showStreams?schedule.filter(s=>s.day===dayShort).map(s=>`<div class="cal-stream" data-act="editSchedule" title="Stream day — tap to edit your schedule">🔴 ${s.time?esc(s.time)+" · ":""}${esc(s.show||s.title||"Stream")}</div>`).join(""):"";
+    const bdayChips=(sent.birthdays||[]).filter(b=>(d.getMonth()+1)===Number(b.month)&&d.getDate()===Number(b.day)).map(b=>`<div class="cal-bday" data-act="scrollAgenda" title="🎂 ${esc(b.name)}'s birthday">🎂 ${esc(b.name)}</div>`).join("");
     const dow=d.getDay();
     const dayEvents=events.filter(ev=> ds>=ev.date && ds<=(ev.endDate||ev.date) && (showGames||ev.src!=="game"));
     // multi-day events → one continuous bar (rendered first so they line up across cells)
@@ -1341,7 +1351,7 @@ function renderCalendar(){
         const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(ev.note?" — "+ev.note:"")+(linkable?" — (tap to open update)":""));
         return `<div class="cal-ev" draggable="true" data-eid="${ev.id}" ${act} style="background:${bg}" title="${tip}">${ic}${esc(ev.title)}${lk}</div>`;
       }).join("");
-    cells+=`<div class="cal-cell ${inMonth?"":"other"} ${isToday?"today":""}" data-date="${ds}" data-act="calAdd"><span class="cal-daynum">${d.getDate()}</span>${spanBars}${streamChips}${singleChips}</div>`;
+    cells+=`<div class="cal-cell ${inMonth?"":"other"} ${isToday?"today":""}" data-date="${ds}" data-act="calAdd"><span class="cal-daynum">${d.getDate()}</span>${spanBars}${streamChips}${bdayChips}${singleChips}</div>`;
   }
   return `<div class="panel" style="max-width:920px;margin:0 auto">
     <div class="card-head"><div><h2 style="font-size:18px">📅 ${monthName}</h2><div class="label" style="margin-top:2px">tap a day to add · drag to move · 🔴 streams · 🎮 game updates ❄️🦊</div></div>
@@ -1353,7 +1363,61 @@ function renderCalendar(){
     <div class="cal-grid" style="margin-bottom:6px">${dows.map(d=>`<div class="cal-dow">${d}</div>`).join("")}</div>
     <div class="cal-grid">${cells}</div>
     <p class="soft" style="font-size:11.5px;margin-top:12px">Konfuyu~ nothing here is set in stone — drag things around whenever your week shifts. 💗 Game updates refresh automatically every Friday.</p>
-  </div>`;
+  </div>
+  ${calAgenda(sent)}`;
+}
+
+/* ----- Events & Birthdays agenda + reminder settings (under the calendar) ----- */
+function nextBirthdayInfo(b){
+  const today=new Date(TODAY+"T00:00"); const y=today.getFullYear();
+  let d=new Date(y, Number(b.month)-1, Number(b.day));
+  if(d<today) d=new Date(y+1, Number(b.month)-1, Number(b.day));
+  return { date:d.toLocaleDateString("en-CA"), days:Math.round((d-today)/86400000) };
+}
+function whenLabel(days){ return days===0?"<b>today</b>":days===1?"<b>tomorrow</b>":("in "+days+" days"); }
+function calAgenda(sent){
+  const rem=sent.reminders||{};
+  const OFFSETS=[[0,"Same day"],[1,"1 day before"],[3,"3 days before"],[7,"1 week before"]];
+  const offs=rem.offsets||[0,1];
+  const events=(sent.calendarEvents||[]).filter(e=>(e.endDate||e.date)>=TODAY).sort((a,b)=>(a.date+(a.time||"")<b.date+(b.time||"")?-1:1)).slice(0,12);
+  const bdays=(sent.birthdays||[]).map(b=>({...b,...nextBirthdayInfo(b)})).sort((a,b)=>a.days-b.days);
+  const evRows=events.length?events.map(ev=>{ const days=Math.round((new Date(ev.date+"T00:00")-new Date(TODAY+"T00:00"))/86400000);
+      return `<div class="agenda-row"><span class="agenda-when">${days<0?"now":whenLabel(days)}</span><span class="agenda-dot" style="background:${ev.src==="game"?(sent.gameColor||GAME_COLOR_DEFAULT):(ev.color||CAL_COLORS[0])}"></span><span class="grow" data-act="calEvent" data-eid="${ev.id}" style="cursor:pointer">${esc(ev.title)} <span class="soft" style="font-size:11px">· ${fmtDate(ev.date)}${ev.time?" · "+fmt12(ev.time):""}</span></span></div>`;
+    }).join(""):`<p class="soft" style="font-size:12.5px">No upcoming events — tap any day above to add one. ❄️</p>`;
+  const bdayRows=bdays.length?bdays.map(b=>`<div class="agenda-row"><span class="agenda-when">${whenLabel(b.days)}</span><span class="agenda-dot" style="background:var(--lav)"></span><span class="grow">🎂 ${esc(b.name)} <span class="soft" style="font-size:11px">· ${fmtDate(b.date)}</span></span><button class="x" data-act="delBirthday" data-v="${b.id}" title="remove">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">No birthdays yet — add the ones you never want to forget. 🎂</p>`;
+  const notif = (typeof Notification!=="undefined") ? Notification.permission : "unsupported";
+  return `
+  <section class="panel" id="agendaPanel" style="max-width:920px;margin:14px auto 0">
+    <div class="card-head"><h2 style="font-size:17px">🎉 Events &amp; birthdays</h2></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px" class="agenda-cols">
+      <div>
+        <div class="label" style="margin-bottom:4px">Coming up</div>
+        ${evRows}
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:4px">Birthdays 🎂</div>
+        ${bdayRows}
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <input class="inp" id="bdayName" placeholder="name" style="flex:1;min-width:90px">
+          <input class="inp" id="bdayDate" type="date" style="max-width:150px">
+          <button class="btn btn-grad" data-act="addBirthday">+ add</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="panel" style="max-width:920px;margin:14px auto 0">
+    <div class="card-head"><h2 style="font-size:17px">🔔 Reminders</h2></div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">Get a gentle nudge before events &amp; birthdays. Pick how far ahead you'd like to be reminded.</p>
+    <div class="chiprow" style="margin-bottom:12px">
+      ${OFFSETS.map(([v,l])=>`<button class="chiptog ${offs.includes(v)?'on':''}" data-act="remOffset" data-v="${v}"><span>${offs.includes(v)?'✓':''}</span>${l}</button>`).join("")}
+    </div>
+    <div class="chiprow" style="margin-bottom:10px">
+      <button class="chiptog ${rem.browser?'on':''}" data-act="remBrowser"><span>${rem.browser?'✓':''}</span>💻 Browser pop-ups${notif==="denied"?" (blocked in browser)":""}</button>
+      <button class="chiptog ${rem.email?'on':''}" data-act="remEmail"><span>${rem.email?'✓':''}</span>✉️ Email</button>
+    </div>
+    ${rem.email?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input class="inp" id="remEmailAddr" type="email" placeholder="you@email.com" value="${esc(rem.emailAddr||CONFIG.ownerEmail||"")}" style="max-width:260px"><button class="btn" data-act="saveRemEmail">save email</button><span class="soft" style="font-size:11px">${rem.emailAddr?"sending to "+esc(rem.emailAddr):"add your email to receive reminders"}</span></div>`:""}
+    <p class="soft" style="font-size:11px;margin-top:10px">💻 Browser pop-ups appear while Mifuyu Health OS is open in a tab. ✉️ Email needs the reminder service set up on the server (one-time). Both respect Calm mode. ❄️</p>
+  </section>`;
 }
 
 async function calEventModal(date,eid){
@@ -1561,6 +1625,21 @@ const H={
   async setGameColor(el){ await setSent(n=>({...n,gameColor:el.dataset.v})); toast("colour set 🎮"); render(); },
   calToggleStreams(){ state.calShowStreams = !(state.calShowStreams!==false); render(); },
   calToggleGames(){ state.calShowGames = !(state.calShowGames!==false); render(); },
+  // --- birthdays + reminders ---
+  scrollAgenda(){ const p=$("#agendaPanel"); if(p) p.scrollIntoView({behavior:"smooth",block:"center"}); },
+  async addBirthday(){ const name=($("#bdayName").value||"").trim(); const dv=$("#bdayDate").value;
+    if(!name||!dv){ toast("name + date please 🎂"); return; } const [,M,D]=dv.split("-").map(Number);
+    await setSent(n=>({...n,birthdays:[...(n.birthdays||[]),{id:"bd"+Date.now(),name,month:M,day:D}]})); toast("added 🎂"); render(); },
+  async delBirthday(el){ const id=el.dataset.v; await setSent(n=>({...n,birthdays:(n.birthdays||[]).filter(b=>b.id!==id)})); render(); },
+  async remOffset(el){ const v=Number(el.dataset.v); const rem={...(state.sentinel.reminders||{})}; let offs=(rem.offsets||[0,1]).slice();
+    if(offs.includes(v)) offs=offs.filter(x=>x!==v); else offs.push(v); rem.offsets=offs.sort((a,b)=>a-b);
+    await setSent(n=>({...n,reminders:rem})); render(); },
+  async remBrowser(){ const rem={...(state.sentinel.reminders||{})};
+    if(!rem.browser){ if(typeof Notification!=="undefined" && Notification.permission!=="granted"){ try{ const p=await Notification.requestPermission(); if(p!=="granted") toast("Your browser blocked notifications — allow them in site settings to use this"); }catch(e){} } rem.browser=true; }
+    else rem.browser=false;
+    await setSent(n=>({...n,reminders:rem})); render(); if(rem.browser) setTimeout(checkReminders,400); },
+  async remEmail(){ const rem={...(state.sentinel.reminders||{})}; rem.email=!rem.email; await setSent(n=>({...n,reminders:rem})); render(); },
+  async saveRemEmail(){ const v=($("#remEmailAddr").value||"").trim(); const rem={...(state.sentinel.reminders||{})}; rem.emailAddr=v; await setSent(n=>({...n,reminders:rem})); toast("email saved ✉️"); render(); },
   trendMetric(el){ const k=el.dataset.v; let arr=(state.trendMetrics||[]).slice();
     if(arr.includes(k)){ if(arr.length>1) arr=arr.filter(x=>x!==k); }   // keep at least one selected
     else arr.push(k);
@@ -1951,6 +2030,27 @@ function start(){
   document.head.appendChild(sc);
 }
 start();
+
+/* ===== in-browser event / birthday reminders (fires while the app is open) ===== */
+function checkReminders(){
+  try{
+    const sent=state.sentinel||{}; const rem=sent.reminders||{};
+    if(!rem.browser) return;
+    if(typeof Notification==="undefined" || Notification.permission!=="granted") return;
+    if(document.body.classList.contains("calm")) return;
+    const offs=rem.offsets||[0,1]; const today=new Date(TODAY+"T00:00");
+    const items=[];
+    (sent.calendarEvents||[]).forEach(ev=>{ const days=Math.round((new Date(ev.date+"T00:00")-today)/86400000); items.push({id:ev.id,title:ev.title,date:ev.date,days}); });
+    (sent.birthdays||[]).forEach(b=>{ const ni=nextBirthdayInfo(b); items.push({id:b.id,title:"🎂 "+b.name+"'s birthday",date:ni.date,days:ni.days}); });
+    items.forEach(it=>{ if(!offs.includes(it.days))return; const key="mifu-notif-"+it.id+"-"+it.date+"-"+it.days;
+      if(localStorage.getItem(key))return;
+      const when=it.days===0?" — today!":it.days===1?" — tomorrow":" — in "+it.days+" days";
+      try{ new Notification("❄️ Mifuyu reminder", {body: it.title+when, icon:"Sakura.png"}); localStorage.setItem(key,"1"); }catch(e){}
+    });
+  }catch(e){ console.error(e); }
+}
+setTimeout(checkReminders, 6000);
+setInterval(checkReminders, 30*60*1000);
 
 /* ===== glowing petal cursor trail (icy snowfox) ===== */
 (function(){

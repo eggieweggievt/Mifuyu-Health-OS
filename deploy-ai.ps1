@@ -47,9 +47,18 @@ if ([string]::IsNullOrWhiteSpace($anthropic) -or [string]::IsNullOrWhiteSpace($y
   Read-Host "Press Enter to exit"; exit 1
 }
 
+# Optional: Resend key for EMAIL reminders (leave blank to skip - browser reminders still work).
+Write-Host ""
+Write-Host "Optional - email reminders. Get a free key at https://resend.com (API Keys)." -ForegroundColor Magenta
+$resend = Read-Host "Resend API key  [re_...]  (press Enter to skip)"
+
 # 4) Store secrets + deploy the function (both use $env:SUPABASE_ACCESS_TOKEN).
 Write-Host "Saving secrets to your Supabase project..." -ForegroundColor Cyan
 supabase secrets set "ANTHROPIC_API_KEY=$anthropic" "YOUTUBE_API_KEY=$youtube" "YT_HANDLE=@mifuyu" --project-ref $ProjectRef
+if (-not [string]::IsNullOrWhiteSpace($resend)) {
+  supabase secrets set "RESEND_API_KEY=$($resend.Trim())" --project-ref $ProjectRef
+  Write-Host "Resend key saved - finish email setup with REMINDERS-EMAIL-SETUP.md (schedule the daily cron)." -ForegroundColor Green
+}
 
 Write-Host "Deploying the 'ai' Edge Function..." -ForegroundColor Cyan
 # --no-verify-jwt is required because the new publishable keys aren't legacy JWTs.
