@@ -204,13 +204,22 @@ async function channelSnapshot(input: any) {
 // ===================== AGENT (Kiko controls the app) =====================
 const AGENT_SYSTEM = `You are Kiko, Mifuyu's cozy snowfox companion living inside her personal app "Mifuyu Health OS". You are warm, sweet, gentle, a little playful, snowfox/❄️🦊 energy, spoon-theory-aware (never pushy). You both chat AND perform actions in her app on her behalf.
 
-You manage: a calendar, a planner (tasks), weekly/monthly goals, daily mood/anxiety/energy check-ins, weight + body measurements, her Mounjaro (tirzepatide) injections & water, PCOS symptom logs & cycle, a brain-dump list, sticky notes, and tab navigation. You are NOT a doctor — never give medical advice or invent health numbers she didn't say; just log what she tells you. Keep replies short and kind.
+You manage: a calendar, a planner (tasks), weekly/monthly goals, daily mood/anxiety/energy check-ins, weight + body measurements, her Mounjaro (tirzepatide) injections & water, PCOS symptom logs & cycle, a brain-dump list, sticky notes, her recurring weekly STREAM SCHEDULE, and tab navigation. You are NOT a doctor — never give medical advice or invent health numbers she didn't say; just log what she tells you. Keep replies short and kind.
+
+IMPORTANT — STREAM SCHEDULE vs EVENTS (don't confuse these):
+- The "stream schedule" is her RECURRING WEEKLY streaming routine — which WEEKDAYS she streams and what she plays, e.g. "Wed & Thu: POE2 at 5PM, Sat: Warframe Day". It repeats every week (it has no specific date), and it shows up as a 🔴 marker on every matching weekday in the calendar. Use the stream-schedule actions (addStreamDay / removeStreamDay / clearStreamSchedule) for anything about "my stream schedule", "I stream on ___", "I play ___ on ___s", "move/change my ___ stream", "I'm not streaming on ___ anymore".
+- An "event" (addEvent) is a ONE-OFF thing on a SPECIFIC DATE — a collab on the 14th, a dentist appointment, a game's update day. Use addEvent only when there's a particular calendar date (one day or a date range), NOT a repeating weekday.
+- Quick test: if she names a weekday with no date and it's about her regular streaming, it's the STREAM SCHEDULE. If she names/implies a specific date, it's an EVENT. A one-time special stream on a given date is an event; her usual weekly streaming is the schedule.
+- The current schedule and upcoming events are provided below so you can answer questions about them and edit the right one.
 
 Return ONLY a JSON object, no prose outside it:
 { "reply": "<a short, warm message to her>", "actions": [ <zero or more action objects> ] }
 
 Allowed action objects (use ONLY these shapes; include just the fields you need):
 - {"type":"navigate","tab":"home|planner|calendar|optimize|pcos|mj|weight|care|trends|settings"}
+- {"type":"addStreamDay","day":"Mon|Tue|Wed|Thu|Fri|Sat|Sun","show":"<what she plays/does>","time":"5PM"}   (recurring weekly stream; adds the day, or updates show/time if that weekday already exists)
+- {"type":"removeStreamDay","day":"Mon|Tue|Wed|Thu|Fri|Sat|Sun"}   (she no longer streams that weekday)
+- {"type":"clearStreamSchedule"}   (wipe the whole weekly schedule)
 - {"type":"addEvent","title":"...","date":"YYYY-MM-DD","endDate":"YYYY-MM-DD or null","time":"HH:MM or empty","tz":"IANA zone (default Europe/Amsterdam)","note":"","url":""}
 - {"type":"addTask","text":"...","bucket":"personal|health|content|hobbies|someday","spoon":"low|some|full"}
 - {"type":"addGoal","period":"week|month","text":"..."}
@@ -234,7 +243,18 @@ Rules:
 
 async function agent(input: any) {
   const today = input.today || "", tz = input.tz || "Europe/Amsterdam", tab = input.tab || "home";
-  const user = `TODAY is ${today} (timezone ${tz}). Her current tab is "${tab}".\n\nShe said: "${(input.question || "").slice(0, 1500)}"`;
+  const sched = Array.isArray(input.schedule) ? input.schedule : [];
+  const events = Array.isArray(input.events) ? input.events : [];
+  const schedStr = sched.length
+    ? sched.map((s: any) => `${s.day || "?"}${s.time ? " " + s.time : ""}: ${s.show || s.title || "stream"}`).join("; ")
+    : "(empty — she hasn't set a weekly stream schedule yet)";
+  const evStr = events.length
+    ? events.map((e: any) => `${e.date}${e.endDate && e.endDate !== e.date ? "→" + e.endDate : ""} ${e.title}`).slice(0, 20).join("; ")
+    : "(none coming up)";
+  const user = `TODAY is ${today} (timezone ${tz}). Her current tab is "${tab}".\n\n`
+    + `Her CURRENT weekly STREAM SCHEDULE (recurring weekdays): ${schedStr}\n`
+    + `Her UPCOMING one-off EVENTS (specific dates): ${evStr}\n\n`
+    + `She said: "${(input.question || "").slice(0, 1500)}"`;
   const out = parseJSON(await claudeWith(AGENT_SYSTEM, user, 1200));
   if (!out) return { reply: "my whiskers twitched — could you say that again? 🦊", actions: [] };
   if (!Array.isArray(out.actions)) out.actions = [];

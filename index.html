@@ -1509,7 +1509,8 @@ const H={
     try{
       if(DEMO||!SB){ ans="I'm a sleepy demo kiko right now 💤 — connect me to the server and I can chat *and* actually run things for you! ❄️"; }
       else {
-        const d=await aiCall("agent",{question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab});
+        const upcoming=(state.sentinel.calendarEvents||[]).filter(e=>(e.endDate||e.date)>=TODAY).sort((a,b)=>(a.date<b.date?-1:1)).slice(0,20).map(e=>({date:e.date,endDate:e.endDate,title:e.title}));
+        const d=await aiCall("agent",{question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab, schedule:(state.sentinel.schedule||[]), events:upcoming});
         if(d&&d.error) throw new Error(d.error);
         ans=(d&&(d.reply||d.answer))||"hmm, my whiskers twitched — ask me again? 🦊";
         const acts=(d&&Array.isArray(d.actions))?d.actions:[];
@@ -1844,9 +1845,19 @@ async function execAgentAction(a){
     if(T==="cycleStart"){ await setSent(n=>{ const cycle={...(n.cycle||{}),lastStart:TODAY}; cycle.history=[...(cycle.history||[]),{start:TODAY,end:null,flow:"med"}]; return {...n,cycle}; }); return "🌙 period start logged"; }
     if(T==="cycleEnd"){ await setSent(n=>{ const c=n.cycle; if(!c||!c.history||!c.history.length)return n; const cycle={...c}; cycle.history=cycle.history.map((h,i)=>i===cycle.history.length-1?{...h,end:TODAY}:h); return {...n,cycle}; }); return "🌙 period end logged"; }
     if(T==="logPcos"){ await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[a.field]=Math.max(0,Math.min(5,Number(a.value))); return {...n,pcos}; }); return "❄️ "+a.field+" logged"; }
+    if(T==="addStreamDay"){ const day=normDay(a.day); if(!day)return null;
+      await setSent(n=>{ const sch=(n.schedule||[]).slice(); const i=sch.findIndex(r=>r.day===day);
+        if(i>=0){ sch[i]={...sch[i], show:(a.show!=null?a.show:sch[i].show), time:(a.time!=null?a.time:sch[i].time)}; }
+        else { sch.push({id:"sc"+Date.now(),day,show:a.show||"Stream",time:a.time||""}); }
+        return {...n,schedule:sch}; });
+      return "🔴 "+day+(a.time?" "+a.time:"")+(a.show?" · "+a.show:"")+" — stream schedule updated"; }
+    if(T==="removeStreamDay"){ const day=normDay(a.day); if(!day)return null; await setSent(n=>({...n,schedule:(n.schedule||[]).filter(r=>r.day!==day)})); return "🔴 removed "+day+" from your stream schedule"; }
+    if(T==="clearStreamSchedule"){ await setSent(n=>({...n,schedule:[]})); return "🔴 cleared your weekly stream schedule"; }
   }catch(e){ console.error("action failed",T,e); return null; }
   return null;
 }
+/* normalize any weekday phrasing → the 3-letter form the schedule uses (Mon..Sun) */
+function normDay(d){ if(!d)return null; const m={sun:"Sun",sunday:"Sun",mon:"Mon",monday:"Mon",tue:"Tue",tues:"Tue",tuesday:"Tue",wed:"Wed",weds:"Wed",wednesday:"Wed",thu:"Thu",thur:"Thu",thurs:"Thu",thursday:"Thu",fri:"Fri",friday:"Fri",sat:"Sat",saturday:"Sat"}; return m[String(d).trim().toLowerCase()]||null; }
 
 function start(){
   applyPrefs();
