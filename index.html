@@ -443,17 +443,24 @@ function seedDemo(){
 }
 let demo = DEMO ? seedDemo() : null;
 
-/* ===================== UNDO (Ctrl/⌘+Z rolls back the last data change) ===================== */
-let UNDO=[]; const UNDO_MAX=50; let UNDO_RESTORING=false;
+/* ===================== UNDO (Ctrl/⌘+Z rolls back the last data change — persists across reloads) ===================== */
+let UNDO=[]; const UNDO_MAX=50; let UNDO_RESTORING=false; const UNDO_KEY="mifu-undo";
+function saveUndo(){ try{ let arr=UNDO.slice(-25);   // keep recent history small enough for localStorage
+  while(arr.length){ try{ localStorage.setItem(UNDO_KEY,JSON.stringify(arr)); return; }catch(e){ arr=arr.slice(1); } }
+  localStorage.removeItem(UNDO_KEY);
+}catch(e){} }
+function loadUndo(){ try{ const s=localStorage.getItem(UNDO_KEY); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) UNDO=a; } }catch(e){} }
+loadUndo();
 async function undoLast(){
   if(!UNDO.length){ toast("nothing to undo ❄️"); return; }
-  const {date,prev}=UNDO.pop(); const snap=JSON.parse(JSON.stringify(prev||{}));
+  const {date,prev}=UNDO.pop(); saveUndo(); const snap=JSON.parse(JSON.stringify(prev||{}));
   UNDO_RESTORING=true;
   try{
     if(DEMO){ demo[date]=snap; }
     else if(SB){ await SB.from("daily_logs").upsert({user_id:UID,date,notes:snap},{onConflict:"user_id,date"}); }
     if(date===SENTINEL) state.sentinel=JSON.parse(JSON.stringify(snap));
     else if(date===TODAY) state.today=JSON.parse(JSON.stringify(snap));
+    else { state._loaded=false; await loadData(); }   // some other day's row → refresh from DB
   }catch(e){ console.error(e); }
   UNDO_RESTORING=false;
   try{ await render(); }catch(_){ try{ renderStickies(); }catch(__){} }
@@ -470,7 +477,7 @@ const DB = {
   },
   async saveDaily(date,merge){
     const cur=await DB.daily(date); const next=merge({...cur});
-    if(!UNDO_RESTORING){ try{ UNDO.push({date, prev:JSON.parse(JSON.stringify(cur||{}))}); if(UNDO.length>UNDO_MAX) UNDO.shift(); }catch(e){} }
+    if(!UNDO_RESTORING){ try{ UNDO.push({date, prev:JSON.parse(JSON.stringify(cur||{}))}); if(UNDO.length>UNDO_MAX) UNDO.shift(); saveUndo(); }catch(e){} }
     if(DEMO){ demo[date]=next; return next; }
     if(!SB) return next;
     await SB.from("daily_logs").upsert({user_id:UID,date,notes:next},{onConflict:"user_id,date"});
@@ -763,8 +770,8 @@ function viewPcos(){
         </div>`:''}
       <p class="soft" style="font-size:11px;margin-top:8px">Cycles vary a lot with PCOS — long or skipped months are common, and that's okay. This just helps you and your doctor see the bigger pattern. 🦊</p>
       ${longGap?`<div class="disc" style="margin-top:8px">${CONFIG.creator.snow}<span>It's been ${months>=2?`about ${Math.round(months)} months`:'a longer stretch'} since your last period. With PCOS that happens — but a long gap is worth a gentle mention to your doctor whenever you next chat. No alarm, just a note. 🦊</span></div>`:''}
-      ${st.count?`<details style="margin-top:8px;border:none;background:transparent;padding:0;box-shadow:none"><summary style="font-size:12px">📜 Period history (${st.count})</summary>
-        <div style="margin-top:6px">${st.h.slice().reverse().map(x=>`<div class="listrow"><span class="grow" style="font-size:12px">${fmtDate(x.start)}${x.end?` – ${fmtDate(x.end)}`:''} ${x.flow?`<span class="soft">· ${esc(x.flow)}</span>`:''}</span>${x.gap!=null?`<span class="soft" style="font-size:11px" title="days since previous">+${x.gap}d</span>`:''}</div>`).join("")}</div></details>`:''}
+      ${st.count?`<details style="margin-top:8px;border:none;background:transparent;padding:0;box-shadow:none"><summary style="font-size:12px">📜 Period history (${st.count}) · tap ✕ to remove a mistaken log</summary>
+        <div style="margin-top:6px">${st.h.slice().reverse().map(x=>`<div class="listrow"><span class="grow" style="font-size:12px">${fmtDate(x.start)}${x.end?` – ${fmtDate(x.end)}`:''} ${x.flow?`<span class="soft">· ${esc(x.flow)}</span>`:''}</span>${x.gap!=null?`<span class="soft" style="font-size:11px" title="days since previous">+${x.gap}d</span>`:''}<button class="x" data-act="delPeriod" data-start="${esc(x.start)}" data-end="${esc(x.end||'')}" title="remove this log">✕</button></div>`).join("")}</div></details>`:''}
     </div>
   </section>
 
@@ -2123,6 +2130,10 @@ const H={
   async cycleStart(){ await setSent(n=>{ const cycle={...(n.cycle||{}),lastStart:TODAY}; cycle.history=[...(cycle.history||[]),{start:TODAY,end:null,flow:state.today.flow||"med"}]; return {...n,cycle}; }); toast("logged ❄️"); render(); },
   async cycleEnd(){ const c=state.sentinel.cycle; if(!c||!c.history||!c.history.length){ toast("log a start first"); return; }
     await setSent(n=>{ const cycle={...n.cycle}; cycle.history=cycle.history.map((h,i)=>i===cycle.history.length-1?{...h,end:TODAY}:h); return {...n,cycle}; }); toast("logged ❄️"); render(); },
+  async delPeriod(el){ const start=el.dataset.start, end=el.dataset.end||"";
+    await setSent(n=>{ const c={...(n.cycle||{})}; let h=(c.history||[]).slice(); const i=h.findIndex(x=>x.start===start && (x.end||"")===end); if(i>=0)h.splice(i,1);
+      c.history=h; const starts=h.map(x=>x.start).filter(Boolean).sort(); c.lastStart=starts.length?starts[starts.length-1]:null; return {...n,cycle:c}; });
+    toast("removed ❄️ (Ctrl+Z to undo)"); render(); },
 
   pickSite(el){ document.querySelectorAll('#siteRow .sitebtn').forEach(b=>b.classList.remove('on')); el.classList.add('on'); $("#shotSite").value=el.dataset.v; },
   mjAfter(el){ document.querySelectorAll('#afterField .scale button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); },
