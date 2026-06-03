@@ -172,6 +172,10 @@
   .sticky-swatches button{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.1);cursor:pointer;padding:0;}
   .sticky-swatches button:hover{transform:scale(1.15);}
   #addStickyBtn{position:fixed;left:16px;bottom:16px;z-index:83;border:none;border-radius:999px;width:46px;height:46px;font-size:18px;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;box-shadow:var(--shadow);}
+  /* snow wind button */
+  #snowWindBtn{position:fixed;right:72px;bottom:16px;z-index:83;border:1.5px solid var(--line-2);border-radius:999px;width:46px;height:46px;font-size:18px;background:#fff;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s;}
+  #snowWindBtn:active{transform:scale(.9) rotate(-12deg);}
+  body.calm #snowWindBtn{display:none;}
   /* floating timer (rest + pomodoro focus) */
   #restBtn{position:fixed;right:16px;bottom:16px;z-index:83;border:1.5px solid var(--line-2);border-radius:999px;width:46px;height:46px;font-size:18px;background:#fff;box-shadow:var(--shadow);}
   #restWidget{position:fixed;right:16px;bottom:70px;z-index:82;width:236px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 32px rgba(120,110,160,.26);padding:12px;}
@@ -258,6 +262,7 @@
 <div id="modal"></div>
 <div id="stickyLayer"></div>
 <button id="addStickyBtn" data-act="addSticky" title="New sticky note">🗒️+</button>
+<button id="snowWindBtn" title="Make the wind blow ❄️💨">💨</button>
 <button id="restBtn" data-act="toggleRest" title="Breathing &amp; rest timer">🫧</button>
 <div id="restWidget" class="hidden"></div>
 <div id="kiko" title="Ask Kiko ❄️ (drag to throw!)"><div class="kiko-sprite" id="kikoSprite"></div></div>
@@ -1971,7 +1976,7 @@ start();
   window.addEventListener("pointermove",e=>{ if(e.pointerType==="touch")return; const now=performance.now(); if(now-last<55)return; last=now; spawn(e.clientX,e.clientY); },{passive:true});
 })();
 
-/* ===== gentle falling snow, pushed around by the cursor (behind all panels) ===== */
+/* ===== plentiful snow: falls, pushed by the cursor, gathers at the bottom; 💨 blows the drift away ===== */
 (function(){
   if(document.getElementById("snowCanvas")) return;
   const reduce=()=>{ try{ return document.body.classList.contains("calm")||matchMedia("(prefers-reduced-motion:reduce)").matches; }catch(e){ return false; } };
@@ -1979,33 +1984,87 @@ start();
   document.body.insertBefore(cv, document.body.firstChild);
   const ctx=cv.getContext("2d");
   let W=0,H=0; const DPR=Math.min(2,window.devicePixelRatio||1);
-  function resize(){ W=window.innerWidth; H=window.innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px"; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  const COLW=8; let pile=[];
+  function resize(){
+    const old=pile, oN=old.length;
+    W=window.innerWidth; H=window.innerHeight;
+    cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px"; ctx.setTransform(DPR,0,0,DPR,0,0);
+    const n=Math.ceil(W/COLW)+1; const np=new Array(n).fill(0);
+    for(let i=0;i<n && oN;i++) np[i]=old[Math.min(oN-1,Math.round(i*oN/n))]||0;
+    pile=np;
+  }
   resize(); window.addEventListener("resize",resize);
-  const N=Math.max(34,Math.min(95,Math.round(W*H/21000)));
+
+  const N=Math.max(130,Math.min(280,Math.round(W*H/7600)));   // plentiful
+  const MAXPILE=130, GROW=3.4;
   const flakes=[];
-  for(let i=0;i<N;i++){ flakes.push({ x:Math.random()*W, y:Math.random()*H, r:1.4+Math.random()*2.8,
-    fall:0.35+Math.random()*0.9, sway:0.3+Math.random()*0.7, ph:Math.random()*6.28, phs:0.01+Math.random()*0.02,
-    vx:0, vy:0, o:0.45+Math.random()*0.5 }); }
-  let mx=-9999, my=-9999;
+  for(let i=0;i<N;i++) flakes.push({ x:Math.random()*W, y:Math.random()*H, r:1.3+Math.random()*2.7,
+    fall:0.4+Math.random()*1.0, sway:0.3+Math.random()*0.7, ph:Math.random()*6.28, phs:0.01+Math.random()*0.02,
+    vx:0, vy:0, o:0.5+Math.random()*0.45 });
+  let spray=[];
+
+  let mx=-9999,my=-9999;
   window.addEventListener("pointermove",e=>{ if(e.pointerType==="touch")return; mx=e.clientX; my=e.clientY; },{passive:true});
   window.addEventListener("pointerout",()=>{ mx=-9999; my=-9999; });
-  const R=95;                 // how close the cursor has to be to nudge a flake
+
+  let gust=0, windDir=1;
+  function blow(){ gust=Math.min(1.6,gust+1.1); windDir=(Math.random()<0.5?-1:1); }
+  window.__snowBlow=blow;
+  const wb=document.getElementById("snowWindBtn"); if(wb) wb.addEventListener("click",blow);
+
+  const R=95;
+  function surfaceY(x){ const c=Math.max(0,Math.min(pile.length-1,Math.round(x/COLW))); return H-pile[c]; }
+
   function frame(){
     requestAnimationFrame(frame);
     if(reduce()){ ctx.clearRect(0,0,W,H); return; }
     ctx.clearRect(0,0,W,H);
-    ctx.shadowColor="rgba(180,205,240,.85)"; ctx.shadowBlur=6;
+    if(gust>0.001) gust*=0.974; else gust=0;
+
+    // smooth the pile into gentle drifts
+    if(pile.length>2){ const np=pile.slice();
+      for(let c=1;c<pile.length-1;c++) np[c]=pile[c]*0.82+(pile[c-1]+pile[c+1])*0.09;
+      pile=np; }
+
+    // wind tears snow off the pile into flying spray
+    if(gust>0.12){ const blasts=Math.round(gust*7);
+      for(let k=0;k<blasts;k++){ const c=Math.floor(Math.random()*pile.length); if(pile[c]<2)continue;
+        const take=Math.min(pile[c],2+Math.random()*5); pile[c]-=take;
+        if(spray.length<700) spray.push({ x:c*COLW, y:H-pile[c]-Math.random()*4, r:1.3+Math.random()*2.4,
+          vx:windDir*(3+Math.random()*6)*Math.max(gust,.5), vy:-(0.4+Math.random()*3), o:0.55+Math.random()*0.4, life:1 }); }
+    }
+
+    // draw the gathered snow bank
+    if(pile.length){ ctx.beginPath(); ctx.moveTo(0,H+2);
+      for(let c=0;c<pile.length;c++) ctx.lineTo(c*COLW, H-pile[c]);
+      ctx.lineTo(W,H+2); ctx.closePath();
+      const g=ctx.createLinearGradient(0,H-MAXPILE,0,H);
+      g.addColorStop(0,"rgba(255,255,255,.95)"); g.addColorStop(1,"rgba(226,235,251,.9)");
+      ctx.fillStyle=g; ctx.fill(); }
+
+    // falling flakes
     for(const f of flakes){
       f.ph+=f.phs; const baseVx=Math.sin(f.ph)*f.sway;
       const dx=f.x-mx, dy=f.y-my, d2=dx*dx+dy*dy;
-      if(d2<R*R){ const d=Math.sqrt(d2)||1; const force=(R-d)/R*2.6; f.vx+=(dx/d)*force; f.vy+=(dy/d)*force; } // push away from cursor
-      f.vx=f.vx*0.90+baseVx*0.10;          // ease back to gentle sway
-      f.vy=f.vy*0.90+f.fall*0.10;          // ease back to falling
+      if(d2<R*R){ const d=Math.sqrt(d2)||1; const force=(R-d)/R*2.6; f.vx+=(dx/d)*force; f.vy+=(dy/d)*force; }
+      if(gust>0.02){ f.vx+=windDir*gust*5; f.vy-=gust*1.1; }
+      f.vx=f.vx*0.90+baseVx*0.10; f.vy=f.vy*0.90+f.fall*0.10;
       f.x+=f.vx; f.y+=f.vy;
-      if(f.y>H+8){ f.y=-8; f.x=Math.random()*W; f.vx=0; f.vy=0; }   // recycle at top
-      if(f.x<-8) f.x=W+8; else if(f.x>W+8) f.x=-8;
-      ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,6.2832);
-      ctx.fillStyle="rgba(255,255,255,"+f.o+")"; ctx.fill();
+      if(f.x<-10) f.x=W+10; else if(f.x>W+10) f.x=-10;
+      if(f.y>=surfaceY(f.x) && f.vy>=0){
+        const c=Math.max(0,Math.min(pile.length-1,Math.round(f.x/COLW)));
+        if(pile[c]<MAXPILE){ pile[c]+=GROW; if(c>0)pile[c-1]+=GROW*0.4; if(c<pile.length-1)pile[c+1]+=GROW*0.4; }
+        f.x=Math.random()*W; f.y=-10; f.vx=0; f.vy=0;
+      } else if(f.y>H+12){ f.x=Math.random()*W; f.y=-10; f.vx=0; f.vy=0; }
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,6.2832); ctx.fillStyle="rgba(255,255,255,"+f.o+")"; ctx.fill();
+    }
+
+    // blown spray
+    for(let i=spray.length-1;i>=0;i--){ const s=spray[i];
+      if(gust>0.02) s.vx+=windDir*gust*3;
+      s.vx*=0.985; s.vy+=0.12; s.x+=s.vx; s.y+=s.vy; s.life-=0.012;
+      if(s.life<=0||s.x<-20||s.x>W+20||s.y>H+20){ spray.splice(i,1); continue; }
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,6.2832); ctx.fillStyle="rgba(255,255,255,"+(s.o*Math.max(0,Math.min(1,s.life)))+")"; ctx.fill();
     }
   }
   requestAnimationFrame(frame);
