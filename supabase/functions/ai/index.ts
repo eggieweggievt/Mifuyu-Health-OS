@@ -93,6 +93,18 @@ async function claudeWith(system: string, user: string, maxTokens = 1200): Promi
   if (j.error) throw new Error(j.error.message || "Claude error");
   return (j.content && j.content[0] && j.content[0].text) || "";
 }
+// custom system + arbitrary message content (supports images) — used by the food estimator
+async function claudeMsg(system: string, content: any, maxTokens = 700): Promise<string> {
+  if (!ANTHROPIC_KEY) throw new Error("Claude key isn't set on the server.");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content }] }),
+  });
+  const j = await res.json();
+  if (j.error) throw new Error(j.error.message || "Claude error");
+  return (j.content && j.content[0] && j.content[0].text) || "";
+}
 
 // History/personalisation: pull her recent YouTube upload titles (learn her patterns).
 async function recentTitles(): Promise<string> {
@@ -387,6 +399,7 @@ async function journalWrite(input: any) {
   if (ctx.weightToday != null) facts.push(`Weight today: ${ctx.weightToday}${unit}` + (ctx.weightChange != null ? ` (change since first logged weight: ${ctx.weightChange > 0 ? "+" : ""}${ctx.weightChange}${unit})` : ""));
   if (ctx.measLatest) { const m = ctx.measLatest; const parts = ["bust", "waist", "hips", "thighs", "arms"].filter(k => m[k] != null).map(k => `${k} ${m[k]}cm`); if (parts.length) facts.push("Latest measurements: " + parts.join(", ")); }
   if (ctx.comp) { const names: Record<string,string> = {bmi:"BMI",fat:"body fat %",muscle:"muscle kg",bone:"bone kg",water:"body water %",visceral:"visceral fat",hr:"heart rate bpm"}; const parts = Object.keys(ctx.comp).map((k:string)=>{ const c=ctx.comp[k]; return `${names[k]||k} ${c.v}${c.d!=null&&c.d!==0?` (change ${c.d>0?"+":""}${c.d})`:""}`; }); if (parts.length) facts.push("Body composition from her scale: " + parts.join(", ")); }
+  if (ctx.food) facts.push(`Today's food: ~${ctx.food.kcal} kcal, protein ${ctx.food.protein}g (target ${ctx.food.targetProtein}g), fibre ${ctx.food.fiber}g (target ${ctx.food.targetFiber}g)`);
   const sc = (v: any) => (v == null ? "not set" : v + "/5");
   facts.push(`Check-in — mood ${sc(ctx.mood)}, anxiety ${sc(ctx.anxiety)}, weather inside ${sc(ctx.weather)} (0 stormy → 5 bright)`);
   if (ctx.events && ctx.events.length) facts.push("Today's calendar: " + ctx.events.join("; "));
@@ -418,6 +431,31 @@ ${common}`
 ${common}`;
   const txt = await claude([{ role: "user", content: prompt }], 2400);
   return parseJSON(txt) || { title, hooks: [], script: txt, cta: "" };
+}
+
+// ===================== FOOD (photo + description → estimated macros) =====================
+const FOOD_SYSTEM = `You are a careful, friendly nutrition estimator for Mifuyu, who is on a GLP-1 (tirzepatide) and has PCOS, so PROTEIN and FIBRE matter a lot to her. Given a photo of a meal and/or a short description, identify the food and estimate its nutrition for the portion actually shown/described.
+
+Estimate like a knowledgeable dietitian using standard nutrition data for the identified foods and visible portion size. If the description gives quantities (e.g. "200g chicken, one cup rice"), use them. If unsure of portion, assume a normal single serving and say so in the note. Prefer realistic, not flattering, numbers.
+
+Return ONLY JSON:
+{ "name": "short food name", "serving": "the portion you assumed (e.g. '1 bowl, ~350g')", "kcal": <integer calories>, "protein": <grams>, "carbs": <grams>, "fiber": <grams>, "fat": <grams>, "confidence": "low|medium|high", "note": "one short friendly line — e.g. a protein/fibre tip or what you assumed" }
+
+Numbers are estimates; round sensibly (kcal to nearest 5–10, grams to nearest whole or 0.5). Keep the note warm and brief, no markdown.`;
+
+async function foodMode(input: any) {
+  const desc = (input.description || "").toString().slice(0, 600);
+  const content: any[] = [];
+  if (input.image) {
+    const m = String(input.image).match(/^data:(image\/\w+);base64,(.*)$/);
+    if (m) content.push({ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } });
+  }
+  if (!content.length && !desc) return { error: "Add a photo or a description of the food first." };
+  content.push({ type: "text", text: `Estimate the nutrition for this meal.${desc ? ' Her description: "' + desc + '"' : " (no description given — go by the photo.)"} Return ONLY the JSON.` });
+  const out = parseJSON(await claudeMsg(FOOD_SYSTEM, content, 700));
+  if (!out || out.kcal == null) return { error: "Couldn't read that one — try a clearer photo or a quick description." };
+  const num = (v: any) => (v == null || isNaN(Number(v)) ? 0 : Math.round(Number(v) * 10) / 10);
+  return { name: out.name || "food", serving: out.serving || "", kcal: Math.round(Number(out.kcal) || 0), protein: num(out.protein), carbs: num(out.carbs), fiber: num(out.fiber), fat: num(out.fat), confidence: out.confidence || "medium", note: out.note || "" };
 }
 
 // ===================== WITHINGS (Body Smart scale → weight log) =====================
@@ -516,6 +554,7 @@ Deno.serve(async (req) => {
     if (mode === "withingsAuthUrl") return json(withingsAuthUrl(body.userId));
     if (mode === "withingsStatus") return json(await withingsStatus(body.userId || "mifuyu"));
     if (mode === "withingsSync") return json(await withingsSync(body.userId || "mifuyu"));
+    if (mode === "food") return json(await foodMode(input));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);

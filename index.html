@@ -362,6 +362,9 @@ function seedDemo(){
       sleep, note:"" };
   }
   delete daily[dayAgo(-3)]; delete daily[dayAgo(-9)]; // rest days from tracking
+  if(daily[TODAY]) daily[TODAY].food=[
+    {id:"fd1",name:"Greek yogurt + berries",serving:"1 bowl",kcal:210,protein:18,carbs:24,fiber:4,fat:5,time:""},
+    {id:"fd2",name:"Chicken & rice bowl",serving:"~350g",kcal:520,protein:42,carbs:55,fiber:6,fat:12,time:""} ];
   const start=dayAgo(-44);
   daily[SENTINEL]={
     medsList:[ {id:"m1",name:"Metformin",dose:"500 mg",time:"with dinner"},
@@ -377,6 +380,7 @@ function seedDemo(){
       {date:dayAgo(-7),w:81.4,fat:38.6,muscle:46.4,bone:2.8,water:48.4,visceral:8,hr:70},
       {date:TODAY,w:80.9,fat:38.1,muscle:46.6,bone:2.9,water:48.9,visceral:8,hr:69} ],
     heightCm:165,
+    foodTargets:{kcal:1500,protein:110,fiber:28},
     measurements:[ {date:dayAgo(-28),bust:96,waist:88,hips:102,thighs:60,arms:31},{date:TODAY,bust:94,waist:85,hips:100,thighs:58,arms:30} ],
     nsv:[ {id:"n1",t:"Climbed the shrine steps without stopping ⛩️",date:dayAgo(-5)},
       {id:"n2",t:"Cravings were quiet all afternoon",date:dayAgo(-2)} ],
@@ -472,7 +476,7 @@ function applyPrefs(){
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -517,7 +521,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -895,6 +899,67 @@ function viewWeight(){
   ${DISCLAIMER}`;
 }
 
+/* ===================== FOOD (photo → macros, protein & fibre forward) ===================== */
+function foodTargets(){ const t=state.sentinel.foodTargets||{}; return { kcal:t.kcal||1500, protein:t.protein||110, fiber:t.fiber||28 }; }
+function foodToday(){ return (state.today&&state.today.food)||[]; }
+function foodTotals(){ return foodToday().reduce((a,x)=>({kcal:a.kcal+(+x.kcal||0),protein:a.protein+(+x.protein||0),carbs:a.carbs+(+x.carbs||0),fiber:a.fiber+(+x.fiber||0),fat:a.fat+(+x.fat||0)}),{kcal:0,protein:0,carbs:0,fiber:0,fat:0}); }
+function foodEstCard(e){
+  return `<div class="soft-card" style="margin-top:12px">
+    <div class="label">estimate${e.confidence?` <span class="soft">· ${esc(e.confidence)} confidence</span>`:''}</div>
+    <div style="display:flex;gap:8px;margin:6px 0;flex-wrap:wrap"><input class="inp" id="fe_name" value="${esc(e.name||'')}" style="flex:1;min-width:120px"><input class="inp" id="fe_serving" value="${esc(e.serving||'')}" placeholder="serving" style="flex:1;min-width:120px"></div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+      ${[["kcal","kcal",e.kcal],["protein","protein",e.protein],["carbs","carbs",e.carbs],["fiber","fiber",e.fiber],["fat","fat",e.fat]].map(([k,l,v])=>`<div class="field" style="margin:0"><div class="label" style="font-size:10px">${l}</div><input class="inp" type="number" step="0.1" id="fe_${k}" value="${v}"></div>`).join("")}
+    </div>
+    ${e.note?`<p class="soft" style="font-size:11.5px;margin:8px 0 0">${esc(e.note)}</p>`:''}
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-grad" data-act="foodLog">🍽️ Log it</button><button class="btn" data-act="foodClear">discard</button></div>
+  </div>`;
+}
+function viewFood(){
+  if(!state.foodDraft) state.foodDraft={image:null,desc:"",est:null};
+  const d=state.foodDraft, T=foodTargets(), tot=foodTotals(), list=foodToday();
+  const pct=(v,t)=>Math.max(0,Math.min(100,Math.round((v/(t||1))*100)));
+  const bar=(label,v,t,col)=>`<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span class="label">${label}</span><span><b>${Math.round(v*10)/10}</b><span class="soft"> / ${t} g</span></span></div><div class="bar" style="margin-top:4px"><span style="width:${pct(v,t)}%;background:${col}"></span></div></div>`;
+  return `
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:18px">🍱 Today's food</h2><span class="pill pill-gray">${list.length} logged</span></div>
+    <div class="soft-card">
+      <div class="bignum" style="text-align:center">${Math.round(tot.kcal)} <span class="soft" style="font-size:12px;font-family:var(--sans)">kcal${T.kcal?` / ${T.kcal}`:''}</span></div>
+      ${bar("Protein 💪",tot.protein,T.protein,"linear-gradient(90deg,var(--peri),var(--sakura))")}
+      ${bar("Fiber 🌿",tot.fiber,T.fiber,"linear-gradient(90deg,#7fc8a9,#9fc7f0)")}
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><span class="pill pill-ice">Carbs ${Math.round(tot.carbs)}g</span><span class="pill pill-lav">Fat ${Math.round(tot.fat)}g</span></div>
+    </div>
+    <p class="soft" style="font-size:11px;text-align:center;margin-top:8px">Protein &amp; fibre are the stars for you — aim to fill those bars. 💗 Numbers are friendly estimates.</p>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:6px">📸 Add a meal</div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">Snap or upload your food and add a quick note — Kiko estimates the macros for you.${DEMO?` <b>(Deploy the ai function &amp; turn demo off to estimate.)</b>`:''}</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+      <label class="btn btn-grad" style="cursor:pointer">📷 Photo<input type="file" id="foodFile" accept="image/*" capture="environment" style="display:none"></label>
+      ${d.image?`<img src="${d.image}" alt="meal" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`:''}
+    </div>
+    <textarea class="inp" id="foodDesc" rows="2" placeholder="what is it? (e.g. grilled chicken, rice &amp; kimchi · ~1 bowl)" style="margin-top:10px">${esc(d.desc||"")}</textarea>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-grad" data-act="foodAnalyze" ${state.foodBusy?'disabled':''}>${state.foodBusy?'estimating… ❄️':'✨ Estimate macros'}</button>${(d.image||d.desc)?'<button class="btn" data-act="foodClear">clear</button>':''}</div>
+    ${d.est?foodEstCard(d.est):''}
+  </section>
+
+  <section class="panel">
+    <div class="card-head"><span class="label">🍽️ Logged today</span></div>
+    ${list.length?list.slice().reverse().map(x=>`<div class="listrow"><span class="grow"><b style="font-size:13px">${esc(x.name)}</b> <span class="soft" style="font-size:11px">${x.serving?'· '+esc(x.serving):''}</span><div class="soft" style="font-size:11px">${Math.round(x.kcal)} kcal · P ${x.protein}g · Fb ${x.fiber}g · C ${x.carbs}g · F ${x.fat}g</div></span><button class="x" data-act="foodDel" data-id="${x.id}">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">Nothing logged yet today. ❄️</p>`}
+  </section>
+
+  <details class="acc"><summary>🎯 Daily targets</summary><div class="acc-body">
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Tune these to whatever your care team suggests.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="field"><div class="label">Calories</div><input class="inp" type="number" id="ft_kcal" value="${T.kcal}"></div>
+      <div class="field"><div class="label">Protein (g)</div><input class="inp" type="number" id="ft_protein" value="${T.protein}"></div>
+      <div class="field"><div class="label">Fiber (g)</div><input class="inp" type="number" id="ft_fiber" value="${T.fiber}"></div>
+    </div>
+    <button class="btn btn-grad" data-act="saveFoodTargets" style="margin-top:8px">Save targets</button>
+  </div></details>
+  ${DISCLAIMER}`;
+}
+
 /* ===================== CARE ===================== */
 const FIRSTAID=[
   {e:"🖐️",t:"5-4-3-2-1 grounding",tint:"#e6ecfb",b:["Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.","It pulls you out of the spiral and back into right now.","Slow down on each one — no rushing."]},
@@ -931,7 +996,7 @@ function journalContext(){
 async function saveJournalEntry(J){
   const log=(J.log||[]).filter(x=>x&&x.text);
   if(!log.length) return;
-  const entry={ date:TODAY, ts:new Date().toISOString(), mode:J.mode||"ai", log };
+  const entry={ id:"jr"+Date.now(), date:TODAY, ts:new Date().toISOString(), mode:J.mode||"ai", log };
   try{ await setSent(n=>({...n,journalEntries:[...(n.journalEntries||[]),entry]})); }catch(e){ console.error(e); }
 }
 // gather Mifu's real data so the write-up can ground itself (never invents numbers)
@@ -948,7 +1013,8 @@ function journalWriteContext(){
   const lastShot=inj.length?inj[inj.length-1]:null;
   const ev=(sent.calendarEvents||[]).filter(e=> e.date<=TODAY && TODAY<=(e.endDate||e.date)).map(e=>e.title).slice(0,8);
   const comp={}; try{ const wlb=withBMI(wl); ["bmi","fat","muscle","bone","water","visceral","hr"].forEach(k=>{ const mm=bcLatest(wlb,k); if(mm) comp[k]={v:mm.v,d:mm.d}; }); }catch(e){}
-  return { dateLabel:new Date(TODAY+"T00:00").toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}),
+  let food=null; try{ if(foodToday().length){ const ft=foodTotals(), tg=foodTargets(); food={kcal:Math.round(ft.kcal),protein:Math.round(ft.protein),fiber:Math.round(ft.fiber),targetProtein:tg.protein,targetFiber:tg.fiber}; } }catch(e){}
+  return { food, dateLabel:new Date(TODAY+"T00:00").toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}),
     unit:CONFIG.weightUnit, mjDay, mjWeek,
     lastShot: lastShot?{date:fmtDate(lastShot.date),dose:lastShot.dose,site:lastShot.site}:null,
     weightToday: latest?latest.w:null, weightChange: change,
@@ -972,17 +1038,30 @@ async function finishJournal(J){
   if(!text) text=composeJournalFallback(J.log);
   KIKO.log.push({role:"pet",text:"here's today's journal, written up for you 💗"});
   KIKO.log.push({role:"pet",text:text}); paintKiko();
-  const entry={ date:TODAY, ts:new Date().toISOString(), mode:J.mode||"ai", text, log:(J.log||[]).filter(x=>x&&x.text) };
+  const entry={ id:"jr"+Date.now(), date:TODAY, ts:new Date().toISOString(), mode:J.mode||"ai", text, log:(J.log||[]).filter(x=>x&&x.text) };
   try{ await setSent(n=>({...n,journalEntries:[...(n.journalEntries||[]),entry]})); }catch(e){ console.error(e); }
   if(state.tab==='care'){ try{ await render(); }catch(_){} }
 }
+function journalId(e){ return e&&(e.id||e.ts||e.date)||""; }
 function renderJournalEntry(e){
-  let html="";
+  let html=""; const eid=journalId(e);
   if(e&&e.text){ html+=`<div style="white-space:pre-wrap;font-size:13px;line-height:1.65">${esc(e.text)}</div>
-    <div style="margin-top:8px"><button class="btn" data-act="copyJournal" style="padding:3px 10px">📋 copy entry</button></div>`; }
+    <div style="margin-top:8px"><button class="btn" data-act="copyJournal" data-id="${esc(eid)}" style="padding:3px 10px">📋 copy entry</button></div>`; }
   if(e&&e.log&&e.log.length){ html+=`<details style="margin-top:10px"><summary class="label" style="cursor:pointer">the conversation</summary><div style="margin-top:6px">${e.log.map(x=>`<div style="margin:6px 0"><div class="label" style="color:${x.who==='Mifu'?'var(--sakura-deep)':'var(--peri-deep)'}">${x.who==='Mifu'?'Mifu':'Kiko 🦊'}</div><div style="font-size:13px">${esc(x.text)}</div></div>`).join("")}</div></details>`; }
   else if(e&&e.qa&&e.qa.length){ html+=e.qa.map(x=>`<div style="margin:6px 0"><div class="label">${esc(x.q)}</div><div style="font-size:13px">${esc(x.a)}</div></div>`).join(""); }
   return html||`<p class="soft" style="font-size:12px">(empty)</p>`;
+}
+function journalArchive(){
+  const all=(state.sentinel.journalEntries||[]).slice().sort((a,b)=>((a.ts||a.date)<(b.ts||b.date)?1:-1));   // newest first
+  if(!all.length) return `<section class="panel"><div class="label">📖 Your journals</div>
+    <p class="soft" style="font-size:12.5px;margin-top:6px">No entries yet — every journal you do with Kiko will gather here, like pages in a little book. ❄️🦊</p></section>`;
+  const snippet=e=>{ let t=e.text||""; if(!t&&e.log){ const f=e.log.find(x=>x.who==='Mifu'); t=f?f.text:""; } t=t.replace(/\s+/g," ").trim(); return esc(t.slice(0,72))+(t.length>72?"…":""); };
+  const dlabel=e=>new Date((e.date)+"T00:00").toLocaleDateString(undefined,{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  return `<section class="panel">
+    <div class="card-head"><div class="label">📖 Your journals</div><span class="pill pill-gray">${all.length} ${all.length===1?'entry':'entries'}</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Tap any day to reread it whenever you'd like. 🫶</p>
+    <div>${all.map(e=>`<details class="acc" style="margin-bottom:6px"><summary><b style="font-size:13px">${esc(dlabel(e))}</b> <span class="soft" style="font-size:11px">— ${snippet(e)}</span></summary><div class="acc-body">${renderJournalEntry(e)}<div style="margin-top:10px"><button class="x" data-act="delJournal" data-id="${esc(journalId(e))}" style="color:var(--sakura-deep);font-size:12px;background:none;border:none;cursor:pointer">🗑 delete this entry</button></div></div></details>`).join("")}</div>
+  </section>`;
 }
 function flipCard(c){
   return `<div class="flip" data-act="flip"><div class="flip-inner">
@@ -1041,8 +1120,9 @@ function viewCare(){
     <div class="card-head"><div class="label">✍️ Daily journal with Kiko</div>${journaledToday?'<span class="pill pill-mint">done today ✓</span>':''}</div>
     <p class="soft" style="font-size:12.5px;margin:0 0 10px">A few playful questions, walked through with Kiko — light and cozy, never heavy. He'll tuck your answers away in your journal. 🦊❄️</p>
     <button class="btn btn-grad" data-act="startKikoJournal">${journaledToday?'Journal again with Kiko 🌸':'Start today’s journal 🦊'}</button>
-    ${lastEntry?`<details class="acc" style="margin-top:12px"><summary>📖 last journal · ${esc(fmtDate(lastEntry.date))}</summary><div class="acc-body">${renderJournalEntry(lastEntry)}</div></details>`:''}
   </section>
+
+  ${journalArchive()}
 
   <section class="panel">
     <div class="label" style="margin-bottom:8px">🌸 Soft reframes</div>
@@ -1788,6 +1868,23 @@ const H={
     try{ const d=await aiCall("withingsSync",{}); if(d&&d.error){ toast(d.error); return; }
       await loadData(); render(); toast(`synced ${d&&d.days||0} day(s) ❄️`); }
     catch(e){ toast("sync hiccup — try again 🌧️"); } },
+  // --- food tracking ---
+  async foodAnalyze(){ const d=state.foodDraft||(state.foodDraft={image:null,desc:"",est:null});
+    const ta=$("#foodDesc"); if(ta)d.desc=ta.value;
+    if(!d.image && !(d.desc||"").trim()){ toast("add a photo or description 🍱"); return; }
+    if(DEMO||!SB){ toast("connect the ai function first ❄️"); return; }
+    state.foodBusy=true; render();
+    try{ const r=await aiCall("food",{image:d.image,description:d.desc}); if(r&&r.error){ toast(r.error); } else { d.est=r; } }
+    catch(e){ toast("estimate hiccup — try again 🌧️"); }
+    state.foodBusy=false; render(); },
+  foodClear(){ state.foodDraft={image:null,desc:"",est:null}; render(); },
+  async foodLog(){ const g=id=>{const el=$("#"+id);return el?el.value:"";}; const num=v=>{const n=parseFloat(v);return isNaN(n)?0:Math.round(n*10)/10;};
+    const item={id:"fd"+Date.now(), name:(g("fe_name")||"food").trim(), serving:g("fe_serving").trim(),
+      kcal:Math.round(num(g("fe_kcal"))), protein:num(g("fe_protein")), carbs:num(g("fe_carbs")), fiber:num(g("fe_fiber")), fat:num(g("fe_fat")), time:new Date().toISOString()};
+    await setToday(n=>({...n,food:[...(n.food||[]),item]})); state.foodDraft={image:null,desc:"",est:null}; toast("logged 🍽️"); render(); },
+  async foodDel(el){ const id=el.dataset.id; await setToday(n=>({...n,food:(n.food||[]).filter(x=>x.id!==id)})); render(); },
+  async saveFoodTargets(){ const num=id=>{const el=$("#"+id);const n=el?parseFloat(el.value):NaN;return isNaN(n)?null:n;};
+    await setSent(n=>({...n,foodTargets:{kcal:num("ft_kcal")||1500,protein:num("ft_protein")||110,fiber:num("ft_fiber")||28}})); toast("targets saved 🎯"); render(); },
   revealNum(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); const avg=rollingAvg(wl);
     const slot=$("#numSlot"); if(slot) slot.innerHTML=`<div class="label">Rolling weekly avg</div><div class="bignum">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`; },
   async addNSV(){ const t=$("#nsvInput").value.trim(); if(!t)return; await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t,date:TODAY}]})); toast("yay! 🌟"); render(); },
@@ -1905,7 +2002,10 @@ const H={
   // --- guided daily feelings journal (Kiko walks her through it, in his chat) ---
   openKikoChatPanel(){ KIKO.open=true; const b=$("#kikoBubble"); if(b)b.classList.add("hidden"); kikoState="sit"; kikoStateT=0;
     const c=$("#kikoChat"); if(c)c.classList.remove("hidden"); paintKiko(); positionKikoUI(); },
-  copyJournal(){ const e=(state.sentinel.journalEntries||[]).slice().reverse()[0]; const t=e&&(e.text||""); if(t&&navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("copied 💗"); },
+  copyJournal(el){ const id=el&&el.dataset.id; const list=state.sentinel.journalEntries||[];
+    const e=(id?list.find(x=>journalId(x)===id):null)||list.slice().reverse()[0];
+    const t=e&&(e.text||"")||""; if(t&&navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("copied 💗"); },
+  async delJournal(el){ const id=el.dataset.id; await setSent(n=>({...n,journalEntries:(n.journalEntries||[]).filter(x=>journalId(x)!==id)})); toast("removed"); render(); },
   async startKikoJournal(){
     const live = !DEMO && !!SB;
     KIKO.journal={active:true, mode: live?"ai":"script", msgs:[], step:0, log:[]};
@@ -2012,6 +2112,17 @@ document.addEventListener("change",e=>{
     const f=t.files&&t.files[0]; if(!f) return;
     if(f.size>4*1024*1024){ toast("image a bit big — try under 4MB"); return; }
     const r=new FileReader(); r.onload=()=>{ OPT.thumbData=r.result; OPT.thumb=null; render(); }; r.readAsDataURL(f);
+  } else if(t.id==="foodFile"){
+    const f=t.files&&t.files[0]; if(!f) return;
+    const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{
+      const max=1024; let w=img.width,h=img.height; const sc=Math.min(1,max/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc);
+      const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h);
+      if(!state.foodDraft)state.foodDraft={image:null,desc:"",est:null};
+      const ta=$("#foodDesc"); if(ta)state.foodDraft.desc=ta.value;   // keep any typed note
+      try{ state.foodDraft.image=c.toDataURL("image/jpeg",0.82); }catch(e){ state.foodDraft.image=r.result; }
+      render();
+    }; img.onerror=()=>{ if(!state.foodDraft)state.foodDraft={image:null,desc:"",est:null}; state.foodDraft.image=r.result; render(); }; img.src=r.result; };
+    r.readAsDataURL(f);
   } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value;
     setSent(n=>({...n,schedule:(n.schedule||[]).map(r=>r.id===id?{...r,[k]:v}:r)})); // fire-and-forget; no re-render mid-edit
   }
