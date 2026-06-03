@@ -6,6 +6,11 @@
 <title>Mifuyu OS ❄️🦊</title>
 <link rel="icon" type="image/png" href="sakura.png" />
 <link rel="apple-touch-icon" href="AYAYA.png" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#758ac6" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Mifuyu OS" />
 <!-- =========================================================================
   Mifuyu OS — a gentle, private snowfox companion + creator OS for Mifu 🦊❄️
   PCOS patterns · Mounjaro (tirzepatide) journey · weight (trend-first) ·
@@ -1273,6 +1278,7 @@ function viewKiko(){
     ["📓","Daily journal","act","startKikoJournal"],
     ["🧾","Tax prep","act","startTaxPrep"],
     ["💶","Log money","seed","log €"],
+    ["⏰","Remind me","seed","remind me to "],
     ["🧠","Remember this","seed","remember that "],
     ["🎮","Refresh games","send","refresh my game calendar now"],
     ["🎯","Title ideas","seed","give me stream title ideas for "],
@@ -1305,8 +1311,8 @@ function viewKiko(){
       </div></details>
     </section>
     <details class="acc" style="margin-top:14px"><summary>💬 Everything Kiko can do — the full guide</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
-      <div class="label" style="margin-top:4px">📅 Calendar &amp; events</div>
-      <p style="margin:2px 0 8px">Add events ("add a collab stream on the 20th at 7pm"), <b>reschedule or rename</b> them ("move the collab to the 22nd"), delete them, and add multi-day ones. Add friends' <b>birthdays</b> ("add Eggie's birthday, March 3") — give him a public creator's handle and he'll look the date up. Birthdays auto-remind a month ahead. Ask "what's coming up?" anytime.</p>
+      <div class="label" style="margin-top:4px">📅 Calendar, events &amp; reminders</div>
+      <p style="margin:2px 0 8px">Add events ("add a collab stream on the 20th at 7pm"), <b>reschedule or rename</b> them ("move the collab to the 22nd"), delete them, and add multi-day ones. Add friends' <b>birthdays</b> ("add Eggie's birthday, March 3") — give him a public creator's handle and he'll look the date up. Birthdays auto-remind a month ahead. Set <b>reminders</b> for anything — "remind me to take my meds at 9pm every day", "remind me Thursday to email the accountant" — once or repeating, delivered as browser pop-ups, 📱 phone push, and the daily email. Mark them done or remove them by chat too. Ask "what's coming up?" anytime.</p>
       <div class="label">🔴 Stream life</div>
       <p style="margin:2px 0 8px">Manage your weekly <b>stream schedule</b> ("I stream Warframe on Saturdays at 5pm", "I'm not streaming Thursdays anymore"). Track <b>games</b> for the calendar ("track Genshin", "stop tracking Arknights") and say "refresh my game calendar now" for fresh update/event/livestream dates. Manage <b>sponsors</b> ("add a sponsor: GamerSupps, code MIFUYU", "mark GamerSupps active"). Brainstorm <b>stream titles</b> and start <b>scripts</b> ("help me script a short about…").</p>
       <div class="label">💗 Health</div>
@@ -1674,7 +1680,7 @@ function viewSettings(){
     <details class="acc"><summary>How accurate is the food photo logging?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">It's a <i>friendly estimate</i> from the photo + your note — good for trends, not lab-grade. Every number is editable on the Food tab before or after logging. Protein 💪 and fibre 🌿 get the spotlight because they matter most for you.</p></div></details>
     <details class="acc"><summary>Why is Kiko instant sometimes and thoughtful other times?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">He picks his brain to fit the job — a fast one for quick commands, a deeper one for research, writing, and tricky questions. Say <b>"use your smart brain"</b> to force the big one or <b>"quick:"</b> for the snappy one.</p></div></details>
     <details class="acc"><summary>What works on which device?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Everything works in <b>Chrome or Edge</b> on desktop — that's also where voice typing and Kiko's 🎙️ live. On <b>iPad</b> the whole layout system (drag, resize, lock) is tuned for touch and Apple Pencil. Phone is lovely for quick logging and chatting with Kiko.</p></div></details>
-    <details class="acc"><summary>What happens automatically, without me doing anything?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Every <b>Friday</b> the game calendar refreshes (updates, event start/end days, livestream days for the games you track). Birthday reminders fire a month, a week, a day ahead and day-of. If email is set up: a <b>daily reminder mail</b> and <b>Kiko's Sunday letter</b>. While the app is open: browser pop-up reminders, Kiko's morning briefing and a soft evening journal nudge (both toggleable in Ask Kiko).</p></div></details>
+    <details class="acc"><summary>What happens automatically, without me doing anything?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Every <b>Friday</b> the game calendar refreshes (updates, event start/end days, livestream days for the games you track). Birthday reminders fire a month, a week, a day ahead and day-of. If <b>📱 phone push</b> is on (Calendar → 🔔 Reminders — on iPhone, add the app to your Home Screen first), your phone gets a morning digest plus on-time pings for timed reminders, even with the app closed. If email is set up: a <b>daily reminder mail</b> and <b>Kiko's Sunday letter</b>. While the app is open: browser pop-up reminders, Kiko's morning briefing and a soft evening journal nudge (both toggleable in Ask Kiko).</p></div></details>
     <details class="acc"><summary>Something looks broken / weird?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Tell Eggie! 💗 Nothing is ever truly lost — undo, exports, and the database keep everything safe. A hard refresh (Ctrl+Shift+R) fixes most visual oddities after an update.</p></div></details>
   </section>
 
@@ -2086,7 +2092,22 @@ function calAgenda(sent){
     </div>
     <div class="chiprow" style="margin-bottom:10px">
       <button class="chiptog ${rem.browser?'on':''}" data-act="remBrowser"><span>${rem.browser?'✓':''}</span>💻 Browser pop-ups${notif==="denied"?" (blocked in browser)":""}</button>
+      <button class="chiptog ${rem.push?'on':''}" data-act="remPush"><span>${rem.push?'✓':''}</span>📱 Phone push</button>
       <button class="chiptog ${rem.email?'on':''}" data-act="remEmail"><span>${rem.email?'✓':''}</span>✉️ Email</button>
+    </div>
+    <div style="margin:12px 0 0">
+      <div class="label" style="margin-bottom:4px">⏰ Your reminders <span class="soft" style="text-transform:none;letter-spacing:0">· or just tell Kiko "remind me to…"</span></div>
+      ${activeReminders().length?activeReminders().map(r=>({r,eff:nextReminderDate(r)})).sort((a,b)=>a.eff<b.eff?-1:1).map(({r,eff})=>{
+        const days=Math.round((new Date(eff+"T00:00")-new Date(TODAY+"T00:00"))/86400000);
+        return `<div class="agenda-row"><span class="agenda-when">${whenLabel(Math.max(0,days))}</span><span class="agenda-dot" style="background:var(--peri)"></span><span class="grow">⏰ ${esc(r.text)} <span class="soft" style="font-size:11px">· ${fmtDate(eff)}${r.time?" · "+fmt12(r.time):""}${r.repeat&&r.repeat!=="none"?" · "+esc(r.repeat):""}</span></span><button class="x" data-act="doneReminderCR" data-v="${r.id}" title="done">✓</button><button class="x" data-act="delReminderCR" data-v="${r.id}" title="remove">✕</button></div>`;
+      }).join(""):`<p class="soft" style="font-size:12px">No reminders yet — add anything: meds at 9pm, water the plants, email the accountant… ❄️</p>`}
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <input class="inp" id="crText" placeholder="remind me to…" style="flex:2;min-width:140px">
+        <input class="inp" id="crDate" type="date" value="${TODAY}" style="max-width:140px">
+        <input class="inp" id="crTime" type="time" style="max-width:110px">
+        <select class="inp" id="crRepeat" style="max-width:110px"><option value="none">once</option><option value="daily">daily</option><option value="weekly">weekly</option><option value="monthly">monthly</option></select>
+        <button class="btn btn-grad" data-act="addReminderCR">＋ add</button>
+      </div>
     </div>
     ${rem.email?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input class="inp" id="remEmailAddr" type="email" placeholder="you@email.com" value="${esc(rem.emailAddr||CONFIG.ownerEmail||"")}" style="max-width:260px"><button class="btn" data-act="saveRemEmail">save email</button><span class="soft" style="font-size:11px">${rem.emailAddr?"sending to "+esc(rem.emailAddr):"add your email to receive reminders"}</span></div>`:""}
     <p class="soft" style="font-size:11px;margin-top:10px">💻 Browser pop-ups appear while Mifuyu OS is open in a tab. ✉️ Email needs the reminder service set up on the server (one-time). Both respect Calm mode. ❄️</p>
@@ -2385,6 +2406,35 @@ const H={
     else rem.browser=false;
     await setSent(n=>({...n,reminders:rem})); render(); if(rem.browser) setTimeout(checkReminders,400); },
   async remEmail(){ const rem={...(state.sentinel.reminders||{})}; rem.email=!rem.email; await setSent(n=>({...n,reminders:rem})); render(); },
+  async remPush(){
+    const rem={...(state.sentinel.reminders||{})};
+    if(rem.push){   // turn off on this device
+      try{ const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription();
+        if(sub){ const ep=sub.endpoint; await sub.unsubscribe(); await setSent(n=>{ const subs=(n.pushSubs||[]).filter(s=>s.endpoint!==ep); return {...n,pushSubs:subs,reminders:{...(n.reminders||{}),push:subs.length>0}}; }); }
+        else await setSent(n=>({...n,reminders:{...(n.reminders||{}),push:false}}));
+      }catch(e){ await setSent(n=>({...n,reminders:{...(n.reminders||{}),push:false}})); }
+      toast("phone push off on this device"); render(); return; }
+    if(DEMO||!SB){ toast("connect to the server first ❄️"); return; }
+    if(!("serviceWorker" in navigator)||!("PushManager" in window)){ toast("this browser can't do push — on iPhone, add the app to your Home Screen first 🍎"); return; }
+    try{
+      const p=await Notification.requestPermission(); if(p!=="granted"){ toast("notifications are blocked for this site"); return; }
+      const reg=await navigator.serviceWorker.ready;
+      const info=await aiCall("pushInfo",{}); if(!info||!info.key){ toast((info&&info.error)||"push isn't set up on the server yet (VAPID keys — see the setup doc)"); return; }
+      const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(info.key)});
+      const j=sub.toJSON();
+      await setSent(n=>{ const subs=(n.pushSubs||[]).filter(s=>s.endpoint!==j.endpoint); subs.push(j); return {...n,pushSubs:subs,reminders:{...(n.reminders||{}),push:true}}; });
+      toast("phone push is on for this device 📱❄️"); render();
+    }catch(e){ console.error(e); toast("couldn't subscribe — "+(e.message||"try again")); } },
+  async addReminderCR(){ const g=id=>{const el=$("#"+id);return el?el.value:"";}; const text=(g("crText")||"").trim(); if(!text){ toast("what should I remind you of? ⏰"); return; }
+    const r={id:"cr"+Date.now(),text,date:g("crDate")||TODAY,time:g("crTime")||"",repeat:g("crRepeat")||"none",done:false};
+    await setSent(n=>({...n,customReminders:[...(n.customReminders||[]),r]})); toast("reminder set ⏰"); render(); },
+  async delReminderCR(el){ const id=el.dataset.v; await setSent(n=>({...n,customReminders:(n.customReminders||[]).filter(r=>r.id!==id)})); render(); },
+  async doneReminderCR(el){ const id=el.dataset.v;
+    await setSent(n=>{ const c=(n.customReminders||[]).slice(); const i=c.findIndex(r=>r.id===id); if(i<0)return n;
+      if(c[i].repeat&&c[i].repeat!=="none"){ const d=new Date(nextReminderDate(c[i])+"T00:00"); if(c[i].repeat==="daily")d.setDate(d.getDate()+1); else if(c[i].repeat==="weekly")d.setDate(d.getDate()+7); else d.setMonth(d.getMonth()+1); c[i]={...c[i],date:d.toLocaleDateString("en-CA")}; }
+      else c[i]={...c[i],done:true};
+      return {...n,customReminders:c}; });
+    toast("done ✓"); render(); },
   async saveRemEmail(){ const v=($("#remEmailAddr").value||"").trim(); const rem={...(state.sentinel.reminders||{})}; rem.emailAddr=v; await setSent(n=>({...n,reminders:rem})); toast("email saved ✉️"); render(); },
   trendMetric(el){ const k=el.dataset.v; let arr=(state.trendMetrics||[]).slice();
     if(arr.includes(k)){ if(arr.length>1) arr=arr.filter(x=>x!==k); }   // keep at least one selected
@@ -2464,7 +2514,8 @@ const H={
     try{
       if(DEMO||!SB){ ans="I'm a sleepy demo kiko right now 💤 — connect me to the server and I can chat and actually run things for you! ❄️"; }
       else {
-        const upcoming=(state.sentinel.calendarEvents||[]).filter(e=>(e.endDate||e.date)>=TODAY).sort((a,b)=>(a.date<b.date?-1:1)).slice(0,20).map(e=>({date:e.date,endDate:e.endDate,title:e.title}));
+        const upcoming=(state.sentinel.calendarEvents||[]).filter(e=>(e.endDate||e.date)>=TODAY).sort((a,b)=>(a.date<b.date?-1:1)).slice(0,20).map(e=>({date:e.date,endDate:e.endDate,title:e.title}))
+          .concat(activeReminders().map(r=>({date:nextReminderDate(r),title:"⏰ "+r.text+(r.time?" ("+fmt12(r.time)+")":"")+(r.repeat&&r.repeat!=="none"?" · "+r.repeat:"")})).slice(0,10));
         const d=await aiCall("agent",{question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab,
           schedule:(state.sentinel.schedule||[]), events:upcoming,
           games:(state.sentinel.gameTopics&&state.sentinel.gameTopics.length?state.sentinel.gameTopics:DEFAULT_GAMES),
@@ -2946,6 +2997,17 @@ async function execAgentAction(a){
       const ev={id:uid(),title:a.title||"event",date:a.date||TODAY,endDate:(!src&&a.endDate&&a.endDate>(a.date||TODAY))?a.endDate:null,time:a.time||"",tz:a.tz||"Europe/Amsterdam",note:a.note||"",url:a.url||"",
         ...(src?{src}:{color:(typeof CAL_COLORS!=="undefined"&&CAL_COLORS[1])||"#c9b8f0"})};
       await DB.saveDaily(SENTINEL,n=>({...n,calendarEvents:[...(n.calendarEvents||[]),ev]})); return (src?gameSrcIcon(ev):"📅 ")+"added “"+ev.title+"” ("+fmtDate(ev.date)+")"; }
+    if(T==="addReminder"){ if(!a.text)return null;
+      const r={id:"cr"+Date.now(),text:a.text,date:(a.date&&/^\d{4}-\d{2}-\d{2}$/.test(a.date))?a.date:TODAY,time:(a.time&&/^\d{2}:\d{2}$/.test(a.time))?a.time:"",repeat:["daily","weekly","monthly"].includes(a.repeat)?a.repeat:"none",done:false};
+      await setSent(n=>({...n,customReminders:[...(n.customReminders||[]),r]}));
+      return "⏰ reminder: "+r.text+" — "+(r.repeat!=="none"?r.repeat+", from ":"")+fmtDate(r.date)+(r.time?" at "+fmt12(r.time):""); }
+    if(T==="completeReminder"){ let hit=null;
+      await setSent(n=>{ const c=(n.customReminders||[]).slice(); const i=findByText(c,a.text,"text"); if(i<0)return n; hit=c[i].text;
+        if(c[i].repeat&&c[i].repeat!=="none"){ const d=new Date(nextReminderDate(c[i])+"T00:00"); if(c[i].repeat==="daily")d.setDate(d.getDate()+1); else if(c[i].repeat==="weekly")d.setDate(d.getDate()+7); else d.setMonth(d.getMonth()+1); c[i]={...c[i],date:d.toLocaleDateString("en-CA")}; }
+        else c[i]={...c[i],done:true};
+        return {...n,customReminders:c}; });
+      return hit?"✅ reminder done: "+hit:null; }
+    if(T==="removeReminder"){ let hit=null; await setSent(n=>{ const c=(n.customReminders||[]).slice(); const i=findByText(c,a.text,"text"); if(i<0)return n; hit=c[i].text; c.splice(i,1); return {...n,customReminders:c}; }); return hit?"🗑️ removed reminder: "+hit:null; }
     if(T==="rememberFact"){ if(!a.text)return null; await setSent(n=>({...n,kikoMemory:[...(n.kikoMemory||[]),{id:"km"+Date.now(),text:a.text,date:TODAY}]})); return "🧠 I'll remember: "+a.text; }
     if(T==="forgetFact"){ let hit=null; await setSent(n=>{ const m=(n.kikoMemory||[]).slice(); const i=findByText(m,a.text,"text"); if(i<0)return n; hit=m[i].text; m.splice(i,1); return {...n,kikoMemory:m}; }); return hit?"🧠 forgot: "+hit:null; }
     if(T==="updateEvent"){ let hit=null;
@@ -3130,6 +3192,40 @@ start();
   window.addEventListener("resize",()=>{ if(MODULAR_TABS.includes(state.tab)){ clearTimeout(window._lhT); window._lhT=setTimeout(()=>{try{layoutHome();}catch(e){}},150); } });
 })();
 
+/* ===== PWA + phone push plumbing ===== */
+if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js"); }catch(e){} }
+function urlB64ToUint8(s){ const pad="=".repeat((4-s.length%4)%4); const b=(s+pad).replace(/-/g,"+").replace(/_/g,"/"); const raw=atob(b); const arr=new Uint8Array(raw.length); for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i); return arr; }
+
+/* ===== custom reminders: "remind me to … at …", once or repeating ===== */
+function nextReminderDate(r){   // the next occurrence (for repeats whose stored date is in the past)
+  if(!r||!r.date)return TODAY;
+  if(!r.repeat||r.repeat==="none")return r.date;
+  let d=new Date(r.date+"T00:00"); const today=new Date(TODAY+"T00:00");
+  if(d>=today)return r.date;
+  if(r.repeat==="daily")return TODAY;
+  if(r.repeat==="weekly"){ while(d<today)d.setDate(d.getDate()+7); return d.toLocaleDateString("en-CA"); }
+  if(r.repeat==="monthly"){ while(d<today)d.setMonth(d.getMonth()+1); return d.toLocaleDateString("en-CA"); }
+  return r.date;
+}
+function activeReminders(){ return (state.sentinel.customReminders||[]).filter(r=>!r.done); }
+/* timed pop-ups while the app is open — checks every minute */
+function checkTimedReminders(){
+  try{
+    const rem=state.sentinel.reminders||{}; if(!rem.browser)return;
+    if(typeof Notification==="undefined"||Notification.permission!=="granted")return;
+    if(document.body.classList.contains("calm"))return;
+    const now=new Date(); const hm=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+    activeReminders().forEach(r=>{
+      if(nextReminderDate(r)!==TODAY)return;
+      if((r.time||"09:00")>hm)return;
+      const key="mifu-cr-"+r.id+"-"+TODAY; if(localStorage.getItem(key))return;
+      try{ new Notification("⏰ "+r.text,{body:(r.time?"it's time · "+fmt12(r.time):"today")+" ❄️",icon:"Sakura.png"}); localStorage.setItem(key,"1"); }catch(e){}
+    });
+  }catch(e){}
+}
+setTimeout(checkTimedReminders,7000);
+setInterval(checkTimedReminders,60*1000);
+
 /* ===== in-browser event / birthday reminders (fires while the app is open) ===== */
 function checkReminders(){
   try{
@@ -3163,7 +3259,8 @@ function kikoProactive(){
       clearTimeout(b._h); b._h=setTimeout(()=>b.classList.add("hidden"),12000); };
     const h=new Date().getHours();
     if(h>=5&&h<12 && !localStorage.getItem("kiko-brief-"+TODAY)){
-      const evs=(state.sentinel.calendarEvents||[]).filter(e=>e.date===TODAY&&!gameSrc(e)).map(e=>e.title).slice(0,2);
+      const evs=(state.sentinel.calendarEvents||[]).filter(e=>e.date===TODAY&&!gameSrc(e)).map(e=>e.title)
+        .concat(activeReminders().filter(r=>nextReminderDate(r)===TODAY).map(r=>"⏰ "+r.text)).slice(0,3);
       const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); let dose="";
       if(inj.length){ const d=new Date(inj[inj.length-1].date+"T00:00"); d.setDate(d.getDate()+7); if(daysBetween(TODAY,d.toLocaleDateString("en-CA"))<=0) dose=" · 💉 dose day"; }
       show("🌅 morning! "+(evs.length?("today: "+evs.join(" · ")):"a soft, open day")+dose+" — tap me for more ❄️");

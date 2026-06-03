@@ -1,0 +1,14 @@
+{
+  "name": "Mifuyu OS",
+  "short_name": "Mifuyu OS",
+  "description": "Mifu's cozy snowfox companion + creator OS ❄️🦊",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#eef2fb",
+  "theme_color": "#758ac6",
+  "icons": [
+    { "src": "Sakura.png", "sizes": "any", "type": "image/png", "purpose": "any" },
+    { "src": "Logo.png", "sizes": "any", "type": "image/png", "purpose": "any" }
+  ]
+}

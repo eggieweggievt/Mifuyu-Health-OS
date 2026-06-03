@@ -1,5 +1,6 @@
 ﻿*.pdf
 .supabase-token
+.mifu-secrets.json
 *.ps1
 supabase/
 HOW TO PUBLISH.md

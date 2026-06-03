@@ -54,6 +54,14 @@ Write-Host ""
 Write-Host "Optional - email reminders. Get a free key at https://resend.com (API Keys)." -ForegroundColor Magenta
 $resend = Read-Host "Resend API key  [re_...]  (press Enter to skip)"
 
+# Optional: phone push notifications (Web Push / VAPID). Generate keys ONCE with:
+#   npx web-push generate-vapid-keys
+Write-Host ""
+Write-Host "Optional - phone push. Run 'npx web-push generate-vapid-keys' once, then paste:" -ForegroundColor Magenta
+$vapidPub = Read-Host "VAPID public key   (press Enter to skip)"
+$vapidPriv = ""
+if (-not [string]::IsNullOrWhiteSpace($vapidPub)) { $vapidPriv = Read-Host "VAPID private key" }
+
 # Optional: Withings (Body Smart scale) API. Create an app at https://developer.withings.com
 # and set the callback URL to:  https://ahneitzrgiwjufqyzttl.supabase.co/functions/v1/ai?withings=callback
 Write-Host ""
@@ -71,6 +79,10 @@ supabase secrets set @pairs --project-ref $ProjectRef
 if (-not [string]::IsNullOrWhiteSpace($resend)) {
   supabase secrets set "RESEND_API_KEY=$($resend.Trim())" --project-ref $ProjectRef
   Write-Host "Resend key saved - finish email setup with REMINDERS-EMAIL-SETUP.md (schedule the daily cron)." -ForegroundColor Green
+}
+if (-not [string]::IsNullOrWhiteSpace($vapidPub) -and -not [string]::IsNullOrWhiteSpace($vapidPriv)) {
+  supabase secrets set "VAPID_PUBLIC_KEY=$($vapidPub.Trim())" "VAPID_PRIVATE_KEY=$($vapidPriv.Trim())" --project-ref $ProjectRef
+  Write-Host "VAPID keys saved - finish phone-push setup with REMINDERS-EMAIL-SETUP.md (the 15-min cron + Home Screen install)." -ForegroundColor Green
 }
 if (-not [string]::IsNullOrWhiteSpace($withId) -and -not [string]::IsNullOrWhiteSpace($withSecret)) {
   supabase secrets set "WITHINGS_CLIENT_ID=$($withId.Trim())" "WITHINGS_CLIENT_SECRET=$($withSecret.Trim())" "SITE_URL=https://eggieweggievt.github.io/Mifuyu-Health-OS/" --project-ref $ProjectRef

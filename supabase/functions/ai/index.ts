@@ -36,6 +36,47 @@ const SB_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") || "";
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Mifuyu Health OS <onboarding@resend.dev>";
 const REMIND_TZ = Deno.env.get("REMIND_TZ") || "Europe/Amsterdam";
+// phone push (Web Push / VAPID) — generate keys once with: npx web-push generate-vapid-keys
+import webpush from "npm:web-push@3.6.7";
+const VAPID_PUB = Deno.env.get("VAPID_PUBLIC_KEY") || "";
+const VAPID_PRIV = Deno.env.get("VAPID_PRIVATE_KEY") || "";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:eggieweggievt@gmail.com";
+if (VAPID_PUB && VAPID_PRIV) { try { webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUB, VAPID_PRIV); } catch (_e) {} }
+async function sendPushAll(notes: any, payload: any): Promise<number> {
+  const subs = notes.pushSubs || []; if (!subs.length || !VAPID_PUB || !VAPID_PRIV) return 0;
+  const dead: string[] = []; let ok = 0;
+  for (const s of subs) {
+    try { await webpush.sendNotification(s, JSON.stringify(payload)); ok++; }
+    catch (e: any) { const code = e && (e.statusCode || e.status); if (code === 404 || code === 410) dead.push(s.endpoint); }
+  }
+  if (dead.length) { notes.pushSubs = subs.filter((s: any) => !dead.includes(s.endpoint)); try { await sbSaveNotes("mifuyu", notes); } catch (_e) {} }
+  return ok;
+}
+// which date a (possibly repeating) reminder is "due" on, relative to today
+function effReminderDate(r: any, today: string): string {
+  if (!r.repeat || r.repeat === "none") return r.date;
+  if (r.repeat === "daily") return today;
+  const d = new Date(r.date + "T00:00:00Z"), t = new Date(today + "T00:00:00Z");
+  if (r.repeat === "weekly") return d.getUTCDay() === t.getUTCDay() ? today : r.date;
+  if (r.repeat === "monthly") return d.getUTCDate() === t.getUTCDate() ? today : r.date;
+  return r.date;
+}
+// every-15-min cron: deliver TIMED reminders to her phone right on time
+async function pushTick(_input: any) {
+  if (!VAPID_PUB || !VAPID_PRIV) return { skipped: "vapid not set" };
+  const notes = await sbGetNotes("mifuyu");
+  if (!(notes.pushSubs || []).length) return { skipped: "no devices subscribed" };
+  const p = new Intl.DateTimeFormat("en-CA", { timeZone: REMIND_TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date()).reduce((a: any, x: any) => (a[x.type] = x.value, a), {});
+  const today = `${p.year}-${p.month}-${p.day}`; const nowMin = (+p.hour) * 60 + (+p.minute);
+  let sent = 0;
+  for (const r of (notes.customReminders || [])) {
+    if (r.done || !r.time) continue;
+    if (effReminderDate(r, today) !== today) continue;
+    const [h, m] = String(r.time).split(":").map(Number); const tMin = h * 60 + m;
+    if (tMin <= nowMin && tMin > nowMin - 16) { sent += await sendPushAll(notes, { title: "⏰ " + r.text, body: "it's time 💗 (" + r.time + ")", tag: "cr-" + r.id }); }
+  }
+  return { ok: true, sent };
+}
 // Withings (Body Smart scale) — optional; set via deploy-ai.ps1 once API access is granted
 const WITHINGS_ID = Deno.env.get("WITHINGS_CLIENT_ID") || "";
 const WITHINGS_SECRET = Deno.env.get("WITHINGS_CLIENT_SECRET") || "";
@@ -309,6 +350,9 @@ Allowed action objects (use ONLY these shapes; include just the fields you need)
 - {"type":"setEnergyToday","value":1|3|5}   (her spoons for today: 1 low · 3 med · 5 high)
 - {"type":"removeSticky","text":"<words on the sticky>"}  ·  {"type":"removeCapture","text":"<brain-dump words>"}
 - {"type":"startJournal"}   (begin the guided daily feelings journal)  ·  {"type":"startTaxPrep"}   (begin the tax-prep walkthrough)
+- {"type":"addReminder","text":"...","date":"YYYY-MM-DD","time":"HH:MM or empty","repeat":"none|daily|weekly|monthly"}   ("remind me to take meds at 9pm every day" → text:"take meds", time:"21:00", repeat:"daily". Reminders reach her as browser pop-ups, phone push, and the daily email. This is for to-do style nudges; real appointments belong in addEvent.)
+- {"type":"completeReminder","text":"<reminder wording>"}   (done for now — repeating ones roll to their next occurrence)
+- {"type":"removeReminder","text":"<reminder wording>"}
 - {"type":"rememberFact","text":"<a lasting fact or preference about her, her people, or how she likes things>"}   (save to YOUR long-term memory — use when she says "remember…", or shares something durably useful like a friend's name, a preference, an allergy, her mods, what she mains)
 - {"type":"forgetFact","text":"<words from the fact to forget>"}
 - {"type":"updateEvent","title":"<existing event words>","date":"YYYY-MM-DD (optional, helps match)","newTitle":"optional","newDate":"YYYY-MM-DD optional","newTime":"HH:MM optional"}   (reschedule/rename in place — prefer this over delete+re-add)
@@ -403,16 +447,22 @@ async function remind(_input: any) {
   let sent = 0; const results: any[] = [];
   for (const row of rows) {
     const n = row.notes || {}; const rem = n.reminders || {};
-    if (!rem.email || !rem.emailAddr) continue;
     const offs: number[] = Array.isArray(rem.offsets) ? rem.offsets : [0, 1];
-    const due: string[] = [];
-    (n.calendarEvents || []).forEach((ev: any) => { const d = daysBetweenISO(today, ev.date); if (offs.includes(d)) due.push(`<li>${d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : "In " + d + " days"} — ${escapeHtml(ev.title)}${ev.time ? " · " + escapeHtml(ev.time) : ""}</li>`); });
+    const due: string[] = []; const plain: string[] = [];
+    const add = (whenH: string, whenP: string, what: string) => { due.push(`<li>${whenH} — ${escapeHtml(what)}</li>`); plain.push(whenP + " — " + what); };
+    (n.calendarEvents || []).forEach((ev: any) => { const d = daysBetweenISO(today, ev.date); if (offs.includes(d)) add(d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : "In " + d + " days", d === 0 ? "Today" : d === 1 ? "Tomorrow" : "In " + d + " days", ev.title + (ev.time ? " · " + ev.time : "")); });
     const bdayOffs = [30, 7, 1, 0];   // birthdays always get a month-ahead heads-up (gift time)
-    (n.birthdays || []).forEach((b: any) => { const iso = nextBirthdayISO(Number(b.month), Number(b.day), today); const d = daysBetweenISO(today, iso); if (bdayOffs.includes(d)) due.push(`<li>${d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : d >= 28 ? "In about a month" : "In " + d + " days"} — 🎂 ${escapeHtml(b.name)}'s birthday</li>`); });
+    (n.birthdays || []).forEach((b: any) => { const iso = nextBirthdayISO(Number(b.month), Number(b.day), today); const d = daysBetweenISO(today, iso); if (bdayOffs.includes(d)) add(d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : d >= 28 ? "In about a month" : "In " + d + " days", d === 0 ? "Today" : d === 1 ? "Tomorrow" : d >= 28 ? "In about a month" : "In " + d + " days", "🎂 " + b.name + "'s birthday"); });
+    (n.customReminders || []).forEach((r: any) => { if (r.done) return; if (effReminderDate(r, today) === today) add("<b>Today</b>", "Today", "⏰ " + r.text + (r.time ? " · " + r.time : "")); });
     if (!due.length) continue;
-    const html = `<div style="font-family:system-ui,sans-serif;color:#3a3550"><h2 style="color:#8d6fd1">❄️ Mifuyu reminders</h2><p>Here's what's coming up, cozy one:</p><ul>${due.join("")}</ul><p style="color:#9b96b6;font-size:12px">From your Mifuyu Health OS · gentle nudges, no pressure 💗🦊</p></div>`;
-    try { await sendEmail(rem.emailAddr, "❄️ Your Mifuyu reminders", html); sent++; results.push({ to: rem.emailAddr, items: due.length }); }
-    catch (e) { results.push({ to: rem.emailAddr, error: (e as Error).message }); }
+    if (rem.email && rem.emailAddr) {
+      const html = `<div style="font-family:system-ui,sans-serif;color:#3a3550"><h2 style="color:#8d6fd1">❄️ Mifuyu reminders</h2><p>Here's what's coming up, cozy one:</p><ul>${due.join("")}</ul><p style="color:#9b96b6;font-size:12px">From your Mifuyu OS · gentle nudges, no pressure 💗🦊</p></div>`;
+      try { await sendEmail(rem.emailAddr, "❄️ Your Mifuyu reminders", html); sent++; results.push({ to: rem.emailAddr, items: due.length }); }
+      catch (e) { results.push({ to: rem.emailAddr, error: (e as Error).message }); }
+    }
+    if ((n.pushSubs || []).length) {   // morning push digest to her phone(s)
+      try { const ok = await sendPushAll(n, { title: "❄️ Mifuyu reminders", body: plain.slice(0, 6).join("\n").slice(0, 480), tag: "daily-digest" }); results.push({ push: ok }); } catch (_e) {}
+    }
   }
   return { ok: true, sent, results };
 }
@@ -679,6 +729,8 @@ Deno.serve(async (req) => {
     if (mode === "withingsSync") return json(await withingsSync(body.userId || "mifuyu"));
     if (mode === "food") return json(await foodMode(input));
     if (mode === "digest") return json(await digestMode(input));
+    if (mode === "pushInfo") return json(VAPID_PUB ? { key: VAPID_PUB } : { error: "Phone push isn't configured yet — VAPID keys need to be set on the server (see the setup doc)." });
+    if (mode === "pushTick") return json(await pushTick(input));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);

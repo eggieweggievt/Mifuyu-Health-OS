@@ -1,4 +1,29 @@
-# ✉️ Email reminders — one-time setup
+# ✉️📱 Reminders — email & phone push, one-time setup
+
+## 📱 Phone push notifications (works with the app closed)
+
+1. **Generate keys once** (any PowerShell): `npx web-push generate-vapid-keys` → copy the public + private key.
+2. **Run `deploy-ai.ps1`** and paste them at the VAPID prompt (saved as Supabase secrets), then it redeploys.
+3. **Schedule the on-time delivery tick** (SQL Editor → Run once):
+   ```sql
+   select cron.schedule(
+     'mifu-push-tick',
+     '*/15 * * * *',
+     $$
+     select net.http_post(
+       url     := 'https://ahneitzrgiwjufqyzttl.supabase.co/functions/v1/ai',
+       headers := '{"Content-Type":"application/json"}'::jsonb,
+       body    := '{"mode":"pushTick"}'::jsonb
+     );
+     $$
+   );
+   ```
+4. **On Mifu's iPhone/iPad:** open the site in Safari → Share → **Add to Home Screen** (push on iOS only works from the installed app). Open the installed app → Calendar → 🔔 Reminders → tap **📱 Phone push** → allow notifications. Android/desktop Chrome: just tap the toggle, no install needed.
+
+What arrives on the phone: a **morning digest** (today's events, birthdays incl. month-ahead heads-ups, today's reminders — sent by the daily cron below) and **on-time pings for timed reminders** (within ~15 minutes of the set time, via the tick above). Each device she enables gets its own subscription; toggling off removes just that device.
+
+---
+
 
 Browser pop-up reminders work the moment you publish (no setup). **Email** reminders need three quick steps, because sending email requires a server-side service. Total time: ~5 minutes.
 
