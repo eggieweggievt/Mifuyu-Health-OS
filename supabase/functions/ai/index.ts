@@ -349,6 +349,46 @@ async function journalMode(input: any) {
   return { reply: out.reply, done: !!out.done };
 }
 
+// ===================== JOURNAL WRITE-UP (turn the chat + her data into a diary entry in her voice) =====================
+const JOURNAL_WRITE_SYSTEM = `You write Mifuyu's (Mifu's) daily journal entry in HER OWN first-person voice — warm, sweet, hopeful, cozy, a little playful, snowfox ❄️🦊 energy, gentle with hard things and quick to reframe them kindly. Use soft emojis (♡ ✨ 🌙 🥺 💕) and an occasional "LOL" or kaomoji like she does, but don't overdo it.
+
+Match the STRUCTURE and TONE of this example (do NOT reuse its facts — it's only a style guide):
+"""
+Good evening!! ♡
+Day 24 • Week 4 of Mounjaro
+Today felt like a fresh start in a lot of ways. I took my 4th Mounjaro injection a little later than usual and thankfully had no side effects... [warm first-person paragraphs weaving feelings, the day's events, stats, and a gentle reframe of anything hard] ...heading into Week 5 with a lot of excitement for what's ahead ♡
+Goodnight!! 🌙💕
+"""
+
+Write today's entry as flowing first-person paragraphs:
+- Open with a cheery, time-appropriate greeting line.
+- If a Mounjaro Day/Week is provided in the facts, put a "Day X • Week Y of Mounjaro" line right under the greeting.
+- Then warm paragraphs weaving together how she felt today, the events of her day, HER OWN WORDS from the conversation, and any REAL stats provided (weight today + change, last injection, measurements).
+- Reframe any frustration gently and end on a hopeful note, then a goodnight line.
+
+HARD RULES: Use ONLY facts present in the provided FACTS list or that she actually said in the conversation. NEVER invent numbers, metrics, or events — if something isn't provided, simply don't mention it (e.g. do not make up body-fat %, hydration, muscle %, or anything not given). Stay true to what she shared. Plain text only — no Markdown, no asterisks, no heading symbols, just paragraphs and line breaks. Around 150–320 words.
+
+Return ONLY JSON: { "entry": "<the journal entry as plain text with line breaks>" }`;
+
+async function journalWrite(input: any) {
+  const ctx = input.context || {};
+  const log = Array.isArray(input.transcript) ? input.transcript : [];
+  const convo = log.map((x: any) => `${x.who || (x.role === "me" ? "Mifu" : "Kiko")}: ${x.text || x.content}`).join("\n");
+  const unit = ctx.unit || "kg";
+  const facts: string[] = [];
+  if (ctx.dateLabel) facts.push("Date: " + ctx.dateLabel);
+  if (ctx.mjDay) facts.push(`Mounjaro: Day ${ctx.mjDay}, Week ${ctx.mjWeek}`);
+  if (ctx.lastShot) facts.push(`Most recent injection: ${ctx.lastShot.dose}mg${ctx.lastShot.site ? " in " + ctx.lastShot.site : ""} on ${ctx.lastShot.date}`);
+  if (ctx.weightToday != null) facts.push(`Weight today: ${ctx.weightToday}${unit}` + (ctx.weightChange != null ? ` (change since first logged weight: ${ctx.weightChange > 0 ? "+" : ""}${ctx.weightChange}${unit})` : ""));
+  if (ctx.measLatest) { const m = ctx.measLatest; const parts = ["bust", "waist", "hips", "thighs", "arms"].filter(k => m[k] != null).map(k => `${k} ${m[k]}cm`); if (parts.length) facts.push("Latest measurements: " + parts.join(", ")); }
+  const sc = (v: any) => (v == null ? "not set" : v + "/5");
+  facts.push(`Check-in — mood ${sc(ctx.mood)}, anxiety ${sc(ctx.anxiety)}, weather inside ${sc(ctx.weather)} (0 stormy → 5 bright)`);
+  if (ctx.events && ctx.events.length) facts.push("Today's calendar: " + ctx.events.join("; "));
+  const user = `FACTS (use only these plus what she says — invent nothing else):\n${facts.join("\n")}\n\nHer journal conversation with Kiko today:\n${convo || "(no conversation captured)"}\n\nWrite her journal entry now as JSON {entry}.`;
+  const out = parseJSON(await claudeWith(JOURNAL_WRITE_SYSTEM, user, 900));
+  return out && out.entry ? { entry: out.entry } : { entry: convo || "" };
+}
+
 // ===================== SCRIPT WRITER (spoken notes + research → formatted script) =====================
 async function scriptMode(input: any) {
   const i = input || {};
@@ -387,6 +427,7 @@ Deno.serve(async (req) => {
     if (mode === "remind") return json(await remind(input));
     if (mode === "script") return json(await scriptMode(input));
     if (mode === "journal") return json(await journalMode(input));
+    if (mode === "journalWrite") return json(await journalWrite(input));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);

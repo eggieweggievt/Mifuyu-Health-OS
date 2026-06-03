@@ -879,10 +879,54 @@ async function saveJournalEntry(J){
   const entry={ date:TODAY, ts:new Date().toISOString(), mode:J.mode||"ai", log };
   try{ await setSent(n=>({...n,journalEntries:[...(n.journalEntries||[]),entry]})); }catch(e){ console.error(e); }
 }
+// gather Mifu's real data so the write-up can ground itself (never invents numbers)
+function journalWriteContext(){
+  const sent=state.sentinel||{};
+  const inj=(sent.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const mjStart=inj.length?inj[0].date:null; let mjDay=null,mjWeek=null;
+  if(mjStart){ mjDay=Math.floor((new Date(TODAY+"T00:00")-new Date(mjStart+"T00:00"))/86400000)+1; mjWeek=Math.ceil(mjDay/7); }
+  const wl=(sent.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const latest=wl.length?wl[wl.length-1]:null, first=wl.length?wl[0]:null;
+  const change=(latest&&first&&latest.date!==first.date)?Math.round((latest.w-first.w)*10)/10:null;
+  const meas=(sent.measurements||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const m=(state.today&&state.today.mind)||{};
+  const lastShot=inj.length?inj[inj.length-1]:null;
+  const ev=(sent.calendarEvents||[]).filter(e=> e.date<=TODAY && TODAY<=(e.endDate||e.date)).map(e=>e.title).slice(0,8);
+  return { dateLabel:new Date(TODAY+"T00:00").toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}),
+    unit:CONFIG.weightUnit, mjDay, mjWeek,
+    lastShot: lastShot?{date:fmtDate(lastShot.date),dose:lastShot.dose,site:lastShot.site}:null,
+    weightToday: latest?latest.w:null, weightChange: change,
+    measLatest: meas.length?meas[meas.length-1]:null,
+    mood:m.mood, anxiety:m.anxiety, weather:m.weather, events:ev };
+}
+function composeJournalFallback(log){
+  const h=new Date().getHours(); const greet=(h<12?"Good morning":h<18?"Good afternoon":"Good evening")+"!! ♡";
+  const answers=(log||[]).filter(x=>x.who==='Mifu'&&x.text).map(x=>x.text);
+  return greet+"\n\n"+(answers.length?answers.join("\n\n"):"a quiet one today.")+"\n\nGoodnight!! 🌙💕";
+}
+// end the session: write today up as a diary entry in her voice, show it, and save it
+async function finishJournal(J){
+  J.active=false;
+  let text="";
+  if(!DEMO && SB){
+    KIKO.log.push({role:"pet",text:"give me a moment to write today up for you… ✍️❄️"}); KIKO.busy=true; paintKiko();
+    try{ const d=await aiCall("journalWrite",{transcript:J.log, context:journalWriteContext()}); if(d&&!d.error&&d.entry) text=d.entry; }catch(e){}
+    KIKO.busy=false;
+  }
+  if(!text) text=composeJournalFallback(J.log);
+  KIKO.log.push({role:"pet",text:"here's today's journal, written up for you 💗"});
+  KIKO.log.push({role:"pet",text:text}); paintKiko();
+  const entry={ date:TODAY, ts:new Date().toISOString(), mode:J.mode||"ai", text, log:(J.log||[]).filter(x=>x&&x.text) };
+  try{ await setSent(n=>({...n,journalEntries:[...(n.journalEntries||[]),entry]})); }catch(e){ console.error(e); }
+  if(state.tab==='care'){ try{ await render(); }catch(_){} }
+}
 function renderJournalEntry(e){
-  if(e&&e.log&&e.log.length) return e.log.map(x=>`<div style="margin:6px 0"><div class="label" style="color:${x.who==='Mifu'?'var(--sakura-deep)':'var(--peri-deep)'}">${x.who==='Mifu'?'Mifu':'Kiko 🦊'}</div><div style="font-size:13px">${esc(x.text)}</div></div>`).join("");
-  if(e&&e.qa&&e.qa.length) return e.qa.map(x=>`<div style="margin:6px 0"><div class="label">${esc(x.q)}</div><div style="font-size:13px">${esc(x.a)}</div></div>`).join("");
-  return `<p class="soft" style="font-size:12px">(empty)</p>`;
+  let html="";
+  if(e&&e.text){ html+=`<div style="white-space:pre-wrap;font-size:13px;line-height:1.65">${esc(e.text)}</div>
+    <div style="margin-top:8px"><button class="btn" data-act="copyJournal" style="padding:3px 10px">📋 copy entry</button></div>`; }
+  if(e&&e.log&&e.log.length){ html+=`<details style="margin-top:10px"><summary class="label" style="cursor:pointer">the conversation</summary><div style="margin-top:6px">${e.log.map(x=>`<div style="margin:6px 0"><div class="label" style="color:${x.who==='Mifu'?'var(--sakura-deep)':'var(--peri-deep)'}">${x.who==='Mifu'?'Mifu':'Kiko 🦊'}</div><div style="font-size:13px">${esc(x.text)}</div></div>`).join("")}</div></details>`; }
+  else if(e&&e.qa&&e.qa.length){ html+=e.qa.map(x=>`<div style="margin:6px 0"><div class="label">${esc(x.q)}</div><div style="font-size:13px">${esc(x.a)}</div></div>`).join(""); }
+  return html||`<p class="soft" style="font-size:12px">(empty)</p>`;
 }
 function flipCard(c){
   return `<div class="flip" data-act="flip"><div class="flip-inner">
@@ -1779,6 +1823,7 @@ const H={
   // --- guided daily feelings journal (Kiko walks her through it, in his chat) ---
   openKikoChatPanel(){ KIKO.open=true; const b=$("#kikoBubble"); if(b)b.classList.add("hidden"); kikoState="sit"; kikoStateT=0;
     const c=$("#kikoChat"); if(c)c.classList.remove("hidden"); paintKiko(); positionKikoUI(); },
+  copyJournal(){ const e=(state.sentinel.journalEntries||[]).slice().reverse()[0]; const t=e&&(e.text||""); if(t&&navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("copied 💗"); },
   async startKikoJournal(){
     const live = !DEMO && !!SB;
     KIKO.journal={active:true, mode: live?"ai":"script", msgs:[], step:0, log:[]};
@@ -1813,9 +1858,8 @@ const H={
       if(d&&d.error) throw new Error(d.error);
       let reply=(d&&d.reply)||"mm, I'm right here with you 💗"; let done=!!(d&&d.done) || J.step>=9;
       J.msgs.push({role:"pet",content:reply}); J.log.push({who:"Kiko",text:reply});
-      KIKO.log.push({role:"pet",text:reply}); KIKO.busy=false;
-      if(done){ J.active=false; await saveJournalEntry(J); if(state.tab==='care'){ try{ await render(); }catch(_){} } }
-      paintKiko();
+      KIKO.log.push({role:"pet",text:reply}); KIKO.busy=false; paintKiko();
+      if(done){ await finishJournal(J); }
     }catch(e){ // fall back to the gentle scripted arc if the journal endpoint isn't available
       J.mode="script"; KIKO.busy=false;
       const next=KIKO_JOURNAL_ARC[Math.min(J.step,KIKO_JOURNAL_ARC.length-1)];
@@ -1827,10 +1871,8 @@ const H={
       KIKO.log.push({role:"pet",text:KIKO_JOURNAL_ACKS[Math.floor(Math.random()*KIKO_JOURNAL_ACKS.length)]});
       KIKO.log.push({role:"pet",text:KIKO_JOURNAL_ARC[J.step]}); J.log.push({who:"Kiko",text:KIKO_JOURNAL_ARC[J.step]}); paintKiko(); return;
     }
-    J.active=false;
-    KIKO.log.push({role:"pet",text:"and that's our journal for today 🌸 I tucked it away safe. You showed up for yourself, and that counts. ❄️🦊"});
-    paintKiko(); await saveJournalEntry(J);
-    if(state.tab==='care'){ try{ await render(); }catch(_){} } },
+    KIKO.log.push({role:"pet",text:"and that's our journal for today 🌸 you showed up for yourself, and that counts. ❄️🦊"});
+    paintKiko(); await finishJournal(J); },
   async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); if(!q||KIKO.busy)return;
     KIKO.log.push({role:"me",text:q});
     if(KIKO.journal && KIKO.journal.active){ paintKiko(); return H.kikoJournalReply(q); }   // guided journal handles its own replies
