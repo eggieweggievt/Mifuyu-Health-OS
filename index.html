@@ -165,6 +165,12 @@
   .sticky-body{flex:1;border:none;background:transparent;outline:none;font-family:var(--sans);font-size:12.5px;color:#3a3550;padding:2px 10px 10px;overflow:auto;}
   .sticky-body:empty:before{content:attr(data-ph);color:rgba(58,53,80,.35);}
   .sticky-resize{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,rgba(58,53,80,.28) 50%);border-radius:0 0 12px 0;}
+  .sticky-color{border:none;background:rgba(255,255,255,.45);border-radius:5px;width:18px;height:18px;font-size:10px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
+  .sticky-color:hover{background:#fff;}
+  .sticky-swatches{position:absolute;top:27px;right:6px;display:flex;gap:5px;padding:6px 7px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(80,60,110,.22);z-index:6;}
+  .sticky-swatches.hidden{display:none;}
+  .sticky-swatches button{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.1);cursor:pointer;padding:0;}
+  .sticky-swatches button:hover{transform:scale(1.15);}
   #addStickyBtn{position:fixed;left:16px;bottom:16px;z-index:83;border:none;border-radius:999px;width:46px;height:46px;font-size:18px;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;box-shadow:var(--shadow);}
   /* floating timer (rest + pomodoro focus) */
   #restBtn{position:fixed;right:16px;bottom:16px;z-index:83;border:1.5px solid var(--line-2);border-radius:999px;width:46px;height:46px;font-size:18px;background:#fff;box-shadow:var(--shadow);}
@@ -1611,8 +1617,10 @@ function renderStickies(){
     return `<div class="sticky" data-id="${s.id}" style="left:${left}px;top:${top}px;width:${w}px;height:${h}px;background:${s.color}">
       <div class="sticky-head" data-drag="${s.id}">
         <div class="sticky-tools">${STICKY_TOOLS.map(([cmd,lab,st])=>`<button data-fmt="${cmd}" data-sid="${s.id}" title="${cmd}" style="${st}">${lab}</button>`).join("")}</div>
+        <button class="sticky-color" data-stcolor="${s.id}" title="colour">🎨</button>
         <button class="sticky-x" data-stx="${s.id}" title="delete">✕</button>
       </div>
+      <div class="sticky-swatches hidden" data-swatch="${s.id}">${STICKY_COLORS.map(c=>`<button data-setcolor="${s.id}" data-c="${c}" style="background:${c}" title="${c}"></button>`).join("")}</div>
       <div class="sticky-body" contenteditable="true" data-sthtml="${s.id}" data-ph="write something…">${stickyHTML(s)}</div>
       <div class="sticky-resize" data-resize="${s.id}"></div>
     </div>`; }).join("");
@@ -1621,7 +1629,15 @@ function renderStickies(){
     await persistStickies((state.sentinel.stickies||[]).map(x=>x.id===id?{...x,html,text:undefined}:x)); }; });
   layer.querySelectorAll('[data-fmt]').forEach(b=>b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation();
     const body=layer.querySelector('[data-sthtml="'+b.dataset.sid+'"]'); if(body) body.focus(); fmtCmd(b.dataset.fmt); }));
-  layer.querySelectorAll('[data-drag]').forEach(h=>{ h.onpointerdown=ev=>{ if(ev.target.closest('[data-fmt],[data-stx]')) return; startDrag(ev,h.dataset.drag); }; });
+  // colour: tap 🎨 to open the swatch popover, tap a swatch to recolour the note
+  layer.querySelectorAll('[data-stcolor]').forEach(b=>b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation();
+    const pop=layer.querySelector('[data-swatch="'+b.dataset.stcolor+'"]');
+    layer.querySelectorAll('.sticky-swatches').forEach(p=>{ if(p!==pop) p.classList.add('hidden'); });
+    if(pop) pop.classList.toggle('hidden'); }));
+  layer.querySelectorAll('[data-setcolor]').forEach(b=>b.addEventListener('pointerdown',async ev=>{ ev.preventDefault(); ev.stopPropagation();
+    const id=b.dataset.setcolor, c=b.dataset.c;
+    await persistStickies((state.sentinel.stickies||[]).map(x=>x.id===id?{...x,color:c}:x)); renderStickies(); }));
+  layer.querySelectorAll('[data-drag]').forEach(h=>{ h.onpointerdown=ev=>{ if(ev.target.closest('[data-fmt],[data-stx],[data-stcolor]')) return; startDrag(ev,h.dataset.drag); }; });
   layer.querySelectorAll('[data-resize]').forEach(h=>{ h.onpointerdown=ev=>startResize(ev,h.dataset.resize); });
 }
 function fmtCmd(cmd){
