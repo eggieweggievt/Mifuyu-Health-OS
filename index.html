@@ -272,6 +272,14 @@
   .kiko-msg.me{align-self:flex-end;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;border-bottom-right-radius:4px;}
   .kiko-msg.pet{align-self:flex-start;background:var(--panel-soft);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:4px;}
   .kiko-input{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line);}
+  /* Ask Kiko tab */
+  .kiko-skills{display:flex;flex-wrap:wrap;gap:8px;}
+  .kiko-skill{border:1.5px solid var(--line-2);border-radius:999px;background:#fff;color:var(--ink-soft);font-size:13px;padding:8px 13px;cursor:pointer;transition:transform .12s,background .15s,border-color .15s,color .15s;}
+  .kiko-skill:hover{background:#fde2f2;border-color:var(--sakura);color:var(--sakura-deep);}
+  .kiko-skill:active{transform:scale(.95);}
+  .kiko-tabchat{display:flex;flex-direction:column;}
+  .kiko-tabchat .kiko-log{max-height:none;height:50vh;min-height:300px;}
+  .kiko-tabchat .kiko-input{border-top:1px solid var(--line);border-radius:0 0 12px 12px;}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(70,66,100,.30);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto;}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(90,80,140,.3);width:100%;max-width:560px;padding:20px;}
@@ -530,7 +538,7 @@ function manageCardsModal(tab){
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true, wtMetrics:["w"], wtType:"area", wtRange:"all" };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -577,7 +585,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,pcos:viewPcos,mj:viewMj,weight:viewWeight,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -591,6 +599,7 @@ async function render(){
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
     if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } } else { stopTrendsLoop(); }
     if(MODULAR_TABS.includes(state.tab)){ requestAnimationFrame(()=>{try{layoutHome();}catch(e){}}); setTimeout(()=>{try{layoutHome();}catch(e){}},150); }
+    if(state.tab==='kiko'){ KIKO.open=false; const cc=$("#kikoChat"); if(cc)cc.classList.add("hidden"); try{ paintKiko(); }catch(e){} }   // fill the Ask-Kiko chat panel
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
 }
 
@@ -1232,6 +1241,50 @@ function viewCare(){
     </section>`},
   ];
   return `${slipBanner(true)}${modularGrid("care",items)}${DISCLAIMER}`;
+}
+
+/* ===================== ASK KIKO (home base) ===================== */
+function viewKiko(){
+  const skills=[
+    ["🌤️","Log mood","seed","log my mood as "],
+    ["📅","Add event","seed","add an event: "],
+    ["🔴","Stream schedule","seed","I stream "],
+    ["🗒️","Add task","seed","add a task: "],
+    ["🌷","Add goal","seed","add a goal: "],
+    ["🍱","Log food","seed","I ate "],
+    ["💉","Log shot","seed","log my shot today: "],
+    ["⚖️","Log weight","seed","log my weight "],
+    ["🩸","Period start","send","my period started today"],
+    ["🧠","Park a thought","seed","park this: "],
+    ["✍️","Write a script","seed","help me script a short about "],
+    ["📓","Daily journal","act","startKikoJournal"],
+    ["🎯","Title ideas","seed","give me stream title ideas for "],
+    ["🔎","What's coming up","send","what's on my schedule and calendar coming up?"],
+    ["🌐","Search the web","seed","search the web for "],
+  ];
+  const chip=(e,l,kind,val)=> kind==="act"
+    ? `<button class="kiko-skill" data-act="${val}">${e} ${l}</button>`
+    : `<button class="kiko-skill" data-act="kikoSkill" data-${kind}="${esc(val)}">${e} ${l}</button>`;
+  return `<div style="max-width:920px;margin:0 auto">
+    <div class="card-head"><h2 style="font-size:19px">🦊 Ask Kiko</h2><button class="btn" data-act="kikoMinimize" title="back to what you were doing">－ minimize</button></div>
+    <p class="soft" style="font-size:12.5px;margin:0 0 12px">Your snowfox helper's home base. Tap a skill to get started, attach food photos with 📷, or just chat. ❄️</p>
+    <section class="panel">
+      <div class="label" style="margin-bottom:8px">✨ Quick skills — tap one</div>
+      <div class="kiko-skills">${skills.map(s=>chip(s[0],s[1],s[2],s[3])).join("")}</div>
+    </section>
+    <section class="panel" style="margin-top:14px;padding:6px"><div id="kikoTabChat" class="kiko-tabchat"></div></section>
+    <details class="acc" style="margin-top:14px"><summary>💬 What you can ask Kiko</summary><div class="acc-body">
+      <ul style="padding-left:18px;font-size:13px;line-height:1.75;margin:4px 0">
+        <li>Run your day — calendar events, the weekly stream schedule, tasks, goals, brain-dump notes.</li>
+        <li>Track health — mood / anxiety / energy check-ins, weight &amp; body composition, Mounjaro shots &amp; water, PCOS symptoms, period start/end.</li>
+        <li>Food — say what you ate, or tap 📷 to log meals from photos (he estimates calories, protein &amp; fibre).</li>
+        <li>Create — write short or long-form scripts, brainstorm stream titles.</li>
+        <li>Reflect — start a gentle daily journal he walks you through and writes up.</li>
+        <li>Look things up — he can search the web for game updates, facts, nutrition, prices.</li>
+      </ul>
+      <p class="soft" style="font-size:11.5px;margin-top:4px">Everything he does is undoable with Ctrl+Z. 💗</p>
+    </div></details>
+  </div>`;
 }
 
 /* ===================== TRENDS ===================== */
@@ -2111,7 +2164,8 @@ const H={
   trendType(el){ state.trendType=el.dataset.v; state.trendAuto=false; render(); },
   trendDays(el){ state.trendDays=Number(el.dataset.v)||14; render(); },
   trendAuto(){ state.trendAuto = (state.trendAuto===false); render(); },
-  kikoToggle(){ KIKO.open=!KIKO.open;
+  kikoToggle(){ if(state.tab==="kiko"){ const i=kikoInputEl(); if(i)try{i.focus();}catch(_){}; return; }   // already in his home base
+    KIKO.open=!KIKO.open;
     if(KIKO.open){ $("#kikoBubble").classList.add("hidden"); kikoState="sit"; kikoStateT=0; $("#kikoChat").classList.remove("hidden"); paintKiko(); positionKikoUI(); }
     else { $("#kikoChat").classList.add("hidden"); kikoState="walk"; kikoStateT=0; } },
   // --- guided daily feelings journal (Kiko walks her through it, in his chat) ---
@@ -2124,7 +2178,7 @@ const H={
   async startKikoJournal(){
     const live = !DEMO && !!SB;
     KIKO.journal={active:true, mode: live?"ai":"script", msgs:[], step:0, log:[]};
-    H.openKikoChatPanel();
+    if(state.tab!=="kiko") H.openKikoChatPanel();
     if(!live){
       const intro="Konfuyu~ let's sit together a moment 🦊 A gentle journal about today and how you're feeling. One question at a time, and you can say \"stop\" whenever. 💗";
       KIKO.log.push({role:"pet",text:intro}); KIKO.log.push({role:"pet",text:KIKO_JOURNAL_ARC[0]});
@@ -2170,7 +2224,7 @@ const H={
     }
     KIKO.log.push({role:"pet",text:"and that's our journal for today 🌸 you showed up for yourself, and that counts. ❄️🦊"});
     paintKiko(); await finishJournal(J); },
-  async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); const imgs=(KIKO.pendingImages||[]).slice();
+  async kikoSend(){ const inp=kikoInputEl(); const q=(inp?inp.value:"").trim(); const imgs=(KIKO.pendingImages||[]).slice();
     if((!q && !imgs.length)||KIKO.busy)return;
     KIKO.log.push({role:"me",text:(imgs.length?("📷"+(imgs.length>1?"×"+imgs.length:"")+" "+(q||"")).trim():q)});
     if(KIKO.journal && KIKO.journal.active){ KIKO.pendingImages=[]; paintKiko(); return H.kikoJournalReply(q||"(sent a photo)"); }
@@ -2194,6 +2248,9 @@ const H={
     if(didActions){ try{ await loadData(); await render(); }catch(_){} }   // re-pull so agent's writes show
     paintKiko(); },
   kikoClearImg(el){ const i=el&&el.dataset.i!=null?Number(el.dataset.i):-1; if(i>=0) KIKO.pendingImages.splice(i,1); else KIKO.pendingImages=[]; paintKiko(); },
+  kikoMaximize(){ state.kikoReturn=(state.tab==="kiko")?(state.kikoReturn||"home"):state.tab; KIKO.open=false; const c=$("#kikoChat"); if(c)c.classList.add("hidden"); kikoState="walk"; setTab("kiko"); },
+  kikoMinimize(){ setTab(state.kikoReturn||"home"); },
+  kikoSkill(el){ const inp=kikoInputEl(); if(!inp)return; if(el.dataset.send!=null){ inp.value=el.dataset.send; H.kikoSend(); } else { inp.value=el.dataset.seed||""; try{inp.focus();}catch(_){} } },
   async kikoFoodPhoto(desc,imgs){
     if(DEMO||!SB){ KIKO.log.push({role:"pet",text:"I can look at your food once I'm connected to the server 💤❄️"}); paintKiko(); return; }
     imgs=Array.isArray(imgs)?imgs:[imgs];
@@ -2263,15 +2320,15 @@ document.addEventListener("change",e=>{
       render();
     }; img.onerror=()=>{ if(!state.foodDraft)state.foodDraft={image:null,desc:"",est:null}; state.foodDraft.image=r.result; render(); }; img.src=r.result; };
     r.readAsDataURL(f);
-  } else if(t.id==="kikoFile"){
+  } else if(t.id==="kikoFile"||t.id==="kikoTabFile"){
     const files=t.files?[...t.files]:[]; if(!files.length) return;
-    const ta=$("#kikoInput"); const keep=ta?ta.value:"";   // don't lose a typed note on re-paint
+    const ta=kikoInputEl(); const keep=ta?ta.value:"";   // don't lose a typed note on re-paint
     files.slice(0,8).forEach(f=>{ const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{
       const max=1024; let w=img.width,h=img.height; const sc=Math.min(1,max/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc);
       const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h);
       try{ KIKO.pendingImages.push(c.toDataURL("image/jpeg",0.82)); }catch(e){ KIKO.pendingImages.push(r.result); }
-      paintKiko(); const ni=$("#kikoInput"); if(ni&&keep){ ni.value=keep; }
-    }; img.onerror=()=>{ KIKO.pendingImages.push(r.result); paintKiko(); const ni=$("#kikoInput"); if(ni&&keep){ni.value=keep;} }; img.src=r.result; }; r.readAsDataURL(f); });
+      paintKiko(); const ni=kikoInputEl(); if(ni&&keep){ ni.value=keep; }
+    }; img.onerror=()=>{ KIKO.pendingImages.push(r.result); paintKiko(); const ni=kikoInputEl(); if(ni&&keep){ni.value=keep;} }; img.src=r.result; }; r.readAsDataURL(f); });
     t.value="";   // allow re-selecting the same file later
   } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value;
     setSent(n=>({...n,schedule:(n.schedule||[]).map(r=>r.id===id?{...r,[k]:v}:r)})); // fire-and-forget; no re-render mid-edit
@@ -2537,21 +2594,30 @@ function kikoSetupDrag(){
     kikoVX=(z.x-a.x)/d*1000; kikoVY=-(z.y-a.y)/d*1000; kikoState="thrown"; }
   k.addEventListener('pointerup',end); k.addEventListener('pointercancel',end);
 }
-function paintKiko(){
-  const c=$("#kikoChat"); if(!c)return;
-  const logHtml = KIKO.log.length
+function kikoInputEl(){ return document.getElementById("kikoTabInput")||document.getElementById("kikoInput"); }
+function kikoLogHTML(){
+  return KIKO.log.length
     ? KIKO.log.map(m=>`<div class="kiko-msg ${m.role}">${esc(m.role==='pet'?stripMd(m.text):m.text)}</div>`).join("")
     : `<div class="kiko-msg pet">Konfuyu~! I'm Kiko 🦊 Tell me to do things — "add a stream Saturday 7pm", "log my mood as 4", "log lunch: chicken and rice", "start a short script" — and I'll handle it. Tap 📷 to send a food photo and I'll log the macros for you. Or just chat. ❄️</div>`;
-  c.innerHTML=`<div class="kiko-head"><div class="kiko-av"></div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoToggle">✕</button></div>
-    <div class="kiko-log" id="kikoLog">${logHtml}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
+}
+// shared chat body (log + photo preview + input bar) — used by the floating bubble AND the Ask-Kiko tab
+function kikoChatInner(inputId, fileId, logId){
+  return `<div class="kiko-log" id="${logId}">${kikoLogHTML()}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
     ${KIKO.pendingImages.length?`<div style="padding:8px 10px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${KIKO.pendingImages.map((im,i)=>`<span style="position:relative;display:inline-block"><img src="${im}" alt="attached" style="width:50px;height:50px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><button class="x" data-act="kikoClearImg" data-i="${i}" title="remove" style="position:absolute;top:-7px;right:-7px;background:#fff;border:1px solid var(--line);border-radius:50%;width:19px;height:19px;font-size:11px;line-height:1;padding:0">✕</button></span>`).join("")}<span class="soft" style="font-size:11px">${KIKO.pendingImages.length} photo${KIKO.pendingImages.length>1?'s':''} ready — add a note &amp; send to log 🍽️ (📷 adds more)</span></div>`:""}
     <div class="kiko-input">
-      <label class="btn" style="cursor:pointer;padding:0 9px;display:flex;align-items:center;font-size:16px" title="add photos (e.g. your food)">📷<input type="file" id="kikoFile" accept="image/*" multiple style="display:none" ${KIKO.busy?"disabled":""}></label>
-      <input class="inp" id="kikoInput" placeholder="${KIKO.pendingImages.length?'what are they? (optional)':'tell Kiko to do something…'}" ${KIKO.busy?"disabled":""}>
+      <label class="btn" style="cursor:pointer;padding:0 9px;display:flex;align-items:center;font-size:16px" title="add photos (e.g. your food)">📷<input type="file" id="${fileId}" accept="image/*" multiple style="display:none" ${KIKO.busy?"disabled":""}></label>
+      <input class="inp" id="${inputId}" placeholder="${KIKO.pendingImages.length?'what are they? (optional)':'tell Kiko to do something…'}" ${KIKO.busy?"disabled":""}>
       <button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button>
     </div>`;
+}
+function paintKiko(){
+  const c=$("#kikoChat");
+  if(c){ c.innerHTML=`<div class="kiko-head"><div class="kiko-av"></div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoMaximize" title="open Ask Kiko">⤢</button><button class="x" data-act="kikoToggle" title="close">✕</button></div>
+    ${kikoChatInner("kikoInput","kikoFile","kikoLog")}`; }
+  const tc=$("#kikoTabChat"); if(tc){ tc.innerHTML=kikoChatInner("kikoTabInput","kikoTabFile","kikoTabLog"); }
   const log=$("#kikoLog"); if(log) log.scrollTop=log.scrollHeight;
-  const inp=$("#kikoInput"); if(inp&&!KIKO.busy) try{ inp.focus(); }catch(_){}
+  const tlog=$("#kikoTabLog"); if(tlog) tlog.scrollTop=tlog.scrollHeight;
+  const inp=kikoInputEl(); if(inp&&!KIKO.busy) try{ inp.focus(); }catch(_){}
 }
 function kikoGreet(){
   if(KIKO.open) return; const b=$("#kikoBubble"); if(!b)return;
