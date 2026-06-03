@@ -1272,9 +1272,13 @@ function viewKiko(){
     ["✍️","Write a script","seed","help me script a short about "],
     ["📓","Daily journal","act","startKikoJournal"],
     ["🧾","Tax prep","act","startTaxPrep"],
+    ["💶","Log money","seed","log €"],
+    ["🧠","Remember this","seed","remember that "],
+    ["🎮","Refresh games","send","refresh my game calendar now"],
     ["🎯","Title ideas","seed","give me stream title ideas for "],
     ["🔎","What's coming up","send","what's on my schedule and calendar coming up?"],
     ["🌐","Search the web","seed","search the web for "],
+    ["↩️","Undo last","send","undo that"],
   ];
   const chip=(e,l,kind,val)=> kind==="act"
     ? `<button class="kiko-skill" data-act="${val}">${e} ${l}</button>`
@@ -1287,16 +1291,35 @@ function viewKiko(){
       <div class="kiko-skills">${skills.map(s=>chip(s[0],s[1],s[2],s[3])).join("")}</div>
     </section>
     <section class="panel" style="margin-top:14px;padding:6px"><div id="kikoTabChat" class="kiko-tabchat"></div></section>
-    <details class="acc" style="margin-top:14px"><summary>💬 What you can ask Kiko</summary><div class="acc-body">
-      <ul style="padding-left:18px;font-size:13px;line-height:1.75;margin:4px 0">
-        <li>Run your day — calendar events, the weekly stream schedule, tasks, goals, brain-dump notes.</li>
-        <li>Track health — mood / anxiety / energy check-ins, weight &amp; body composition, Mounjaro shots &amp; water, PCOS symptoms, period start/end.</li>
-        <li>Food — say what you ate, or tap 📷 to log meals from photos (he estimates calories, protein &amp; fibre).</li>
-        <li>Create — write short or long-form scripts, brainstorm stream titles.</li>
-        <li>Reflect — start a gentle daily journal he walks you through and writes up.</li>
-        <li>Look things up — he can search the web for game updates, facts, nutrition, prices.</li>
-      </ul>
-      <p class="soft" style="font-size:11.5px;margin-top:4px">Everything he does is undoable with Ctrl+Z. 💗</p>
+    <section class="panel" style="margin-top:14px">
+      <div class="label" style="margin-bottom:8px">⚙️ Kiko settings</div>
+      <div class="chiprow">
+        <button class="chiptog ${localStorage.getItem('kiko-voice')==='1'?'on':''}" data-act="kikoVoiceToggle"><span>${localStorage.getItem('kiko-voice')==='1'?'✓':''}</span>🔊 Speak replies</button>
+        <button class="chiptog ${localStorage.getItem('kiko-proactive')!=='0'?'on':''}" data-act="kikoProactiveToggle"><span>${localStorage.getItem('kiko-proactive')!=='0'?'✓':''}</span>🌅 Daily check-ins</button>
+        <button class="chiptog" data-act="kikoClearChat"><span>🧹</span>New conversation</button>
+      </div>
+      <p class="soft" style="font-size:11px;margin:8px 0 0">Tip: say "use your smart brain" for the big model on hard questions, or "quick:" for snappy ones — Kiko picks automatically otherwise. 🎙️ in the chat bar lets you talk instead of type.</p>
+      <details class="acc" style="margin-top:10px"><summary>🧠 Kiko's memory (${(state.sentinel.kikoMemory||[]).length})</summary><div class="acc-body">
+        <p class="soft" style="font-size:11.5px;margin:0 0 6px">Say "remember that…" in chat and it lands here — he weaves these into everything he does for you.</p>
+        ${(state.sentinel.kikoMemory||[]).length?(state.sentinel.kikoMemory||[]).slice().reverse().map(m=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(m.text)}</span><button class="x" data-act="delMemory" data-v="${m.id}">✕</button></div>`).join(""):'<p class="soft" style="font-size:12px">Nothing yet — tell him something worth keeping. 💗</p>'}
+      </div></details>
+    </section>
+    <details class="acc" style="margin-top:14px"><summary>💬 Everything Kiko can do — the full guide</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <div class="label" style="margin-top:4px">📅 Calendar &amp; events</div>
+      <p style="margin:2px 0 8px">Add events ("add a collab stream on the 20th at 7pm"), <b>reschedule or rename</b> them ("move the collab to the 22nd"), delete them, and add multi-day ones. Add friends' <b>birthdays</b> ("add Eggie's birthday, March 3") — give him a public creator's handle and he'll look the date up. Birthdays auto-remind a month ahead. Ask "what's coming up?" anytime.</p>
+      <div class="label">🔴 Stream life</div>
+      <p style="margin:2px 0 8px">Manage your weekly <b>stream schedule</b> ("I stream Warframe on Saturdays at 5pm", "I'm not streaming Thursdays anymore"). Track <b>games</b> for the calendar ("track Genshin", "stop tracking Arknights") and say "refresh my game calendar now" for fresh update/event/livestream dates. Manage <b>sponsors</b> ("add a sponsor: GamerSupps, code MIFUYU", "mark GamerSupps active"). Brainstorm <b>stream titles</b> and start <b>scripts</b> ("help me script a short about…").</p>
+      <div class="label">💗 Health</div>
+      <p style="margin:2px 0 8px">Log your <b>check-in</b> ("log my mood as 4, anxiety 2"), <b>energy/spoons</b>, <b>sleep</b> ("I slept 7 hours"), <b>PCOS</b> symptoms &amp; helpers ("fatigue is a 3", "I moved my body today"), <b>period</b> start/end and flow — and <b>remove a mistaken period or shot log</b>. Log <b>Mounjaro</b> shots ("log my shot, 7.5 in left thigh"), side-effects ("nausea is a 2"), daily helpers, and <b>water</b>. Log <b>weight</b>, full <b>body-comp</b> from the scale ("body fat 38, muscle 46"), <b>measurements</b>, and non-scale victories. Manage <b>meds</b> ("add Metformin 500mg with dinner").</p>
+      <div class="label">🍱 Food</div>
+      <p style="margin:2px 0 8px">Say what you ate ("log lunch: chicken, rice and kimchi") and he estimates calories, protein &amp; fibre — or tap <b>📷</b> and send one or several photos and he logs each dish. Remove a mislogged item ("remove the ramen"), or change your daily <b>targets</b> ("set my protein target to 120").</p>
+      <div class="label">💶 Money</div>
+      <p style="margin:2px 0 8px">Log business income &amp; expenses ("log €240 Twitch payout", "I spent €89 on a mic"). At tax time, say "start tax prep" and he walks you through exactly what to gather for your accountant, step by step.</p>
+      <div class="label">📓 Reflect &amp; remember</div>
+      <p style="margin:2px 0 8px">Say "let's journal" for the gentle <b>daily journal</b> he walks you through and writes up in your voice. Quick-set today's one-line journal note. Park thoughts in the <b>brain-dump</b>, make <b>stickies</b>, add joys to the <b>joy jar</b>, and manage <b>tasks &amp; goals</b> — add, complete ("done with the clinic call"), rename, delete. Tell him <b>"remember that…"</b> and he keeps it forever (see Kiko's memory above).</p>
+      <div class="label">✨ And the clever stuff</div>
+      <p style="margin:2px 0 8px">He <b>searches the web</b> when useful (game dates, facts, nutrition, prices). He knows your <b>real numbers</b> — ask "how's my protein today?" or "what's my weight trend?". He remembers the <b>conversation</b>, so "actually make it 8pm" just works. Say <b>"undo that"</b> to roll back his last change (Ctrl+Z works too). He picks a fast brain for quick commands and a deeper one for hard questions — say <b>"use your smart brain"</b> or <b>"quick:"</b> to choose yourself. Talk instead of type with <b>🎙️</b>, hear him with <b>🔊 Speak replies</b>, and he'll greet you with a <b>morning briefing</b> and a soft evening journal nudge (toggleable above). He can also hop you to any tab — "take me to the calendar".</p>
+      <p class="soft" style="font-size:11.5px;margin-top:6px">Every single thing he does is undoable — Ctrl+Z, or just tell him. 💗❄️</p>
     </div></details>
   </div>`;
 }
@@ -1621,6 +1644,56 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">🦊 Mifu's links</div>
     <div class="chiprow">${(CONFIG.socials||[]).map(([n,u])=>`<a class="chiptog" href="${u}" target="_blank" rel="noopener" style="text-decoration:none">${esc(n)}</a>`).join("")}</div>
+  </section>
+
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:17px">💟 About Mifuyu OS</h2><span class="pill pill-sak">made with love by Eggie</span></div>
+    <p style="font-size:13px;line-height:1.7;margin:0 0 8px">Konfuyu, Mifu! This is <b>your own little operating system</b> — one private page, your own database, nobody else's anything. It runs your day, looks after your health gently, keeps your creator business tidy, and comes with <b>Kiko</b>, your snowfox assistant who can actually <i>do</i> things when you ask. Everything below is the honest tl;dr of what's inside and how it works. 💗</p>
+    <div style="font-size:12.5px;line-height:1.8">
+      <b>🏠 Home</b> — your dashboard; drag ⠿, resize ⤡, minimize, hide &amp; restore cards however you like.<br>
+      <b>🦊 Ask Kiko</b> — Kiko's home base: chat, one-tap skills, his memory &amp; settings, and the full "everything he can do" guide.<br>
+      <b>🗒️ Planner</b> — tasks by spoons, weekly &amp; monthly goals, brain-dump.<br>
+      <b>📅 Calendar</b> — your events &amp; birthdays, stream days, and auto game updates / event days / livestream days (refreshed every Friday). Toggles for each.<br>
+      <b>✍️ Script</b> — talk your ideas out loud, it types for you, then shapes them into a short or long-form script in your voice.<br>
+      <b>🔴 Stream</b> — title/tag/description optimizer tuned to your channel, thumbnail check, sponsors &amp; deals.<br>
+      <b>💶 Money</b> — your business books (eenmanszaak-friendly), the NL tax guide, Kiko's tax-prep walkthrough, and accountant exports.<br>
+      <b>❄️ Health · 💉 Mounjaro · ⚖️ Weight · 🍱 Food</b> — gentle tracking: cycle &amp; PCOS, shots &amp; side-effects, weight &amp; body-comp (Withings-ready), and food with photo macro-logging (protein &amp; fibre first).<br>
+      <b>🫂 Care</b> — breathing bubble, check-in, joy jar, the daily journal with Kiko, and your journal archive.<br>
+      <b>📈 Trends</b> — your last weeks as gentle pictures; layer metrics to compare.<br>
+      <b>⚙️ Settings</b> — comfort modes, meds, data export, and this page.
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">❓ FAQ — the honest answers</div>
+    <details class="acc"><summary>Is this private? Who can see my stuff?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">It's a single-user app made just for you. Your data lives in <b>your own database</b> (a private Supabase project Eggie set up) — no accounts, no analytics, no tracking, no one else on it. The page itself is just an unlisted link. If you ever want a password on top, there's an optional auth lock we can switch on.</p></div></details>
+    <details class="acc"><summary>Where exactly is my data, and can I take it out?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Everything — logs, journals, money, calendar, Kiko's memory — sits in one table in your database. <b>Settings → Your data → Export</b> downloads all of it as JSON anytime, and the Money tab has its own accountant-friendly exports. Nothing is held hostage. 💗</p></div></details>
+    <details class="acc"><summary>Does anything ever leave the app?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Only when you use the features that need it, and only the minimum: AI things (Kiko's chat, food photos, scripts, the journal <i>write-up</i>) send that text/photo to Claude through our own server function — the API key never touches your browser. Kiko's web searches go through the same AI. Reminder emails &amp; Kiko's weekly letter go through the email service, only if you turned those on. The journal <i>questions</i> and the tax checklist run entirely on-page. That's the whole list.</p></div></details>
+    <details class="acc"><summary>I made a mistake — can I fix it?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Always. <b>Ctrl+Z / ⌘Z</b> undoes your last data changes — even after you've closed the page and come back. You can also just tell Kiko "undo that." Most lists have a ✕ (including period history), every page layout has a reset, and the 🔒 chip freezes layouts so nothing moves by accident.</p></div></details>
+    <details class="acc"><summary>Is the health stuff medical advice? Is the tax stuff tax advice?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">No and no — and that's on purpose. The health tabs are gentle <i>tracking</i>; patterns, not diagnoses; your doctor is the authority. The Money tab's tax guide is a plain-language overview and a what-to-collect checklist; your accountant is the authority. Kiko is told to never invent health numbers and never play doctor.</p></div></details>
+    <details class="acc"><summary>How accurate is the food photo logging?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">It's a <i>friendly estimate</i> from the photo + your note — good for trends, not lab-grade. Every number is editable on the Food tab before or after logging. Protein 💪 and fibre 🌿 get the spotlight because they matter most for you.</p></div></details>
+    <details class="acc"><summary>Why is Kiko instant sometimes and thoughtful other times?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">He picks his brain to fit the job — a fast one for quick commands, a deeper one for research, writing, and tricky questions. Say <b>"use your smart brain"</b> to force the big one or <b>"quick:"</b> for the snappy one.</p></div></details>
+    <details class="acc"><summary>What works on which device?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Everything works in <b>Chrome or Edge</b> on desktop — that's also where voice typing and Kiko's 🎙️ live. On <b>iPad</b> the whole layout system (drag, resize, lock) is tuned for touch and Apple Pencil. Phone is lovely for quick logging and chatting with Kiko.</p></div></details>
+    <details class="acc"><summary>What happens automatically, without me doing anything?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Every <b>Friday</b> the game calendar refreshes (updates, event start/end days, livestream days for the games you track). Birthday reminders fire a month, a week, a day ahead and day-of. If email is set up: a <b>daily reminder mail</b> and <b>Kiko's Sunday letter</b>. While the app is open: browser pop-up reminders, Kiko's morning briefing and a soft evening journal nudge (both toggleable in Ask Kiko).</p></div></details>
+    <details class="acc"><summary>Something looks broken / weird?</summary><div class="acc-body"><p style="font-size:12.5px;line-height:1.65">Tell Eggie! 💗 Nothing is ever truly lost — undo, exports, and the database keep everything safe. A hard refresh (Ctrl+Shift+R) fixes most visual oddities after an update.</p></div></details>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
+    <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v2.0 · June 2026 — Kiko, personal assistant</b> 🧠 long-term memory ("remember that…") · real conversation context · 🎙️ voice in &amp; 🔊 voice out · morning briefings &amp; evening journal nudges · answers from your real numbers · edit &amp; "undo that" by chat · Kiko's weekly email letter · on-demand game refresh · adaptive fast/smart brains · full coverage of every single thing the app can do · the complete in-app guide + this About page.</p>
+      <p><b>v1.9 — Mifuyu OS</b> ✨ renamed from Health OS · Stream tab (was Optimize) with Sponsors &amp; deals · 💶 Money tab built for a Dutch eenmanszaak: books, NL tax guide, Kiko's tax-prep walkthrough, accountant exports · calendar toggles for events &amp; birthdays · game updates as single days + event start/end days + livestream days in purple · "games I track" list · birthdays remind a month ahead.</p>
+      <p><b>v1.8 — Your space, your rules</b> 🧩 every dashboard card draggable, resizable, minimizable, hideable (Home, Care, Food) · tab reordering · 🔒 layout lock · tuned for iPad + Apple Pencil · 🦊 Ask Kiko home-base tab with quick skills · Ctrl+Z undo for everything, surviving reloads.</p>
+      <p><b>v1.7 — Body &amp; food</b> ⚖️ full Body Smart metrics (fat, muscle, water, visceral, heart rate) with Withings sync ready · detailed weight charts with metric/type/range options · 🍱 Food tab: photo → macros with Kiko (multi-photo too), protein &amp; fibre bars, editable estimates.</p>
+      <p><b>v1.6 — Words &amp; feelings</b> ✍️ Script writer with voice-to-text · 📓 the daily journal: Kiko walks you through it and writes it up as a real diary entry in your voice · journal archive in Care · Care tab redesigned (breathing · check-in · joy jar side by side).</p>
+      <p><b>v1.5 — Little delights</b> 🌸 sakura cursor petals · ☃️ interactive falling snow that piles up + the 💨 wind button · trends you can layer &amp; compare (14/30 days) · events &amp; birthdays agenda with browser + email reminders.</p>
+      <p><b>v1.4 — Kiko learns to help</b> 🦊 from pet to agent: add events, log anything, manage your stream schedule by chat · plain-text replies · smarter calendar (drag events, day markers).</p>
+      <p><b>v1.3 — Kiko arrives</b> 🦊 a pixel snowfox who walks your screen, gets picked up and thrown (sorry Kiko), and chats.</p>
+      <p><b>v1.2 — The calendar</b> 📅 CET-first calendar, stream schedule overlay, auto game updates every Friday with links.</p>
+      <p><b>v1.1 — Creator tools</b> 🎯 the optimizer in your voice (titles, tags, descriptions, thumbnail check) · pop-out rest &amp; focus timer · rich resizable stickies.</p>
+      <p><b>v1.0 — The beginning</b> ❄️ Health OS: gentle check-ins, PCOS &amp; cycle built for irregular cycles, Mounjaro tracking, trend-first weight, Care tab, trends, planner — all in your snowfox winter palette, on your own database.</p>
+    </div></details>
+    <p class="soft" style="font-size:11px;margin-top:8px">Built bit by bit with love, for the coziest snowfox. — Eggie 🐙💗</p>
   </section>
   ${DISCLAIMER}`;
 }
@@ -2392,7 +2465,12 @@ const H={
       if(DEMO||!SB){ ans="I'm a sleepy demo kiko right now 💤 — connect me to the server and I can chat and actually run things for you! ❄️"; }
       else {
         const upcoming=(state.sentinel.calendarEvents||[]).filter(e=>(e.endDate||e.date)>=TODAY).sort((a,b)=>(a.date<b.date?-1:1)).slice(0,20).map(e=>({date:e.date,endDate:e.endDate,title:e.title}));
-        const d=await aiCall("agent",{question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab, schedule:(state.sentinel.schedule||[]), events:upcoming});
+        const d=await aiCall("agent",{question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab,
+          schedule:(state.sentinel.schedule||[]), events:upcoming,
+          games:(state.sentinel.gameTopics&&state.sentinel.gameTopics.length?state.sentinel.gameTopics:DEFAULT_GAMES),
+          memory:(state.sentinel.kikoMemory||[]).slice(-30).map(m=>({text:m.text})),
+          history:KIKO.log.slice(0,-1).slice(-8).map(m=>({role:m.role,text:String(m.text||"").slice(0,300)})),
+          summary:kikoDataSummary()});
         if(d&&d.error) throw new Error(d.error);
         ans=(d&&(d.reply||d.answer))||"hmm, my whiskers twitched — ask me again? 🦊";
         const acts=(d&&Array.isArray(d.actions))?d.actions:[];
@@ -2405,6 +2483,21 @@ const H={
     if(didActions){ try{ await loadData(); await render(); }catch(_){} }   // re-pull so agent's writes show
     paintKiko(); },
   kikoClearImg(el){ const i=el&&el.dataset.i!=null?Number(el.dataset.i):-1; if(i>=0) KIKO.pendingImages.splice(i,1); else KIKO.pendingImages=[]; paintKiko(); },
+  kikoMic(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){ toast("voice needs Chrome or Edge on desktop 🌸"); return; }
+    if(KIKO.mic){ KIKO.mic=false; try{KIKO._rec&&KIKO._rec.stop();}catch(e){} paintKiko(); return; }
+    let rec; try{ rec=new SR(); }catch(e){ toast("couldn't start the mic 🌸"); return; }
+    KIKO._rec=rec; rec.lang="en-US"; rec.continuous=false; rec.interimResults=true;
+    let fin="";
+    rec.onresult=e=>{ let interim=""; for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; if(e.results[i].isFinal)fin+=t; else interim+=t; } const inp=kikoInputEl(); if(inp)inp.value=(fin+" "+interim).trim(); };
+    rec.onend=()=>{ KIKO.mic=false; const inp=kikoInputEl(); if(inp&&inp.value.trim()){ H.kikoSend(); } else paintKiko(); };
+    rec.onerror=()=>{ KIKO.mic=false; paintKiko(); };
+    KIKO.mic=true; paintKiko(); try{ rec.start(); }catch(e){ KIKO.mic=false; paintKiko(); } },
+  kikoVoiceToggle(){ const v=localStorage.getItem("kiko-voice")==="1"?"0":"1"; localStorage.setItem("kiko-voice",v); if(v!=="1"){ try{speechSynthesis.cancel();}catch(e){} } toast(v==="1"?"Kiko will speak 🔊":"quiet mode 🤫"); render(); },
+  kikoProactiveToggle(){ const v=localStorage.getItem("kiko-proactive")==="0"?"1":"0"; localStorage.setItem("kiko-proactive",v); toast(v==="0"?"daily check-ins off":"daily check-ins on 🌅"); render(); },
+  kikoClearChat(){ KIKO.log=[]; KIKO._spoken=-1; saveKikoLog(); paintKiko(); toast("fresh page ❄️"); },
+  async delMemory(el){ const id=el.dataset.v; await setSent(n=>({...n,kikoMemory:(n.kikoMemory||[]).filter(m=>m.id!==id)})); toast("forgotten 🧠"); render(); },
   kikoMaximize(){ state.kikoReturn=(state.tab==="kiko")?(state.kikoReturn||"home"):state.tab; KIKO.open=false; const c=$("#kikoChat"); if(c)c.classList.add("hidden"); kikoState="walk"; setTab("kiko"); },
   kikoMinimize(){ setTab(state.kikoReturn||"home"); },
   kikoSkill(el){ const inp=kikoInputEl(); if(!inp)return; if(el.dataset.send!=null){ inp.value=el.dataset.send; H.kikoSend(); } else { inp.value=el.dataset.seed||""; try{inp.focus();}catch(_){} } },
@@ -2708,7 +2801,8 @@ window.addEventListener('error',ev=>{ const v=document.getElementById('view');
   if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p></div>'; } });
 
 /* ===================== KIKO — AI snowfox pet ===================== */
-const KIKO={ open:false, busy:false, log:[], journal:null, tax:null, pendingImages:[] };
+const KIKO={ open:false, busy:false, log:[], journal:null, tax:null, pendingImages:[], mic:false, _spoken:-1 };
+try{ loadKikoLog(); }catch(e){}
 const KIKO_GREETS=["Konfuyu~! Need anything? ❄️","Pspsps… ask me something! 🦊","I'm right here if you need me 💗","Hi Mifu~ ✿","Wanna brainstorm? 🌸"];
 /* sprite walk engine + desktop-pet physics — frames measured from fox.png (164x210). Row 2 = 4-frame walk cycle. */
 const KIKO_SHEET={url:"fox.png",W:164,H:210};
@@ -2784,6 +2878,29 @@ function kikoSetupDrag(){
   k.addEventListener('pointerup',end); k.addEventListener('pointercancel',end);
 }
 function kikoInputEl(){ return document.getElementById("kikoTabInput")||document.getElementById("kikoInput"); }
+// compact, real numbers for the agent's DATA SNAPSHOT — lets Kiko answer "how's my…" accurately
+function kikoDataSummary(){
+  try{
+    const s=state.sentinel||{}; const parts=[];
+    const wl=(s.weightLog||[]).filter(x=>x.w!=null).sort((a,b)=>a.date<b.date?-1:1);
+    if(wl.length){ const last=wl[wl.length-1], first=wl[0]; parts.push(`weight ${last.w}${CONFIG.weightUnit} on ${fmtDate(last.date)}${wl.length>1?` (${Math.round((last.w-first.w)*10)/10} since ${fmtDate(first.date)})`:""}`); }
+    const inj=(s.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    if(inj.length){ const d=new Date(inj[inj.length-1].date+"T00:00"); d.setDate(d.getDate()+7); parts.push(`last shot ${fmtDate(inj[inj.length-1].date)} (${inj[inj.length-1].dose}mg), next ~${fmtDate(d.toLocaleDateString("en-CA"))}`); }
+    if(foodToday().length){ const ft=foodTotals(), tg=foodTargets(); parts.push(`food today ${Math.round(ft.kcal)}kcal · protein ${Math.round(ft.protein)}/${tg.protein}g · fibre ${Math.round(ft.fiber)}/${tg.fiber}g`); }
+    const moods=(state.range||[]).slice(-7).map(r=>r.notes&&r.notes.mind&&r.notes.mind.mood).filter(v=>v!=null);
+    if(moods.length) parts.push(`mood avg recent days ${(moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1)}/5`);
+    const y=String(new Date().getFullYear()); const tx=(s.money||[]).filter(t=>String(t.date||"").slice(0,4)===y);
+    if(tx.length){ const inc=tx.filter(t=>t.dir==="in").reduce((a,t)=>a+(+t.amount||0),0), exp=tx.filter(t=>t.dir==="out").reduce((a,t)=>a+(+t.amount||0),0); parts.push(`money ${y}: in €${Math.round(inc)} · out €${Math.round(exp)}`); }
+    if((s.journalEntries||[]).some(e=>e.date===TODAY)) parts.push("journaled today ✓");
+    const m=(state.today&&state.today.mind)||{}; if(m.mood!=null||m.anxiety!=null) parts.push(`today's check-in: mood ${m.mood??"–"}/5, anxiety ${m.anxiety??"–"}/5`);
+    return parts.join(" · ");
+  }catch(e){ return ""; }
+}
+// persistent conversation (survives reloads) + spoken replies
+function saveKikoLog(){ try{ localStorage.setItem("kiko-chat", JSON.stringify(KIKO.log.slice(-60))); }catch(e){} }
+function loadKikoLog(){ try{ const s=localStorage.getItem("kiko-chat"); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) KIKO.log=a; KIKO._spoken=KIKO.log.length-1; } }catch(e){} }
+function speakKiko(text){ try{ if(localStorage.getItem("kiko-voice")!=="1") return; if(!window.speechSynthesis) return;
+  speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(String(text).slice(0,400)); u.rate=1.04; u.pitch=1.25; speechSynthesis.speak(u); }catch(e){} }
 function kikoLogHTML(){
   return KIKO.log.length
     ? KIKO.log.map(m=>`<div class="kiko-msg ${m.role}">${esc(m.role==='pet'?stripMd(m.text):m.text)}</div>`).join("")
@@ -2794,12 +2911,16 @@ function kikoChatInner(inputId, fileId, logId){
   return `<div class="kiko-log" id="${logId}">${kikoLogHTML()}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
     ${KIKO.pendingImages.length?`<div style="padding:8px 10px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${KIKO.pendingImages.map((im,i)=>`<span style="position:relative;display:inline-block"><img src="${im}" alt="attached" style="width:50px;height:50px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><button class="x" data-act="kikoClearImg" data-i="${i}" title="remove" style="position:absolute;top:-7px;right:-7px;background:#fff;border:1px solid var(--line);border-radius:50%;width:19px;height:19px;font-size:11px;line-height:1;padding:0">✕</button></span>`).join("")}<span class="soft" style="font-size:11px">${KIKO.pendingImages.length} photo${KIKO.pendingImages.length>1?'s':''} ready — add a note &amp; send to log 🍽️ (📷 adds more)</span></div>`:""}
     <div class="kiko-input">
+      <button class="btn" data-act="kikoMic" title="talk to Kiko" style="padding:0 9px;font-size:15px;${KIKO.mic?'background:#fde2f2;border-color:var(--sakura);':''}" ${KIKO.busy?"disabled":""}>${KIKO.mic?'⏹':'🎙️'}</button>
       <label class="btn" style="cursor:pointer;padding:0 9px;display:flex;align-items:center;font-size:16px" title="add photos (e.g. your food)">📷<input type="file" id="${fileId}" accept="image/*" multiple style="display:none" ${KIKO.busy?"disabled":""}></label>
-      <input class="inp" id="${inputId}" placeholder="${KIKO.pendingImages.length?'what are they? (optional)':'tell Kiko to do something…'}" ${KIKO.busy?"disabled":""}>
+      <input class="inp" id="${inputId}" placeholder="${KIKO.mic?'listening… ❄️':KIKO.pendingImages.length?'what are they? (optional)':'tell Kiko to do something…'}" ${KIKO.busy?"disabled":""}>
       <button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button>
     </div>`;
 }
 function paintKiko(){
+  saveKikoLog();
+  if(KIKO.log.length){ const li=KIKO.log.length-1, last=KIKO.log[li];
+    if(last.role==="pet" && KIKO._spoken!==li){ KIKO._spoken=li; speakKiko(stripMd(last.text)); } }
   const c=$("#kikoChat");
   if(c){ c.innerHTML=`<div class="kiko-head"><div class="kiko-av"></div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoMaximize" title="open Ask Kiko">⤢</button><button class="x" data-act="kikoToggle" title="close">✕</button></div>
     ${kikoChatInner("kikoInput","kikoFile","kikoLog")}`; }
@@ -2821,8 +2942,23 @@ async function execAgentAction(a){
   if(!a||!a.type) return null; const T=a.type;
   try{
     if(T==="navigate"){ if(TABS.some(t=>t[0]===a.tab)) state.tab=a.tab; return "opened "+a.tab; }
-    if(T==="addEvent"){ const ev={id:uid(),title:a.title||"event",date:a.date||TODAY,endDate:(a.endDate&&a.endDate>(a.date||TODAY))?a.endDate:null,time:a.time||"",tz:a.tz||"Europe/Amsterdam",note:a.note||"",url:a.url||"",color:(typeof CAL_COLORS!=="undefined"&&CAL_COLORS[1])||"#c9b8f0"};
-      await DB.saveDaily(SENTINEL,n=>({...n,calendarEvents:[...(n.calendarEvents||[]),ev]})); return "📅 added “"+ev.title+"” ("+fmtDate(ev.date)+")"; }
+    if(T==="addEvent"){ const src=["game","gameevent","gamestream"].includes(a.src)?a.src:null;
+      const ev={id:uid(),title:a.title||"event",date:a.date||TODAY,endDate:(!src&&a.endDate&&a.endDate>(a.date||TODAY))?a.endDate:null,time:a.time||"",tz:a.tz||"Europe/Amsterdam",note:a.note||"",url:a.url||"",
+        ...(src?{src}:{color:(typeof CAL_COLORS!=="undefined"&&CAL_COLORS[1])||"#c9b8f0"})};
+      await DB.saveDaily(SENTINEL,n=>({...n,calendarEvents:[...(n.calendarEvents||[]),ev]})); return (src?gameSrcIcon(ev):"📅 ")+"added “"+ev.title+"” ("+fmtDate(ev.date)+")"; }
+    if(T==="rememberFact"){ if(!a.text)return null; await setSent(n=>({...n,kikoMemory:[...(n.kikoMemory||[]),{id:"km"+Date.now(),text:a.text,date:TODAY}]})); return "🧠 I'll remember: "+a.text; }
+    if(T==="forgetFact"){ let hit=null; await setSent(n=>{ const m=(n.kikoMemory||[]).slice(); const i=findByText(m,a.text,"text"); if(i<0)return n; hit=m[i].text; m.splice(i,1); return {...n,kikoMemory:m}; }); return hit?"🧠 forgot: "+hit:null; }
+    if(T==="updateEvent"){ let hit=null;
+      await setSent(n=>{ const evs=(n.calendarEvents||[]).slice(); let i=-1;
+        if(a.date) i=evs.findIndex(e=>e.date===a.date&&String(e.title||"").toLowerCase().includes(String(a.title||"").toLowerCase()));
+        if(i<0) i=findByText(evs,a.title,"title"); if(i<0)return n; const e={...evs[i]};
+        if(a.newTitle)e.title=a.newTitle;
+        if(a.newDate&&/^\d{4}-\d{2}-\d{2}$/.test(a.newDate)){ if(e.endDate&&e.endDate>e.date){ const delta=daysBetween(e.date,a.newDate); e.endDate=calShift(e.endDate,delta); } e.date=a.newDate; }
+        if(a.newTime!=null)e.time=a.newTime;
+        hit=e.title+" → "+fmtDate(e.date)+(e.time?" "+fmt12(e.time):""); evs[i]=e; return {...n,calendarEvents:evs}; });
+      return hit?"✏️ "+hit:null; }
+    if(T==="editTask"){ let hit=null; await setSent(n=>{ const ts=(n.tasks||[]).slice(); const i=findByText(ts,a.text,"text"); if(i<0||!a.newText)return n; hit=a.newText; ts[i]={...ts[i],text:a.newText}; return {...n,tasks:ts}; }); return hit?"✏️ task → "+hit:null; }
+    if(T==="undoLast"){ setTimeout(()=>{ try{ undoLast(); }catch(e){} },350); return "↩️ undoing your last change"; }
     if(T==="addTask"){ await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text:a.text,bucket:a.bucket||"personal",spoon:a.spoon||"some",done:false,sub:[]}]})); return "🗒️ task: "+a.text; }
     if(T==="addGoal"){ const key=a.period==="month"?"goalsMonth":"goalsWeek"; await setSent(n=>({...n,[key]:[...(n[key]||[]),{id:"g"+Date.now(),text:a.text,done:false}]})); return "🌷 "+(a.period==="month"?"monthly":"weekly")+" goal: "+a.text; }
     if(T==="logMind"){ await setToday(n=>{ const mind={...(n.mind||{})}; ["mood","anxiety","energy","weather"].forEach(k=>{ if(a[k]!=null) mind[k]=Math.max(0,Math.min(5,Number(a[k]))); }); if(a.kind!=null) mind.kind=!!a.kind; return {...n,mind}; }); return "💗 check-in logged"; }
@@ -2841,6 +2977,63 @@ async function execAgentAction(a){
     if(T==="logFood"){ const num=v=>{const n=Number(v);return isNaN(n)?0:Math.round(n*10)/10;};
       const item={id:"fd"+Date.now(),name:a.name||"food",serving:a.serving||"",kcal:Math.round(Number(a.kcal)||0),protein:num(a.protein),carbs:num(a.carbs),fiber:num(a.fiber),fat:num(a.fat),time:new Date().toISOString()};
       await setToday(n=>({...n,food:[...(n.food||[]),item]})); return "🍽️ "+item.name+" — "+item.kcal+" kcal · "+item.protein+"g protein · "+item.fiber+"g fibre"; }
+    if(T==="completeTask"||T==="deleteTask"){ let hit=null;
+      await setSent(n=>{ const ts=(n.tasks||[]).slice(); const i=findByText(ts,a.text,"text"); if(i<0)return n; hit=ts[i].text;
+        if(T==="deleteTask") ts.splice(i,1); else ts[i]={...ts[i],done:true}; return {...n,tasks:ts}; });
+      return hit?(T==="deleteTask"?"🗑️ removed task: ":"✅ done: ")+hit:null; }
+    if(T==="completeGoal"||T==="deleteGoal"){ let hit=null;
+      await setSent(n=>{ const keys=a.period==="month"?["goalsMonth"]:a.period==="week"?["goalsWeek"]:["goalsWeek","goalsMonth"];
+        for(const key of keys){ const g=(n[key]||[]).slice(); const i=findByText(g,a.text,"text");
+          if(i>=0){ hit=g[i].text; if(T==="deleteGoal")g.splice(i,1); else g[i]={...g[i],done:true}; return {...n,[key]:g}; } }
+        return n; });
+      return hit?(T==="deleteGoal"?"🗑️ removed goal: ":"🌷 goal done: ")+hit:null; }
+    if(T==="deleteEvent"){ let hit=null;
+      await setSent(n=>{ const evs=(n.calendarEvents||[]).slice(); let i=-1;
+        if(a.date) i=evs.findIndex(e=>e.date===a.date && String(e.title||"").toLowerCase().includes(String(a.title||"").toLowerCase()));
+        if(i<0) i=findByText(evs,a.title,"title"); if(i<0)return n; hit=evs[i].title; evs.splice(i,1); return {...n,calendarEvents:evs}; });
+      return hit?"🗑️ removed event: "+hit:null; }
+    if(T==="removeBirthday"){ let hit=null; await setSent(n=>{ const b=(n.birthdays||[]).slice(); const i=findByText(b,a.name,"name"); if(i<0)return n; hit=b[i].name; b.splice(i,1); return {...n,birthdays:b}; }); return hit?"🗑️ removed "+hit+"'s birthday":null; }
+    if(T==="addMed"){ if(!a.name)return null; await setSent(n=>({...n,medsList:[...(n.medsList||[]),{id:"m"+Date.now(),name:a.name,dose:a.dose||"",time:a.time||""}]})); return "💊 added "+a.name; }
+    if(T==="removeMed"){ let hit=null; await setSent(n=>{ const m=(n.medsList||[]).slice(); const i=findByText(m,a.name,"name"); if(i<0)return n; hit=m[i].name; m.splice(i,1); return {...n,medsList:m}; }); return hit?"💊 removed "+hit:null; }
+    if(T==="addJoy"){ if(!a.text)return null; await setSent(n=>({...n,joyJar:[...(n.joyJar||[]),a.text]})); return "🫙 joy added: "+a.text; }
+    if(T==="logSleep"){ const v=Number(a.hours); if(isNaN(v))return null; await setToday(n=>({...n,sleep:Math.max(0,Math.min(24,v))})); return "🌙 sleep: "+v+"h"; }
+    if(T==="logMj"){ const F=["nausea","constipation","diarrhea","reflux","belly","fatigue","foodnoise"]; if(!F.includes(a.field))return null;
+      await setToday(n=>{ const mj={...(n.mounjaro||{})}; mj[a.field]=Math.max(0,Math.min(5,Number(a.value)||0)); return {...n,mounjaro:mj}; }); return "💉 "+a.field+" logged"; }
+    if(T==="mjToggle"){ const F=["proteinMeals","smallerMeals","fiber","gentleMove"]; if(!F.includes(a.field))return null;
+      await setToday(n=>{ const mj={...(n.mounjaro||{})}; mj[a.field]=(a.on!=null?!!a.on:!mj[a.field]); return {...n,mounjaro:mj}; }); return "💉 "+a.field+(a.on===false?" off":" ✓"); }
+    if(T==="pcosToggle"){ const F=["moved","balanced","protein","lowsugar"]; if(!F.includes(a.field))return null;
+      await setToday(n=>{ const p={...(n.pcos||{})}; p[a.field]=(a.on!=null?!!a.on:!p[a.field]); return {...n,pcos:p}; }); return "❄️ "+a.field+(a.on===false?" off":" ✓"); }
+    if(T==="setFlow"){ const v=["light","med","heavy"].includes(a.value)?a.value:null; if(!v)return null;
+      await setToday(n=>{ const p={...(n.pcos||{})}; p.flow=v; return {...n,pcos:p,flow:v}; }); return "🌙 flow: "+v; }
+    if(T==="addMoney"){ const amt=Number(a.amount); if(isNaN(amt)||amt<=0)return null;
+      const item={id:"mny"+Date.now(),date:(a.date&&/^\d{4}-\d{2}-\d{2}$/.test(a.date))?a.date:TODAY,dir:(a.dir==="out"?"out":"in"),cat:a.cat||"Other",amount:Math.round(amt*100)/100,desc:a.desc||""};
+      await setSent(n=>({...n,money:[...(n.money||[]),item]})); return "💶 "+(item.dir==="in"?"+":"−")+"€"+item.amount.toFixed(2)+" · "+item.cat; }
+    if(T==="addSponsor"){ if(!a.name)return null; await setSent(n=>({...n,sponsors:[...(n.sponsors||[]),{id:"sp"+Date.now(),name:a.name,code:a.code||"",payout:a.payout||"",url:a.url||"",note:a.note||"",status:(["pending","active","done"].includes(a.status)?a.status:"pending")}]})); return "💜 sponsor added: "+a.name; }
+    if(T==="sponsorStatus"){ const st=["pending","active","done"].includes(a.status)?a.status:null; if(!st)return null; let hit=null;
+      await setSent(n=>{ const s=(n.sponsors||[]).slice(); const i=findByText(s,a.name,"name"); if(i<0)return n; hit=s[i].name; s[i]={...s[i],status:st}; return {...n,sponsors:s}; }); return hit?"💜 "+hit+" → "+st:null; }
+    if(T==="removeSponsor"){ let hit=null; await setSent(n=>{ const s=(n.sponsors||[]).slice(); const i=findByText(s,a.name,"name"); if(i<0)return n; hit=s[i].name; s.splice(i,1); return {...n,sponsors:s}; }); return hit?"🗑️ removed sponsor "+hit:null; }
+    if(T==="logBodyComp"){ const f={}; let any=false; const num=v=>{const n=Number(v);return isNaN(n)?null:Math.round(n*10)/10;};
+      [["weight","w"],["fat","fat"],["muscle","muscle"],["bone","bone"],["water","water"],["visceral","visceral"],["hr","hr"]].forEach(([s2,d2])=>{ const v=num(a[s2]); if(v!=null){ f[d2]=v; any=true; } });
+      if(!any)return null; await upsertWeightToday(f); return "📊 body metrics logged"; }
+    if(T==="setFoodTargets"){ const num=v=>{const n2=Number(v);return isNaN(n2)?null:n2;};
+      await setSent(n=>{ const t={...(n.foodTargets||{kcal:1500,protein:110,fiber:28})}; if(num(a.kcal))t.kcal=num(a.kcal); if(num(a.protein))t.protein=num(a.protein); if(num(a.fiber))t.fiber=num(a.fiber); return {...n,foodTargets:t}; }); return "🎯 food targets updated"; }
+    if(T==="removeFood"){ let hit=null; await setToday(n=>{ const f=(n.food||[]).slice(); const i=findByText(f,a.name,"name"); if(i<0)return n; hit=f[i].name; f.splice(i,1); return {...n,food:f}; }); return hit?"🗑️ removed "+hit+" from today's food":null; }
+    if(T==="removeShot"){ let hit=null; await setSent(n=>{ const log=(n.injectionLog||[]).slice(); let i=(a.date&&a.date!=="last")?log.findIndex(s2=>s2.date===a.date):log.length-1;
+        if(i<0||!log[i])return n; hit=log[i].date; log.splice(i,1); return {...n,injectionLog:log}; });
+      return hit?"🗑️ removed the shot from "+fmtDate(hit):null; }
+    if(T==="removePeriod"){ let hit=null; await setSent(n=>{ const c={...(n.cycle||{})}; let h=(c.history||[]).slice();
+        let i=(a.date&&a.date!=="last")?h.findIndex(x=>x.start===a.date):h.length-1; if(i<0||!h[i])return n; hit=h[i].start; h.splice(i,1);
+        c.history=h; const starts=h.map(x=>x.start).filter(Boolean).sort(); c.lastStart=starts.length?starts[starts.length-1]:null; return {...n,cycle:c}; });
+      return hit?"🗑️ removed the period log from "+fmtDate(hit):null; }
+    if(T==="setJournalNote"){ if(!a.text)return null; await setToday(n=>({...n,journal:a.text})); return "🌙 journal note saved"; }
+    if(T==="setEnergyToday"){ const v=Number(a.value); if(![1,3,5].includes(v))return null; await setToday(n=>({...n,energy:v})); return "🥄 energy set to "+(v===1?"low":v===3?"med":"high"); }
+    if(T==="removeSticky"){ let hit=null; const plain=x=>String(x.html||x.text||"").replace(/<[^>]*>/g,"");
+      await setSent(n=>{ const s=(n.stickies||[]).slice(); const q=String(a.text||"").toLowerCase().trim(); if(!q)return n;
+        const i=s.findIndex(x=>plain(x).toLowerCase().includes(q)); if(i<0)return n; hit=plain(s[i]).slice(0,30); s.splice(i,1); return {...n,stickies:s}; });
+      if(hit){ try{ renderStickies(); }catch(e){} } return hit?"🗑️ removed sticky “"+hit+"”":null; }
+    if(T==="removeCapture"){ let hit=null; await setSent(n=>{ const c=(n.captures||[]).slice(); const i=findByText(c,a.text,"text"); if(i<0)return n; hit=c[i].text; c.splice(i,1); return {...n,captures:c}; }); return hit?"🗑️ removed: "+hit:null; }
+    if(T==="startJournal"){ setTimeout(()=>{ try{ H.startKikoJournal(); }catch(e){} },250); return "📓 starting your journal"; }
+    if(T==="startTaxPrep"){ setTimeout(()=>{ try{ H.startTaxPrep(); }catch(e){} },250); return "🧾 starting tax prep"; }
     if(T==="addBirthday"){ let M,D; if(a.date&&/^\d{4}-\d{2}-\d{2}$/.test(a.date)){ M=+a.date.slice(5,7); D=+a.date.slice(8,10); } else { M=Number(a.month); D=Number(a.day); }
       if(!M||!D)return null; await setSent(n=>({...n,birthdays:[...(n.birthdays||[]),{id:"bd"+Date.now(),name:a.name||"friend",month:M,day:D}]}));
       return "🎂 "+(a.name||"friend")+"'s birthday — "+fmtDate(new Date().getFullYear()+"-"+String(M).padStart(2,"0")+"-"+String(D).padStart(2,"0")); }
@@ -2860,6 +3053,12 @@ async function execAgentAction(a){
   }catch(e){ console.error("action failed",T,e); return null; }
   return null;
 }
+/* fuzzy item matcher for agent delete/complete: exact → startsWith → contains */
+function findByText(list,text,key){ const q=String(text||"").toLowerCase().trim(); if(!q)return -1;
+  let i=list.findIndex(x=>String(x[key]||"").toLowerCase()===q);
+  if(i<0) i=list.findIndex(x=>String(x[key]||"").toLowerCase().startsWith(q));
+  if(i<0) i=list.findIndex(x=>String(x[key]||"").toLowerCase().includes(q));
+  return i; }
 /* normalize any weekday phrasing → the 3-letter form the schedule uses (Mon..Sun) */
 function normDay(d){ if(!d)return null; const m={sun:"Sun",sunday:"Sun",mon:"Mon",monday:"Mon",tue:"Tue",tues:"Tue",tuesday:"Tue",wed:"Wed",weds:"Wed",wednesday:"Wed",thu:"Thu",thur:"Thu",thurs:"Thu",thursday:"Thu",fri:"Fri",friday:"Fri",sat:"Sat",saturday:"Sat"}; return m[String(d).trim().toLowerCase()]||null; }
 
@@ -2952,6 +3151,31 @@ function checkReminders(){
 }
 setTimeout(checkReminders, 6000);
 setInterval(checkReminders, 30*60*1000);
+
+/* ===== proactive Kiko: a morning briefing + an evening journal nudge (once a day, via his bubble) ===== */
+function kikoProactive(){
+  try{
+    if(localStorage.getItem("kiko-proactive")==="0") return;            // toggle in Ask Kiko → settings
+    if(document.body.classList.contains("calm")) return;
+    if(!state._loaded || KIKO.open) return;
+    const b=$("#kikoBubble"); if(!b) return;
+    const show=msg=>{ b.textContent=msg; b.style.left=Math.max(10,Math.round((kikoX||100)-18))+"px"; b.style.right="auto"; b.classList.remove("hidden");
+      clearTimeout(b._h); b._h=setTimeout(()=>b.classList.add("hidden"),12000); };
+    const h=new Date().getHours();
+    if(h>=5&&h<12 && !localStorage.getItem("kiko-brief-"+TODAY)){
+      const evs=(state.sentinel.calendarEvents||[]).filter(e=>e.date===TODAY&&!gameSrc(e)).map(e=>e.title).slice(0,2);
+      const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); let dose="";
+      if(inj.length){ const d=new Date(inj[inj.length-1].date+"T00:00"); d.setDate(d.getDate()+7); if(daysBetween(TODAY,d.toLocaleDateString("en-CA"))<=0) dose=" · 💉 dose day"; }
+      show("🌅 morning! "+(evs.length?("today: "+evs.join(" · ")):"a soft, open day")+dose+" — tap me for more ❄️");
+      localStorage.setItem("kiko-brief-"+TODAY,"1");
+    } else if(h>=19 && !localStorage.getItem("kiko-nudge-"+TODAY) && !(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY)){
+      show("🌙 cozy hour… want to journal today together? tap me 📓");
+      localStorage.setItem("kiko-nudge-"+TODAY,"1");
+    }
+  }catch(e){}
+}
+setTimeout(kikoProactive, 9000);
+setInterval(kikoProactive, 20*60*1000);
 
 /* returning from the Withings OAuth link → tidy the URL, then pull her latest measurements */
 (function(){

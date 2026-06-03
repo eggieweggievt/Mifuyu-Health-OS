@@ -62,6 +62,21 @@ select net.http_post(
 select cron.unschedule('mifu-daily-reminders');
 ```
 
+**Kiko's weekly letter (optional)** — a cozy Sunday-evening email where Kiko sums up her week (mood, weight, food, money, the week ahead) in his own words. Same requirements as reminders (Resend key + email enabled in the app). Run once:
+```sql
+select cron.schedule(
+  'mifu-weekly-digest',
+  '0 17 * * 0',
+  $$
+  select net.http_post(
+    url     := 'https://ahneitzrgiwjufqyzttl.supabase.co/functions/v1/ai',
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    body    := '{"mode":"digest"}'::jsonb
+  );
+  $$
+);
+```
+
 **Custom "from" address** (after verifying a domain in Resend) — add a secret:
 ```
 supabase secrets set "RESEND_FROM=Mifuyu <hello@yourdomain.com>" --project-ref ahneitzrgiwjufqyzttl

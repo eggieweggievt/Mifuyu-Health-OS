@@ -19,6 +19,17 @@ const YT_KEY = Deno.env.get("YOUTUBE_API_KEY") || "";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const HANDLE = Deno.env.get("YT_HANDLE") || "@mifuyu";
 const MODEL = Deno.env.get("AI_MODEL") || "claude-sonnet-4-6";
+// adaptive model tiers — fast for simple commands, standard for most work, smart on request
+const FAST_MODEL = Deno.env.get("AI_MODEL_FAST") || "claude-haiku-4-5-20251001";
+const SMART_MODEL = Deno.env.get("AI_MODEL_SMART") || MODEL;   // set AI_MODEL_SMART (e.g. an Opus model) to unlock a bigger brain on request
+function pickAgentModel(q: string): string {
+  const s = String(q || "").toLowerCase();
+  if (/\b(smart|best|big brain|deep|think hard|carefully|opus)\b/.test(s)) return SMART_MODEL;   // "use your smart brain"
+  if (/\b(quick|quickly|fast)\b/.test(s)) return FAST_MODEL;
+  // complex: long, research-y, creative, analytical, or multi-step → standard model (also needed for web search quality)
+  if (s.length > 180 || /\b(search|look up|research|plan|write|script|brainstorm|why|analy|compare|summar|explain|refresh my game|help me think)\b/.test(s)) return MODEL;
+  return FAST_MODEL;   // short action-y commands ("log my mood as 4", "add a task…") → fast + cheap
+}
 // reminders (email) — optional; only used by the "remind" mode triggered by a daily cron
 const SB_URL = Deno.env.get("SUPABASE_URL") || "";
 const SB_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -93,25 +104,25 @@ async function claudeWith(system: string, user: string, maxTokens = 1200): Promi
   if (j.error) throw new Error(j.error.message || "Claude error");
   return (j.content && j.content[0] && j.content[0].text) || "";
 }
-// custom system + user, with optional server-side tools (e.g. web search). Returns the joined text blocks.
-async function claudeWithTools(system: string, user: string, maxTokens = 1500, tools?: any[]): Promise<string> {
+// custom system + user, with optional server-side tools (e.g. web search) + optional model override.
+async function claudeWithTools(system: string, user: string, maxTokens = 1500, tools?: any[], model?: string): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("Claude key isn't set on the server.");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }], ...(tools && tools.length ? { tools } : {}) }),
+    body: JSON.stringify({ model: model || MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }], ...(tools && tools.length ? { tools } : {}) }),
   });
   const j = await res.json();
   if (j.error) throw new Error(j.error.message || "Claude error");
   return (j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
 }
-// custom system + arbitrary message content (supports images) — used by the food estimator
-async function claudeMsg(system: string, content: any, maxTokens = 700): Promise<string> {
+// custom system + arbitrary message content (supports images) + optional model — used by the food estimator
+async function claudeMsg(system: string, content: any, maxTokens = 700, model?: string): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("Claude key isn't set on the server.");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content }] }),
+    body: JSON.stringify({ model: model || MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content }] }),
   });
   const j = await res.json();
   if (j.error) throw new Error(j.error.message || "Claude error");
@@ -253,11 +264,11 @@ Return ONLY a JSON object, no prose outside it:
 { "reply": "<a short, warm PLAIN-TEXT message to her>", "actions": [ <zero or more action objects> ] }
 
 Allowed action objects (use ONLY these shapes; include just the fields you need):
-- {"type":"navigate","tab":"home|planner|calendar|optimize|pcos|mj|weight|care|trends|settings"}
+- {"type":"navigate","tab":"home|kiko|planner|calendar|script|optimize|money|pcos|mj|weight|food|care|trends|settings"}   (optimize = the Stream tab)
 - {"type":"addStreamDay","day":"Mon|Tue|Wed|Thu|Fri|Sat|Sun","show":"<what she plays/does>","time":"5PM"}   (recurring weekly stream; adds the day, or updates show/time if that weekday already exists)
 - {"type":"removeStreamDay","day":"Mon|Tue|Wed|Thu|Fri|Sat|Sun"}   (she no longer streams that weekday)
 - {"type":"clearStreamSchedule"}   (wipe the whole weekly schedule)
-- {"type":"addEvent","title":"...","date":"YYYY-MM-DD","endDate":"YYYY-MM-DD or null","time":"HH:MM or empty","tz":"IANA zone (default Europe/Amsterdam)","note":"","url":""}
+- {"type":"addEvent","title":"...","date":"YYYY-MM-DD","endDate":"YYYY-MM-DD or null","time":"HH:MM or empty","tz":"IANA zone (default Europe/Amsterdam)","note":"","url":"","src":"OMIT normally; only game|gameevent|gamestream for game-calendar markers (always single-day, real url)"}
 - {"type":"addTask","text":"...","bucket":"personal|health|content|hobbies|someday","spoon":"low|some|full"}
 - {"type":"addGoal","period":"week|month","text":"..."}
 - {"type":"logMind","mood":0-5,"anxiety":0-5,"energy":0-5,"weather":0-5,"kind":true}   (include only what she gave; 0-5 scales)
@@ -276,8 +287,41 @@ Allowed action objects (use ONLY these shapes; include just the fields you need)
 - {"type":"addBirthday","name":"...","date":"YYYY-MM-DD"}   (a friend's birthday — recurs yearly, the year is ignored. If she gives a name/social handle of a PUBLIC creator and you can find a reliable birth DATE via web search, use it; if you can't find it confidently, ask her for the date instead of guessing.)
 - {"type":"addGameTopic","name":"<game>"}      (start tracking a game so its updates/events/livestreams flow into her calendar)
 - {"type":"removeGameTopic","name":"<game>"}   (stop tracking a game)
+- {"type":"completeTask","text":"<task wording>"}   (mark a task done)  ·  {"type":"deleteTask","text":"..."}
+- {"type":"completeGoal","period":"week|month (optional)","text":"..."}  ·  {"type":"deleteGoal","period":"week|month (optional)","text":"..."}
+- {"type":"deleteEvent","title":"...","date":"YYYY-MM-DD (optional, helps match)"}
+- {"type":"removeBirthday","name":"..."}
+- {"type":"addMed","name":"...","dose":"e.g. 500 mg","time":"e.g. morning"}  ·  {"type":"removeMed","name":"..."}
+- {"type":"addJoy","text":"<a little joy for her joy jar>"}
+- {"type":"logSleep","hours":<number>}
+- {"type":"logMj","field":"nausea|constipation|diarrhea|reflux|belly|fatigue|foodnoise","value":0-5}   (Mounjaro side-effect levels)
+- {"type":"mjToggle","field":"proteinMeals|smallerMeals|fiber|gentleMove","on":true|false}   (her daily Mounjaro helpers)
+- {"type":"pcosToggle","field":"moved|balanced|protein|lowsugar","on":true|false}
+- {"type":"setFlow","value":"light|med|heavy"}   (period flow today)
+- {"type":"addMoney","dir":"in|out","amount":<euros>,"cat":"...","desc":"...","date":"YYYY-MM-DD optional"}   (her business books — income cats: Twitch, YouTube, Sponsorship, Donations/Tips, Merch, Affiliate, Other; expense cats: Equipment, Software & subs, Internet & phone, Home office, Travel, Games/content, Marketing, Accountant, Bank & fees, Other)
+- {"type":"addSponsor","name":"...","code":"","payout":"","url":"","note":""}  ·  {"type":"sponsorStatus","name":"...","status":"pending|active|done"}  ·  {"type":"removeSponsor","name":"..."}
+- {"type":"logBodyComp","weight":<kg>,"fat":<%>,"muscle":<kg>,"bone":<kg>,"water":<%>,"visceral":<n>,"hr":<bpm>}   (only the fields she gave — scale readings)
+- {"type":"setFoodTargets","kcal":<n>,"protein":<g>,"fiber":<g>}
+- {"type":"removeFood","name":"<one of today's logged foods>"}
+- {"type":"removeShot","date":"YYYY-MM-DD or \"last\""}   (delete a mistaken injection log)
+- {"type":"removePeriod","date":"YYYY-MM-DD (the start date) or \"last\""}   (delete a mistaken period log)
+- {"type":"setJournalNote","text":"..."}   (today's one-line journal on Home)
+- {"type":"setEnergyToday","value":1|3|5}   (her spoons for today: 1 low · 3 med · 5 high)
+- {"type":"removeSticky","text":"<words on the sticky>"}  ·  {"type":"removeCapture","text":"<brain-dump words>"}
+- {"type":"startJournal"}   (begin the guided daily feelings journal)  ·  {"type":"startTaxPrep"}   (begin the tax-prep walkthrough)
+- {"type":"rememberFact","text":"<a lasting fact or preference about her, her people, or how she likes things>"}   (save to YOUR long-term memory — use when she says "remember…", or shares something durably useful like a friend's name, a preference, an allergy, her mods, what she mains)
+- {"type":"forgetFact","text":"<words from the fact to forget>"}
+- {"type":"updateEvent","title":"<existing event words>","date":"YYYY-MM-DD (optional, helps match)","newTitle":"optional","newDate":"YYYY-MM-DD optional","newTime":"HH:MM optional"}   (reschedule/rename in place — prefer this over delete+re-add)
+- {"type":"editTask","text":"<existing task words>","newText":"..."}
+- {"type":"undoLast"}   (undo her most recent data change — when she says "undo that" / "whoops, put it back")
+
+When completing or removing something, echo HER wording in the action's text/title so it matches the right item — and if you're not sure which item she means, ask instead of guessing. Each action you emit gets confirmed back to her with a ✓ line; if an item couldn't be found, no ✓ appears, so don't claim it's done — invite her to rephrase.
 
 You can SEARCH THE WEB when it would help — for current info (game update dates/times, patch notes, news), facts you're unsure of, nutrition details, prices, anything time-sensitive or that you don't reliably know. Search when it makes your answer more accurate, then weave what you found into your warm reply (and into an action if relevant — e.g. search a game's update time, then addEvent it). You don't need to search for simple chit-chat or things you already know.
+
+You are also given YOUR MEMORY about her (facts she asked you to remember — weave them in naturally, never recite the list), a DATA SNAPSHOT (her latest real numbers — use these to answer questions about her weight, food, mood, money accurately instead of guessing), and the RECENT CONVERSATION (so follow-ups like "actually make it 8pm" or "delete that" refer to the right thing).
+
+GAME-CALENDAR REFRESH: if she asks you to refresh/update her game calendar now, web-search each game in her TRACKED GAMES list for (a) the next update/version date, (b) limited-time event START and END dates, (c) livestream/special-program dates (add "(speculated)" to the title if unconfirmed) — then emit ONE single-day addEvent per finding with src "game", "gameevent" or "gamestream" and a real url.
 
 Rules:
 - Compute all dates relative to TODAY and her timezone, given below. "tomorrow"/"next friday"/"in 2 weeks" → real YYYY-MM-DD. Multi-day → set endDate.
@@ -296,15 +340,26 @@ async function agent(input: any) {
   const evStr = events.length
     ? events.map((e: any) => `${e.date}${e.endDate && e.endDate !== e.date ? "→" + e.endDate : ""} ${e.title}`).slice(0, 20).join("; ")
     : "(none coming up)";
+  const mem = (Array.isArray(input.memory) && input.memory.length) ? input.memory.map((m: any) => "- " + (m.text || m)).join("\n") : "(nothing saved yet)";
+  const hist = (Array.isArray(input.history) && input.history.length) ? input.history.map((h: any) => (h.role === "me" ? "Mifu" : "Kiko") + ": " + String(h.text || "").slice(0, 300)).join("\n") : "(start of conversation)";
+  const games = (Array.isArray(input.games) && input.games.length) ? input.games.join(", ") : "(none)";
   const user = `TODAY is ${today} (timezone ${tz}). Her current tab is "${tab}".\n\n`
+    + `YOUR MEMORY about her:\n${mem}\n\n`
+    + `DATA SNAPSHOT: ${input.summary || "(none)"}\n`
     + `Her CURRENT weekly STREAM SCHEDULE (recurring weekdays): ${schedStr}\n`
-    + `Her UPCOMING one-off EVENTS (specific dates): ${evStr}\n\n`
-    + `She said: "${(input.question || "").slice(0, 1500)}"`;
+    + `Her UPCOMING one-off EVENTS (specific dates): ${evStr}\n`
+    + `Her TRACKED GAMES: ${games}\n\n`
+    + `RECENT CONVERSATION:\n${hist}\n\n`
+    + `She just said: "${(input.question || "").slice(0, 1500)}"`;
   const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
+  const model = pickAgentModel(input.question || "");
   let text = "";
-  try { text = await claudeWithTools(AGENT_SYSTEM, user, 1500, tools); }
-  catch (_e) { text = await claudeWith(AGENT_SYSTEM, user, 1200); }   // if web search is unavailable, fall back to a plain reply
-  const out = parseJSON(text);
+  try { text = await claudeWithTools(AGENT_SYSTEM, user, 1500, tools, model); }
+  catch (_e) { try { text = await claudeWithTools(AGENT_SYSTEM, user, 1200, undefined, model); } catch (_e2) { text = ""; } }
+  let out = parseJSON(text);
+  if (!out && model !== MODEL) {   // fast model fumbled the JSON → one retry on the standard model
+    try { text = await claudeWithTools(AGENT_SYSTEM, user, 1500, tools, MODEL); out = parseJSON(text); } catch (_e3) {}
+  }
   if (!out) return { reply: "my whiskers twitched — could you say that again? 🦊", actions: [] };
   if (!Array.isArray(out.actions)) out.actions = [];
   if (!out.reply) out.reply = "okay! ❄️";
@@ -487,9 +542,43 @@ async function foodMode(input: any) {
     return { items };
   }
   content.push({ type: "text", text: `Estimate the nutrition for this meal.${desc ? ' Her description: "' + desc + '"' : " (no description given — go by the photo.)"} Return ONLY the JSON.` });
-  const out = parseJSON(await claudeMsg(FOOD_SYSTEM, content, 700));
+  let out = parseJSON(await claudeMsg(FOOD_SYSTEM, content, 700, FAST_MODEL));   // fast model first — cheap & quick
+  if (!out || out.kcal == null) out = parseJSON(await claudeMsg(FOOD_SYSTEM, content, 700, MODEL));   // quality retry
   if (!out || out.kcal == null) return { error: "Couldn't read that one — try a clearer photo or a quick description." };
   return normFoodItem(out);
+}
+
+// ===================== WEEKLY DIGEST (Kiko's cozy Sunday letter, via email) =====================
+async function digestMode(_input: any) {
+  if (!SB_URL || !SB_SERVICE_KEY) return { error: "service env missing" };
+  const notes = await sbGetNotes("mifuyu"); const rem = notes.reminders || {};
+  if (!rem.email || !rem.emailAddr) return { ok: false, skipped: "email reminders not enabled" };
+  const since = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const r = await fetch(`${SB_URL}/rest/v1/daily_logs?user_id=eq.mifuyu&date=gte.${since}&date=neq.2000-01-01&select=date,notes`, { headers: { apikey: SB_SERVICE_KEY, Authorization: "Bearer " + SB_SERVICE_KEY } });
+  const days = await r.json().catch(() => []);
+  const facts: string[] = [];
+  try {
+    const moods = (Array.isArray(days) ? days : []).map((d: any) => d.notes && d.notes.mind && d.notes.mind.mood).filter((v: any) => v != null);
+    if (moods.length) facts.push(`Mood avg this week: ${(moods.reduce((a: number, b: number) => a + b, 0) / moods.length).toFixed(1)}/5 over ${moods.length} check-ins`);
+    const wl = (notes.weightLog || []).filter((x: any) => x.w != null).sort((a: any, b: any) => (a.date < b.date ? -1 : 1));
+    if (wl.length) { const last = wl[wl.length - 1]; const wk = wl.filter((x: any) => x.date >= since); facts.push(`Weight now ${last.w}kg${wk.length > 1 ? ` (${(last.w - wk[0].w).toFixed(1)} this week)` : ""}`); }
+    let kcal = 0, prot = 0, fib = 0, fd = 0;
+    (Array.isArray(days) ? days : []).forEach((d: any) => { (d.notes && d.notes.food || []).forEach((f: any) => { kcal += +f.kcal || 0; prot += +f.protein || 0; fib += +f.fiber || 0; fd++; }); });
+    if (fd) facts.push(`Food logged: ${fd} items (~${Math.round(kcal)} kcal, ${Math.round(prot)}g protein, ${Math.round(fib)}g fibre total)`);
+    const jr = (notes.journalEntries || []).filter((e: any) => e.date >= since).length; if (jr) facts.push(`Journaled ${jr} time(s)`);
+    const y = new Date().getFullYear(); const tx = (notes.money || []).filter((t: any) => String(t.date || "").startsWith(String(y)));
+    const inc = tx.filter((t: any) => t.dir === "in").reduce((a: number, t: any) => a + (+t.amount || 0), 0);
+    if (inc) facts.push(`Business income ${y} so far: €${Math.round(inc)}`);
+    const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10); const today = new Date().toISOString().slice(0, 10);
+    const up = (notes.calendarEvents || []).filter((e: any) => e.date >= today && e.date <= nextWeek).map((e: any) => `${e.date} ${e.title}`).slice(0, 8);
+    if (up.length) facts.push("Coming up: " + up.join("; "));
+  } catch (_e) {}
+  if (!facts.length) facts.push("A quiet week of rest — nothing logged, and that's okay too.");
+  const txt = await claudeWith(
+    `You are Kiko, Mifuyu's cozy snowfox companion ❄️🦊. Write her a SHORT weekly email letter (120–200 words) in PLAIN TEXT (no markdown), warm and personal, from the FACTS provided — celebrate small wins, be gentle about gaps, peek at the week ahead, sign off as Kiko. Never invent numbers.`,
+    "FACTS:\n" + facts.join("\n"), 600);
+  await sendEmail(rem.emailAddr, "❄️ Kiko's weekly letter", `<div style="font-family:system-ui,sans-serif;color:#3a3550;white-space:pre-wrap">${escapeHtml(txt)}</div>`);
+  return { ok: true };
 }
 
 // ===================== WITHINGS (Body Smart scale → weight log) =====================
@@ -589,6 +678,7 @@ Deno.serve(async (req) => {
     if (mode === "withingsStatus") return json(await withingsStatus(body.userId || "mifuyu"));
     if (mode === "withingsSync") return json(await withingsSync(body.userId || "mifuyu"));
     if (mode === "food") return json(await foodMode(input));
+    if (mode === "digest") return json(await digestMode(input));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);
