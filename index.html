@@ -432,16 +432,25 @@ async function render(){
   $("#nav").innerHTML = TABS.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
   const st=$("#status"); st.textContent=DEMO?"◇ demo data":(SB?"● live":"◌ connecting…"); st.className="chip"+(DEMO?" demo":(SB?" on":""));
   const v=$("#view");
-  // pop-in only on REAL page changes — and never on the very first paint, so the
-  // boot splash hands straight off to the home view as one smooth load (no "double load").
-  if(state._booted && state._lastTab!==state.tab){ v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
-    clearTimeout(state._animT); state._animT=setTimeout(()=>{ const vv=$("#view"); if(vv) vv.classList.remove('anim'); },1000); }
+  // Decide NOW whether this is a real page change, but DON'T start the animation yet.
+  // (Never animate the very first paint, so the boot splash hands straight to home.)
+  const animate = state._booted && state._lastTab!==state.tab;
   state._lastTab=state.tab; state._booted=true;
   try{
-    state.sentinel = await DB.daily(SENTINEL);
-    state.today = await DB.daily(TODAY);
-    state.range = await DB.range(14);
+    // Fetch from the database ONLY on first load. Every tab switch used to re-fetch 3 times
+    // (~260ms of network) before painting — that freeze-then-jump was the "stutter/stop".
+    // The data is already in memory after boot: saves keep state.sentinel/today current, and
+    // state.range holds only past days (today is always overlaid from state.today below), so
+    // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
+    if(!state._loaded) await loadData();
     const fn={home:viewHome,pcos:viewPcos,mj:viewMj,weight:viewWeight,care:viewCare,planner:viewPlanner,calendar:renderCalendar,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
+    // Arm the animation BEFORE building, so the new cards are created already in their hidden
+    // start state and animate in cleanly. Because there's no await between this and innerHTML,
+    // the heavy DOM rebuild happens BEFORE the first painted frame — it can't stall the
+    // animation mid-flight (that interruption, caused by an await splitting the two, was the stutter).
+    if(animate){ v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
+      clearTimeout(state._animT); state._animT=setTimeout(()=>{ const vv=$("#view"); if(vv) vv.classList.remove('anim'); },1000); }
     v.innerHTML = fn();
     renderStickies();
     if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
@@ -1354,6 +1363,14 @@ function wireCalDnD(){
 }
 
 /* ===================== HANDLERS ===================== */
+// Pull everything from the DB once and cache it in state. Called on boot, and again only
+// when an external write (e.g. Kiko's agent) changes server data we don't already hold locally.
+async function loadData(){
+  state.sentinel = await DB.daily(SENTINEL);
+  state.today = await DB.daily(TODAY);
+  state.range = await DB.range(14);
+  state._loaded = true;
+}
 async function setToday(merge){ state.today=await DB.saveDaily(TODAY,n=>merge(n)); }
 async function setSent(merge){ state.sentinel=await DB.saveDaily(SENTINEL,n=>merge(n)); }
 
@@ -1502,7 +1519,7 @@ const H={
       }
     }catch(e){ ans="aw, I couldn't reach the server — "+(e.message||"try again")+" 🌧️"; }
     KIKO.log.push({role:"pet",text:ans}); KIKO.busy=false;
-    if(didActions){ try{ await render(); }catch(_){} }
+    if(didActions){ try{ await loadData(); await render(); }catch(_){} }   // re-pull so agent's writes show
     paintKiko(); },
 
   // --- Optimize ---
