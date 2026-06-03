@@ -94,13 +94,19 @@
   .sitebtn{border:1.5px solid var(--line-2);border-radius:11px;padding:7px 11px;background:#fff;color:var(--ink-soft);font-size:12px;}
   .sitebtn.on{background:linear-gradient(135deg,var(--peri),var(--sakura));border-color:var(--peri);color:#fff;}
   /* entrance / transition animations */
-  @keyframes viewFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  @keyframes popUp{from{opacity:0;transform:translateY(13px) scale(.99)}to{opacity:1;transform:none}}
+  @keyframes viewFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes panelIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   @keyframes softPop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  /* ONE gentle whole-page fade on page change — calm, and never looks like it plays twice.
-     (Deliberately no per-card stagger / no second layer of pop-ins on top of this.) */
-  #view.anim{animation:viewFade .42s cubic-bezier(.22,.7,.3,1);}
+  /* Page transition — animate ONLY #view and its DIRECT children (one gentle slide-fade, no scale).
+     Never animate nested descendants too: a parent and its child both transforming at once is what
+     caused the stutter. Single clean layer = smooth. (Mirrors the smooth Eggie-OS approach.) */
+  #view.anim{animation:viewFade .4s cubic-bezier(.22,.61,.36,1) both;}
+  #view.anim>*{animation:panelIn .44s cubic-bezier(.22,.61,.36,1) both;}
+  #view.anim>*:nth-child(2){animation-delay:.06s}
+  #view.anim>*:nth-child(3){animation-delay:.12s}
+  #view.anim>*:nth-child(4){animation-delay:.18s}
+  #view.anim>*:nth-child(n+5){animation-delay:.22s}
   /* modal + pet chat scale-in */
   .modal-bg{animation:fadeIn .18s ease;}
   .modal{animation:softPop .26s cubic-bezier(.2,.8,.3,1);}
@@ -429,7 +435,7 @@ async function render(){
   // pop-in only on REAL page changes — and never on the very first paint, so the
   // boot splash hands straight off to the home view as one smooth load (no "double load").
   if(state._booted && state._lastTab!==state.tab){ v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
-    clearTimeout(state._animT); state._animT=setTimeout(()=>{ const vv=$("#view"); if(vv) vv.classList.remove('anim'); },720); }
+    clearTimeout(state._animT); state._animT=setTimeout(()=>{ const vv=$("#view"); if(vv) vv.classList.remove('anim'); },1000); }
   state._lastTab=state.tab; state._booted=true;
   try{
     state.sentinel = await DB.daily(SENTINEL);
