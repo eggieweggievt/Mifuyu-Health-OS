@@ -273,6 +273,9 @@ Allowed action objects (use ONLY these shapes; include just the fields you need)
 - {"type":"logPcos","field":"fatigue|bloating|cravings|acne|shedding","value":0-5}
 - {"type":"logFood","name":"...","serving":"the portion","kcal":<integer>,"protein":<grams>,"carbs":<grams>,"fiber":<grams>,"fat":<grams>}   (when she tells you about a meal/snack to log WITHOUT a photo, ESTIMATE its calories and macros yourself from standard nutrition knowledge for the portion she describes — she cares most about PROTEIN and FIBRE for her health, so be especially careful with those. If she gives her own numbers, use them. Don't ask her for the numbers; make a sensible estimate and mention in your reply that it's an estimate.)
 - {"type":"startScript","kind":"short|long","title":"...","raw":"<the idea/notes she gave you to script>","references":"...","format":true|false}   (opens the Script Writer seeded with this; set format:true only if there's already enough to shape a draft now)
+- {"type":"addBirthday","name":"...","date":"YYYY-MM-DD"}   (a friend's birthday — recurs yearly, the year is ignored. If she gives a name/social handle of a PUBLIC creator and you can find a reliable birth DATE via web search, use it; if you can't find it confidently, ask her for the date instead of guessing.)
+- {"type":"addGameTopic","name":"<game>"}      (start tracking a game so its updates/events/livestreams flow into her calendar)
+- {"type":"removeGameTopic","name":"<game>"}   (stop tracking a game)
 
 You can SEARCH THE WEB when it would help — for current info (game update dates/times, patch notes, news), facts you're unsure of, nutrition details, prices, anything time-sensitive or that you don't reliably know. Search when it makes your answer more accurate, then weave what you found into your warm reply (and into an action if relevant — e.g. search a game's update time, then addEvent it). You don't need to search for simple chit-chat or things you already know.
 
@@ -349,7 +352,8 @@ async function remind(_input: any) {
     const offs: number[] = Array.isArray(rem.offsets) ? rem.offsets : [0, 1];
     const due: string[] = [];
     (n.calendarEvents || []).forEach((ev: any) => { const d = daysBetweenISO(today, ev.date); if (offs.includes(d)) due.push(`<li>${d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : "In " + d + " days"} — ${escapeHtml(ev.title)}${ev.time ? " · " + escapeHtml(ev.time) : ""}</li>`); });
-    (n.birthdays || []).forEach((b: any) => { const iso = nextBirthdayISO(Number(b.month), Number(b.day), today); const d = daysBetweenISO(today, iso); if (offs.includes(d)) due.push(`<li>${d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : "In " + d + " days"} — 🎂 ${escapeHtml(b.name)}'s birthday</li>`); });
+    const bdayOffs = [30, 7, 1, 0];   // birthdays always get a month-ahead heads-up (gift time)
+    (n.birthdays || []).forEach((b: any) => { const iso = nextBirthdayISO(Number(b.month), Number(b.day), today); const d = daysBetweenISO(today, iso); if (bdayOffs.includes(d)) due.push(`<li>${d === 0 ? "<b>Today</b>" : d === 1 ? "<b>Tomorrow</b>" : d >= 28 ? "In about a month" : "In " + d + " days"} — 🎂 ${escapeHtml(b.name)}'s birthday</li>`); });
     if (!due.length) continue;
     const html = `<div style="font-family:system-ui,sans-serif;color:#3a3550"><h2 style="color:#8d6fd1">❄️ Mifuyu reminders</h2><p>Here's what's coming up, cozy one:</p><ul>${due.join("")}</ul><p style="color:#9b96b6;font-size:12px">From your Mifuyu Health OS · gentle nudges, no pressure 💗🦊</p></div>`;
     try { await sendEmail(rem.emailAddr, "❄️ Your Mifuyu reminders", html); sent++; results.push({ to: rem.emailAddr, items: due.length }); }

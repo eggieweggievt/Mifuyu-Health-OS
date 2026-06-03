@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mifuyu Health OS ❄️🦊</title>
+<title>Mifuyu OS ❄️🦊</title>
 <link rel="icon" type="image/png" href="sakura.png" />
 <link rel="apple-touch-icon" href="AYAYA.png" />
 <!-- =========================================================================
-  Mifuyu Health OS — a gentle, private snowfox health companion for Mifu 🦊❄️
+  Mifuyu OS — a gentle, private snowfox companion + creator OS for Mifu 🦊❄️
   PCOS patterns · Mounjaro (tirzepatide) journey · weight (trend-first) ·
   mental-health Care tools · gentle pattern-spotter. NOT a medical device.
   Self-tracking, not diagnosis — her care team's plan always comes first.
@@ -288,7 +288,7 @@
 <body>
 <div id="rail">
   <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-    <span class="brand"><img class="brand-logo" src="Logo.png" alt="mifuyu" /><span class="brand-name">Health OS</span></span>
+    <span class="brand"><img class="brand-logo" src="Logo.png" alt="mifuyu" /><span class="brand-name">Mifuyu OS</span></span>
     <nav id="nav"></nav>
   </div>
   <div class="right">
@@ -538,7 +538,7 @@ function manageCardsModal(tab){
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true, wtMetrics:["w"], wtType:"area", wtRange:"all" };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -585,7 +585,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,kiko:viewKiko,pcos:viewPcos,mj:viewMj,weight:viewWeight,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,pcos:viewPcos,mj:viewMj,weight:viewWeight,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -1258,6 +1258,7 @@ function viewKiko(){
     ["🧠","Park a thought","seed","park this: "],
     ["✍️","Write a script","seed","help me script a short about "],
     ["📓","Daily journal","act","startKikoJournal"],
+    ["🧾","Tax prep","act","startTaxPrep"],
     ["🎯","Title ideas","seed","give me stream title ideas for "],
     ["🔎","What's coming up","send","what's on my schedule and calendar coming up?"],
     ["🌐","Search the web","seed","search the web for "],
@@ -1284,6 +1285,98 @@ function viewKiko(){
       </ul>
       <p class="soft" style="font-size:11.5px;margin-top:4px">Everything he does is undoable with Ctrl+Z. 💗</p>
     </div></details>
+  </div>`;
+}
+
+/* ===================== MONEY (Netherlands sole-proprietor content creator) ===================== */
+const MONEY_IN=["Twitch","YouTube","Sponsorship","Donations/Tips","Merch","Affiliate","Other"];
+const MONEY_OUT=["Equipment","Software & subs","Internet & phone","Home office","Travel","Games/content","Marketing","Accountant","Bank & fees","Other"];
+const TAX_STEPS=[
+  "Let's gather your year together 🦊 First — do you have your total earnings for each income source? Twitch payouts, YouTube/AdSense, sponsorships & brand deals (including anything paid in product), donations/tips, merch, and affiliate. 💰",
+  "Now expenses — have you collected the receipts/invoices for your business costs? Gear, software & subscriptions, the business share of internet & phone, home-office, work travel, games bought as content, marketing, and bank & accountant fees. 🧾",
+  "Do you have your business bank statements for the whole year (January–December)? 🏦",
+  "Your BTW (VAT) returns — the quarterly aangiftes you filed and what you paid or got back. (If you're on the KOR small-business scheme, just note that instead.) 📑",
+  "Your hours log — roughly how many hours you spent on the business this year (the ~1,225-hour urencriterium unlocks the self-employed deductions). ⏱️",
+  "Any bigger equipment or assets you bought this year, with invoices — those affect investment deduction/depreciation. 🎥",
+  "Last year's income-tax return (aangifte) and any provisional assessment (voorlopige aanslag) for this year, if you have them. 📂",
+  "Your business details for the accountant: KVK number, business start date, BSN, and DigiD if you file yourself. 🪪",
+  "Last one — anything unusual to flag this year? A big new sponsor, a move, new gear, a quiet stretch… anything worth a note. ✨",
+];
+function eur(n){ return "€"+(Math.round((+n||0)*100)/100).toFixed(2); }
+function moneyYear(){ return state.moneyYear||String(new Date().getFullYear()); }
+function moneyEntries(year){ return (state.sentinel.money||[]).filter(t=>String(t.date||"").slice(0,4)===year); }
+function csvCell(s){ s=String(s==null?"":s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function downloadFile(name,content,mime){ try{ const b=new Blob([content],{type:mime||"text/plain"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1500); }catch(e){ toast("couldn't export — try again"); } }
+function moneySummaryText(year){
+  const tx=moneyEntries(year); const inc=tx.filter(t=>t.dir==="in").reduce((a,t)=>a+(+t.amount||0),0); const exp=tx.filter(t=>t.dir==="out").reduce((a,t)=>a+(+t.amount||0),0);
+  const catLines=(dir,cats)=>cats.map(c=>{ const s=tx.filter(t=>t.dir===dir&&t.cat===c).reduce((a,t)=>a+(+t.amount||0),0); return s>0?`   ${c}: ${eur(s)}`:""; }).filter(Boolean).join("\n");
+  const q=[1,2,3,4].map(qi=>{ const inq=tx.filter(t=>{const mo=+String(t.date).slice(5,7);return Math.ceil(mo/3)===qi;}); const in_=inq.filter(t=>t.dir==="in").reduce((a,t)=>a+(+t.amount||0),0); const out_=inq.filter(t=>t.dir==="out").reduce((a,t)=>a+(+t.amount||0),0); return `   Q${qi}: income ${eur(in_)} · expenses ${eur(out_)}`; }).join("\n");
+  const tp=(state.sentinel.taxPrep||{})[year];
+  return `MIFUYU — TAX SUMMARY ${year}\n(eenmanszaak / sole proprietor · content creation · Netherlands)\n\n`
+    +`TOTAL INCOME:   ${eur(inc)}\nTOTAL EXPENSES: ${eur(exp)}\nNET PROFIT:     ${eur(inc-exp)}\n\n`
+    +`INCOME BY CATEGORY:\n${catLines("in",MONEY_IN)||"   (none)"}\n\nEXPENSES BY CATEGORY:\n${catLines("out",MONEY_OUT)||"   (none)"}\n\nPER QUARTER (for BTW):\n${q}\n\n`
+    +(tp&&tp.items&&tp.items.length?`TAX-PREP CHECKLIST:\n${tp.items.map(x=>`• ${x.q}\n   → ${x.a}`).join("\n\n")}\n\n`:"")
+    +`Note: figures from Mifuyu OS; please verify against bank/platform statements with your accountant.\n`;
+}
+async function saveTaxPrep(J){ const items=(J.items||[]).filter(x=>x&&x.a); await setSent(n=>{ const tp={...(n.taxPrep||{})}; tp[J.year]={ts:new Date().toISOString(), items}; return {...n,taxPrep:tp}; }); }
+function viewMoney(){
+  const year=moneyYear(); const dir=state.moneyDir||"in";
+  const all=(state.sentinel.money||[]); const years=[...new Set(all.map(t=>String(t.date||"").slice(0,4)).filter(Boolean))]; const curY=String(new Date().getFullYear()); if(!years.includes(curY))years.push(curY); years.sort().reverse();
+  const tx=moneyEntries(year).slice().sort((a,b)=>a.date<b.date?1:-1);
+  const inc=tx.filter(t=>t.dir==="in").reduce((a,t)=>a+(+t.amount||0),0), exp=tx.filter(t=>t.dir==="out").reduce((a,t)=>a+(+t.amount||0),0);
+  const tp=(state.sentinel.taxPrep||{})[year];
+  return `<div style="max-width:920px;margin:0 auto">
+    <div class="card-head"><h2 style="font-size:19px">💶 Money</h2>
+      <select class="inp" id="moneyYear" style="max-width:110px">${years.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join("")}</select></div>
+    <p class="soft" style="font-size:12px;margin:0 0 12px">Your business books — for a sole-proprietor (eenmanszaak) creator in the Netherlands. 🇳🇱❄️</p>
+
+    <section class="panel">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+        <div class="soft-card"><div class="label">Income</div><div class="bignum" style="color:#3a9d83;font-size:22px">${eur(inc)}</div></div>
+        <div class="soft-card"><div class="label">Expenses</div><div class="bignum" style="color:var(--sakura-deep);font-size:22px">${eur(exp)}</div></div>
+        <div class="soft-card"><div class="label">Net profit</div><div class="bignum" style="font-size:22px">${eur(inc-exp)}</div></div>
+      </div>
+      <p class="soft" style="font-size:11px;text-align:center;margin-top:8px">A common rule of thumb is to set aside roughly a third of profit for income tax + Zvw — confirm the real number with your accountant. 💗</p>
+    </section>
+
+    <section class="panel">
+      <div class="label" style="margin-bottom:6px">➕ Add a transaction</div>
+      <div class="seg" style="margin-bottom:8px"><button data-act="moneyDir" data-v="in" class="${dir==='in'?'on':''}">＋ Income</button><button data-act="moneyDir" data-v="out" class="${dir==='out'?'on':''}">－ Expense</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field"><div class="label">Date</div><input class="inp" type="date" id="mn_date" value="${TODAY}"></div>
+        <div class="field"><div class="label">Amount (€)</div><input class="inp" type="number" step="0.01" id="mn_amount" placeholder="0.00"></div>
+      </div>
+      <div class="field" style="margin-top:8px"><div class="label">Category</div><select class="inp" id="mn_cat">${(dir==='in'?MONEY_IN:MONEY_OUT).map(c=>`<option>${c}</option>`).join("")}</select></div>
+      <input class="inp" id="mn_desc" placeholder="description (e.g. Twitch payout July · new microphone)" style="margin-top:8px">
+      <button class="btn btn-grad" data-act="addMoney" style="margin-top:8px">Add</button>
+    </section>
+
+    <section class="panel">
+      <div class="card-head"><span class="label">${year} transactions</span><span class="pill pill-gray">${tx.length}</span></div>
+      ${tx.length?tx.map(t=>`<div class="listrow"><span class="grow"><b style="font-size:13px;color:${t.dir==='in'?'#3a9d83':'var(--sakura-deep)'}">${t.dir==='in'?'+':'−'}${eur(t.amount).slice(1)}</b> <span class="soft" style="font-size:11.5px">${esc(t.cat||'')} · ${fmtDate(t.date)}${t.desc?' · '+esc(t.desc):''}</span></span><button class="x" data-act="delMoney" data-v="${t.id}">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">No transactions yet for ${year}. Add your payouts and expenses above. ❄️</p>`}
+      ${tx.length?`<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn" data-act="exportMoneyCSV">⬇ Transactions (CSV)</button><button class="btn" data-act="exportMoneySummary">⬇ Accountant summary</button></div>`:''}
+    </section>
+
+    <section class="panel">
+      <div class="card-head"><span class="label">🧾 Tax season</span></div>
+      <p class="soft" style="font-size:12.5px;margin:0 0 8px">When it's time to file, Kiko walks you through exactly what to gather for your accountant — then you export it. You don't file yourself; you just hand this over.</p>
+      <button class="btn btn-grad" data-act="startTaxPrep">Start tax-prep with Kiko 🦊</button>
+      ${tp&&tp.items&&tp.items.length?`<details class="acc" style="margin-top:12px"><summary>📋 ${year} prep checklist (saved)</summary><div class="acc-body">${tp.items.map(x=>`<div style="margin:6px 0"><div class="label">${esc(x.q)}</div><div style="font-size:13px">${esc(x.a)}</div></div>`).join("")}<button class="btn" data-act="exportTaxPrep" style="margin-top:8px">⬇ Export checklist</button></div></details>`:''}
+    </section>
+
+    <details class="acc"><summary>📖 Netherlands tax guide — sole-proprietor creator</summary><div class="acc-body">
+      <p style="font-size:13px;line-height:1.65">You run an <b>eenmanszaak</b> (sole proprietorship), so your business profit is taxed as your personal income in <b>Box 1</b> (inkomstenbelasting). Nothing is withheld for you, so put money aside through the year.</p>
+      <p style="font-size:13px;line-height:1.65"><b>BTW (VAT):</b> the standard rate is 21%, and you normally file a BTW return <b>each quarter</b>. If your turnover stays under the KOR threshold (around €20,000/yr) you can join the <b>kleineondernemersregeling</b> and stop charging/filing VAT — your accountant can say which is better for you.</p>
+      <p style="font-size:13px;line-height:1.65"><b>Self-employed deductions:</b> if you spend about <b>1,225 hours</b>/year on the business (the urencriterium), you may qualify for the <b>zelfstandigenaftrek</b>, plus the <b>startersaftrek</b> in your first years; the <b>MKB-winstvrijstelling</b> then exempts a slice of the remaining profit. Keep an hours log to prove it.</p>
+      <p style="font-size:13px;line-height:1.65"><b>Costs you can usually deduct:</b> gear, software & subscriptions, a business share of internet/phone, marketing, work travel, games/props bought specifically as content, and bank/accountant fees. Personal use isn't deductible — split mixed use. Bigger purchases may qualify for the investment deduction (KIA) or are depreciated over several years.</p>
+      <p style="font-size:13px;line-height:1.65"><b>Also budget for</b> the income-dependent <b>Zvw</b> health contribution on top of income tax.</p>
+      <p style="font-size:13px;line-height:1.65"><b>Records:</b> keep your full administration — invoices, receipts, bank statements — for <b>7 years</b>.</p>
+      <p class="soft" style="font-size:11.5px">Amounts and rules change every year and depend on your situation — treat this as a friendly overview and let your accountant and the Belastingdienst be the authority. 💗</p>
+    </div></details>
+    <details class="acc"><summary>🗂️ What to collect for tax season</summary><div class="acc-body">
+      <ol style="padding-left:18px;font-size:13px;line-height:1.7">${TAX_STEPS.map(s=>`<li style="margin:5px 0">${s}</li>`).join("")}</ol>
+    </div></details>
+    <div class="disc" style="margin-top:14px">🧾<span>General information for a Dutch eenmanszaak — not tax or financial advice. Rules and amounts change yearly and depend on your situation; your accountant and the Belastingdienst are the final word. ❄️</span></div>
   </div>`;
 }
 
@@ -1721,11 +1814,36 @@ async function scrSaveDraft(){
 async function scrLoadDraft(id){ const d=((state.sentinel||{}).scripts||[]).find(x=>x.id===id); if(d){ state.script={id:d.id,kind:d.kind||"short",title:d.title||"",references:d.references||"",raw:d.raw||"",out:d.out||null}; render(); } }
 async function scrDelDraft(id){ await setSent(n=>({...n,scripts:(n.scripts||[]).filter(x=>x.id!==id)})); toast("Removed"); render(); }
 
+function sponsorBlock(){
+  const sp=(state.sentinel.sponsors||[]).slice();
+  const badge=s=>({active:'pill-mint',pending:'pill-lav',done:'pill-gray'})[s]||'pill-gray';
+  const rows=sp.length?sp.map(s=>`<div class="listrow" style="align-items:flex-start">
+      <span class="grow"><b style="font-size:13px">${esc(s.name)}</b> <span class="pill ${badge(s.status)}" style="font-size:10px">${esc(s.status||'pending')}</span>
+        <div class="soft" style="font-size:11.5px">${s.code?'code '+esc(s.code)+' · ':''}${s.payout?esc(s.payout)+' · ':''}${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--peri-deep)">link</a>`:''}${s.note?' · '+esc(s.note):''}</div></span>
+      <button class="x" data-act="spCycle" data-v="${s.id}" title="cycle status">↻</button>
+      <button class="x" data-act="delSponsor" data-v="${s.id}">✕</button></div>`).join("")
+    :`<p class="soft" style="font-size:12.5px">No sponsors yet — add brand deals, codes, and payouts to keep them all in one place. 💜</p>`;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">💜 Sponsors &amp; deals</span><span class="pill pill-gray">${sp.filter(s=>s.status==='active').length} active</span></div>
+    ${rows}
+    <details class="acc" style="margin-top:10px"><summary>＋ add a sponsor</summary><div class="acc-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <input class="inp" id="sp_name" placeholder="brand (e.g. GamerSupps)">
+        <input class="inp" id="sp_code" placeholder="code (e.g. MIFUYU)">
+        <input class="inp" id="sp_payout" placeholder="deal / payout (e.g. €300 + 10%)">
+        <input class="inp" id="sp_url" placeholder="link (https://…)">
+      </div>
+      <input class="inp" id="sp_note" placeholder="note (deliverables, dates…)" style="margin-top:8px">
+      <button class="btn btn-grad" data-act="addSponsor" style="margin-top:8px">Add sponsor</button>
+    </div></details>
+  </section>`;
+}
 function viewOptimize(){
   const m=OPT.mode;
   return `
+  ${sponsorBlock()}
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">🎯 ${m==='video'?'Video':'Livestream'} optimization</h2>
+    <div class="card-head"><h2 style="font-size:18px">🔴 ${m==='video'?'Video':'Stream'} optimization</h2>
       <div class="seg">
         <button data-act="optMode" data-v="video" class="${m==='video'?'on':''}">📹 Video</button>
         <button data-act="optMode" data-v="stream" class="${m==='stream'?'on':''}">🔴 Livestream</button>
@@ -1752,7 +1870,13 @@ const CAL_TZ_LABEL="CET";
 const CAL_TZS=[["Europe/Amsterdam","CET · Europe (your time)"],["Europe/London","UK"],["UTC","UTC"],["America/New_York","ET · Eastern"],["America/Chicago","CT · Central"],["America/Denver","MT · Mountain"],["America/Los_Angeles","PT · Pacific"],["Asia/Tokyo","JP · Japan"]];
 const CAL_TZ_SHORT={"Europe/Amsterdam":"CET","Europe/London":"UK","UTC":"UTC","America/New_York":"ET","America/Chicago":"CT","America/Denver":"MT","America/Los_Angeles":"PT","Asia/Tokyo":"JP"};
 const CAL_COLORS=["#9fc7f0","#c9b8f0","#a9e0cb","#ff9ed8","#b8d4f0"];   // sky · lavender · mint · sakura · ice
-const GAME_COLOR_DEFAULT="#f6cba9";
+const GAME_COLOR_DEFAULT="#f6cba9";   // game updates (peach)
+const GAME_EVENT_COLOR="#a9e0cb";     // limited-time game events (mint)
+const GAME_STREAM_COLOR="#c9b8f0";    // game livestream days (light purple)
+const DEFAULT_GAMES=["Wuthering Waves","Honkai Star Rail","Neverness to Everness","Arknights Endfield","Zenless Zone Zero","Genshin Impact"];
+function gameSrc(ev){ return ev&&(ev.src==="game"||ev.src==="gameevent"||ev.src==="gamestream"); }
+function gameSrcColor(ev,gameColor){ return ev.src==="gamestream"?GAME_STREAM_COLOR : ev.src==="gameevent"?(ev.color||GAME_EVENT_COLOR) : (gameColor||GAME_COLOR_DEFAULT); }
+function gameSrcIcon(ev){ return ev.src==="gamestream"?"📺 " : ev.src==="gameevent"?"🎉 " : ev.src==="game"?"🎮 " : ""; }
 let CAL_COLOR=CAL_COLORS[0];
 function tzOffsetMs(tz,utcMs){ const p=new Intl.DateTimeFormat("en-US",{timeZone:tz,hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}).formatToParts(new Date(utcMs)).reduce((a,x)=>(a[x.type]=x.value,a),{}); const asUTC=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second); return asUTC-utcMs; }
 function wallToUtc(dateStr,timeStr,tz){ const [Y,M,D]=dateStr.split("-").map(Number); const [h,m]=(timeStr||"00:00").split(":").map(Number); const guess=Date.UTC(Y,M-1,D,h,m); let off=tzOffsetMs(tz,guess); off=tzOffsetMs(tz,guess-off); return guess-off; }
@@ -1782,24 +1906,24 @@ function renderCalendar(){
     const streamChips=showStreams?schedule.filter(s=>s.day===dayShort).map(s=>`<div class="cal-stream" data-act="editSchedule" title="Stream day — tap to edit your schedule">🔴 ${s.time?esc(s.time)+" · ":""}${esc(s.show||s.title||"Stream")}</div>`).join(""):"";
     const bdayChips=(sent.birthdays||[]).filter(b=>(d.getMonth()+1)===Number(b.month)&&d.getDate()===Number(b.day)).map(b=>`<div class="cal-bday" data-act="scrollAgenda" title="🎂 ${esc(b.name)}'s birthday">🎂 ${esc(b.name)}</div>`).join("");
     const dow=d.getDay();
-    const dayEvents=events.filter(ev=> ds>=ev.date && ds<=(ev.endDate||ev.date) && (showGames||ev.src!=="game"));
+    const dayEvents=events.filter(ev=> ds>=ev.date && ds<=(ev.endDate||ev.date) && (showGames||!gameSrc(ev)));
     // multi-day events → one continuous bar (rendered first so they line up across cells)
     const spanBars=dayEvents.filter(ev=>ev.endDate&&ev.endDate>ev.date)
       .sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id)).map(ev=>{
-        const bg=ev.src==="game"?gameColor:(ev.color||CAL_COLORS[0]);
-        const ic=ev.src==="game"?"🎮 ":"";
+        const bg=gameSrc(ev)?gameSrcColor(ev,gameColor):(ev.color||CAL_COLORS[0]);
+        const ic=gameSrcIcon(ev);
         const isStart=ds===ev.date, isEnd=ds===ev.endDate, leftCap=isStart||dow===0, rightCap=isEnd||dow===6, showTitle=isStart||dow===0;
-        const linkable=ev.src==="game"&&ev.url, act=linkable?`data-act="calLink" data-url="${esc(ev.url)}"`:`data-act="calEvent"`, lk=linkable?" 🔗":"";
+        const linkable=gameSrc(ev)&&ev.url, act=linkable?`data-act="calLink" data-url="${esc(ev.url)}"`:`data-act="calEvent"`, lk=linkable?" 🔗":"";
         const tip=esc(ic+ev.title+(ev.note?" — "+ev.note:"")+(linkable?" — (tap to open update)":""));
         return `<div class="cal-span${leftCap?' lcap':''}${rightCap?' rcap':''}" data-eid="${ev.id}" ${act} draggable="${isStart?'true':'false'}" style="background:${bg}" title="${tip}">${showTitle?ic+esc(ev.title)+lk:"&nbsp;"}</div>`;
       }).join("");
     // single-day events → compact pill, just a short title (time + note open in the event)
     const singleChips=dayEvents.filter(ev=>!(ev.endDate&&ev.endDate>ev.date))
       .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")).map(ev=>{
-        const bg=ev.src==="game"?gameColor:(ev.color||CAL_COLORS[0]);
-        const ic=ev.src==="game"?"🎮 ":"";
+        const bg=gameSrc(ev)?gameSrcColor(ev,gameColor):(ev.color||CAL_COLORS[0]);
+        const ic=gameSrcIcon(ev);
         const et=toLocal(ev.date,ev.time,ev.tz);
-        const linkable=ev.src==="game"&&ev.url, act=linkable?`data-act="calLink" data-url="${esc(ev.url)}"`:`data-act="calEvent"`, lk=linkable?" 🔗":"";
+        const linkable=gameSrc(ev)&&ev.url, act=linkable?`data-act="calLink" data-url="${esc(ev.url)}"`:`data-act="calEvent"`, lk=linkable?" 🔗":"";
         const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(ev.note?" — "+ev.note:"")+(linkable?" — (tap to open update)":""));
         return `<div class="cal-ev" draggable="true" data-eid="${ev.id}" ${act} style="background:${bg}" title="${tip}">${ic}${esc(ev.title)}${lk}</div>`;
       }).join("");
@@ -1808,15 +1932,32 @@ function renderCalendar(){
   return `<div class="panel" style="max-width:920px;margin:0 auto">
     <div class="card-head"><div><h2 style="font-size:18px">📅 ${monthName}</h2><div class="label" style="margin-top:2px">tap a day to add · drag to move · 🔴 streams · 🎮 game updates ❄️🦊</div></div>
       <div style="display:flex;gap:6px"><button class="btn" data-act="calPrev" title="previous month">‹</button><button class="btn" data-act="calToday">today</button><button class="btn" data-act="calNext" title="next month">›</button></div></div>
-    <div class="chiprow" style="margin-bottom:10px">
+    <div class="chiprow" style="margin-bottom:8px">
       <button class="chiptog ${showStreams?'on':''}" data-act="calToggleStreams"><span>${showStreams?'✓':''}</span>🔴 Stream schedule</button>
-      <button class="chiptog ${showGames?'on':''}" data-act="calToggleGames"><span>${showGames?'✓':''}</span>🎮 Game updates</button>
+      <button class="chiptog ${showGames?'on':''}" data-act="calToggleGames"><span>${showGames?'✓':''}</span>🎮 Games (updates · events · streams)</button>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin-bottom:10px">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${GAME_COLOR_DEFAULT};vertical-align:middle"></span> 🎮 update</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${GAME_EVENT_COLOR};vertical-align:middle"></span> 🎉 event start/end</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${GAME_STREAM_COLOR};vertical-align:middle"></span> 📺 livestream</span>
     </div>
     <div class="cal-grid" style="margin-bottom:6px">${dows.map(d=>`<div class="cal-dow">${d}</div>`).join("")}</div>
     <div class="cal-grid">${cells}</div>
-    <p class="soft" style="font-size:11.5px;margin-top:12px">Konfuyu~ nothing here is set in stone — drag things around whenever your week shifts. 💗 Game updates refresh automatically every Friday.</p>
+    <p class="soft" style="font-size:11.5px;margin-top:12px">Konfuyu~ nothing here is set in stone — drag things around whenever your week shifts. 💗 Games refresh automatically every Friday.</p>
   </div>
+  ${gamesTrackedCard(sent)}
   ${calAgenda(sent)}`;
+}
+async function gameTopicAdd(name){ await setSent(n=>{ let g=(n.gameTopics&&n.gameTopics.length)?n.gameTopics.slice():DEFAULT_GAMES.slice(); if(!g.some(x=>x.toLowerCase()===String(name).toLowerCase()))g.push(name); return {...n,gameTopics:g}; }); }
+async function gameTopicRemove(name){ await setSent(n=>{ let g=(n.gameTopics&&n.gameTopics.length)?n.gameTopics.slice():DEFAULT_GAMES.slice(); g=g.filter(x=>x.toLowerCase()!==String(name).toLowerCase()); return {...n,gameTopics:g}; }); }
+function gamesTrackedCard(sent){
+  const games=(sent.gameTopics&&sent.gameTopics.length)?sent.gameTopics:DEFAULT_GAMES;
+  return `<section class="panel" style="max-width:920px;margin:14px auto 0">
+    <div class="card-head"><div class="label">🎮 Games I track</div><span class="pill pill-gray">${games.length}</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Updates, limited-time events &amp; livestream days for these are pulled in each Friday. Ask Kiko to "track [game]" or "stop tracking [game]" anytime, or use the box below.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${games.map(g=>`<span class="pill pill-lav" style="display:inline-flex;align-items:center;gap:6px">${esc(g)} <button class="x" data-act="delGameTopic" data-v="${esc(g)}" style="font-size:11px;padding:0">✕</button></span>`).join("")}</div>
+    <div style="display:flex;gap:8px"><input class="inp" id="gameTopicInput" placeholder="add a game (e.g. Genshin Impact)"><button class="btn btn-grad" data-act="addGameTopic">＋ track</button></div>
+  </section>`;
 }
 
 /* ----- Events & Birthdays agenda + reminder settings (under the calendar) ----- */
@@ -1868,7 +2009,7 @@ function calAgenda(sent){
       <button class="chiptog ${rem.email?'on':''}" data-act="remEmail"><span>${rem.email?'✓':''}</span>✉️ Email</button>
     </div>
     ${rem.email?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input class="inp" id="remEmailAddr" type="email" placeholder="you@email.com" value="${esc(rem.emailAddr||CONFIG.ownerEmail||"")}" style="max-width:260px"><button class="btn" data-act="saveRemEmail">save email</button><span class="soft" style="font-size:11px">${rem.emailAddr?"sending to "+esc(rem.emailAddr):"add your email to receive reminders"}</span></div>`:""}
-    <p class="soft" style="font-size:11px;margin-top:10px">💻 Browser pop-ups appear while Mifuyu Health OS is open in a tab. ✉️ Email needs the reminder service set up on the server (one-time). Both respect Calm mode. ❄️</p>
+    <p class="soft" style="font-size:11px;margin-top:10px">💻 Browser pop-ups appear while Mifuyu OS is open in a tab. ✉️ Email needs the reminder service set up on the server (one-time). Both respect Calm mode. ❄️</p>
   </section>`;
 }
 
@@ -2132,6 +2273,8 @@ const H={
   async setGameColor(el){ await setSent(n=>({...n,gameColor:el.dataset.v})); toast("colour set 🎮"); render(); },
   calToggleStreams(){ state.calShowStreams = !(state.calShowStreams!==false); render(); },
   calToggleGames(){ state.calShowGames = !(state.calShowGames!==false); render(); },
+  async addGameTopic(){ const el=$("#gameTopicInput"); const name=(el?el.value:"").trim(); if(!name)return; await gameTopicAdd(name); toast("tracking "+name+" 🎮"); render(); },
+  async delGameTopic(el){ const name=el.dataset.v; await gameTopicRemove(name); toast("stopped tracking "+name); render(); },
   // --- script writer ---
   scriptKind(el){ scrCapture(); if(!state.script)state.script={}; state.script.kind=el.dataset.v; state.script.out=null; render(); },
   recToggle(){ scrRecToggle(); },
@@ -2228,6 +2371,7 @@ const H={
     if((!q && !imgs.length)||KIKO.busy)return;
     KIKO.log.push({role:"me",text:(imgs.length?("📷"+(imgs.length>1?"×"+imgs.length:"")+" "+(q||"")).trim():q)});
     if(KIKO.journal && KIKO.journal.active){ KIKO.pendingImages=[]; paintKiko(); return H.kikoJournalReply(q||"(sent a photo)"); }
+    if(KIKO.tax && KIKO.tax.active){ KIKO.pendingImages=[]; paintKiko(); return H.kikoTaxReply(q||"(noted)"); }
     if(imgs.length){ KIKO.pendingImages=[]; return H.kikoFoodPhoto(q,imgs); }   // photos → estimate & log the food
     KIKO.busy=true; paintKiko();
     let ans, didActions=false;
@@ -2275,6 +2419,37 @@ const H={
     paintKiko(); },
 
   // --- Optimize ---
+  // --- sponsors ---
+  async addSponsor(){ const g=id=>{const e=$("#"+id);return e?e.value.trim():"";}; const name=g("sp_name"); if(!name){toast("name please 💜");return;}
+    await setSent(n=>({...n,sponsors:[...(n.sponsors||[]),{id:"sp"+Date.now(),name,code:g("sp_code"),payout:g("sp_payout"),url:g("sp_url"),note:g("sp_note"),status:"pending"}]})); toast("added 💜"); render(); },
+  async delSponsor(el){ const id=el.dataset.v; await setSent(n=>({...n,sponsors:(n.sponsors||[]).filter(s=>s.id!==id)})); render(); },
+  async spCycle(el){ const id=el.dataset.v, order=["pending","active","done"]; await setSent(n=>({...n,sponsors:(n.sponsors||[]).map(s=>s.id===id?{...s,status:order[(order.indexOf(s.status||"pending")+1)%3]}:s)})); render(); },
+  // --- money ---
+  moneyDir(el){ state.moneyDir=el.dataset.v; render(); },
+  async addMoney(){ const g=id=>{const e=$("#"+id);return e?e.value:"";}; const amt=parseFloat(g("mn_amount")); if(isNaN(amt)||amt<=0){ toast("enter an amount 💶"); return; }
+    const item={id:"mny"+Date.now(), date:g("mn_date")||TODAY, dir:(state.moneyDir||"in"), cat:g("mn_cat")||"Other", amount:Math.round(amt*100)/100, desc:g("mn_desc").trim()};
+    await setSent(n=>({...n,money:[...(n.money||[]),item]})); state.moneyYear=String(item.date).slice(0,4); toast("logged 💶"); render(); },
+  async delMoney(el){ const id=el.dataset.v; await setSent(n=>({...n,money:(n.money||[]).filter(t=>t.id!==id)})); render(); },
+  exportMoneyCSV(){ const y=moneyYear(); const tx=moneyEntries(y).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const rows=[["date","direction","category","amount_eur","description"]].concat(tx.map(t=>[t.date,t.dir==="in"?"income":"expense",t.cat||"",(+t.amount||0).toFixed(2),t.desc||""]));
+    downloadFile(`mifuyu-money-${y}.csv`, rows.map(r=>r.map(csvCell).join(",")).join("\n"), "text/csv"); toast("exported 💜"); },
+  exportMoneySummary(){ const y=moneyYear(); downloadFile(`mifuyu-tax-summary-${y}.txt`, moneySummaryText(y), "text/plain"); toast("exported 💜"); },
+  exportTaxPrep(){ const y=moneyYear(); const tp=(state.sentinel.taxPrep||{})[y]; if(!tp||!tp.items){ toast("nothing to export yet"); return; }
+    const txt=`MIFUYU — TAX-PREP CHECKLIST ${y}\n\n`+tp.items.map(x=>`• ${x.q}\n   → ${x.a}`).join("\n\n")+"\n"; downloadFile(`mifuyu-taxprep-${y}.txt`, txt, "text/plain"); toast("exported 💜"); },
+  // tax-prep wizard (Kiko walks her through what to gather)
+  startTaxPrep(){ const year=moneyYear(); KIKO.tax={active:true, step:0, year, log:[]};
+    if(state.tab!=="kiko") H.openKikoChatPanel();
+    KIKO.log.push({role:"pet",text:`Tax season for ${year}! 🧾 I'll walk you through everything to gather for your accountant — just tell me what you've got (or jot a note) after each one, and say "stop" anytime. ❄️🦊`});
+    KIKO.log.push({role:"pet",text:TAX_STEPS[0]}); KIKO.tax.log.push({who:"Kiko",text:TAX_STEPS[0]}); paintKiko(); },
+  async kikoTaxReply(answer){
+    const J=KIKO.tax; if(!J)return; J.log.push({who:"Mifu",text:answer});
+    if(/^(stop|cancel|nvm|never ?mind|quit|exit|done)\.?$/i.test(answer)){ J.active=false; KIKO.log.push({role:"pet",text:"okay, we can pick this up whenever — your progress is safe 💗"}); paintKiko(); if(J.items&&J.items.length)await saveTaxPrep(J); return; }
+    J.items=J.items||[]; J.items.push({q:TAX_STEPS[J.step], a:answer}); J.step++;
+    if(J.step<TAX_STEPS.length){ KIKO.log.push({role:"pet",text:["got it ✓","noted ❄️","perfect 💜","saved ✓"][Math.floor(Math.random()*4)]}); KIKO.log.push({role:"pet",text:TAX_STEPS[J.step]}); J.log.push({who:"Kiko",text:TAX_STEPS[J.step]}); paintKiko(); return; }
+    J.active=false;
+    KIKO.log.push({role:"pet",text:`That's everything for ${J.year}! 🎉 Hand these to your accountant, and pop over to the Money tab to tap "Accountant summary" — I'll export your income, expenses and this checklist in one file. You've got this. 💗🦊`}); paintKiko();
+    await saveTaxPrep(J);
+    if(state.tab==="money"){ try{ await render(); }catch(_){} } },
   optMode(el){ OPT.mode=el.dataset.v; OPT.err=""; render(); },
   optDrops(){ OPT.drops=!OPT.drops; render(); },
   async optChannel(){ OPT.busy="channel"; OPT.err=""; render(); try{ const d=await aiCall("channelSnapshot",{handle:CONFIG.youtube.handle,channelId:CONFIG.youtube.channelId}); OPT.channel=d.snapshot||d; }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
@@ -2330,6 +2505,7 @@ document.addEventListener("change",e=>{
       paintKiko(); const ni=kikoInputEl(); if(ni&&keep){ ni.value=keep; }
     }; img.onerror=()=>{ KIKO.pendingImages.push(r.result); paintKiko(); const ni=kikoInputEl(); if(ni&&keep){ni.value=keep;} }; img.src=r.result; }; r.readAsDataURL(f); });
     t.value="";   // allow re-selecting the same file later
+  } else if(t.id==="moneyYear"){ state.moneyYear=t.value; render();
   } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value;
     setSent(n=>({...n,schedule:(n.schedule||[]).map(r=>r.id===id?{...r,[k]:v}:r)})); // fire-and-forget; no re-render mid-edit
   }
@@ -2519,7 +2695,7 @@ window.addEventListener('error',ev=>{ const v=document.getElementById('view');
   if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p></div>'; } });
 
 /* ===================== KIKO — AI snowfox pet ===================== */
-const KIKO={ open:false, busy:false, log:[], journal:null, pendingImages:[] };
+const KIKO={ open:false, busy:false, log:[], journal:null, tax:null, pendingImages:[] };
 const KIKO_GREETS=["Konfuyu~! Need anything? ❄️","Pspsps… ask me something! 🦊","I'm right here if you need me 💗","Hi Mifu~ ✿","Wanna brainstorm? 🌸"];
 /* sprite walk engine + desktop-pet physics — frames measured from fox.png (164x210). Row 2 = 4-frame walk cycle. */
 const KIKO_SHEET={url:"fox.png",W:164,H:210};
@@ -2652,6 +2828,11 @@ async function execAgentAction(a){
     if(T==="logFood"){ const num=v=>{const n=Number(v);return isNaN(n)?0:Math.round(n*10)/10;};
       const item={id:"fd"+Date.now(),name:a.name||"food",serving:a.serving||"",kcal:Math.round(Number(a.kcal)||0),protein:num(a.protein),carbs:num(a.carbs),fiber:num(a.fiber),fat:num(a.fat),time:new Date().toISOString()};
       await setToday(n=>({...n,food:[...(n.food||[]),item]})); return "🍽️ "+item.name+" — "+item.kcal+" kcal · "+item.protein+"g protein · "+item.fiber+"g fibre"; }
+    if(T==="addBirthday"){ let M,D; if(a.date&&/^\d{4}-\d{2}-\d{2}$/.test(a.date)){ M=+a.date.slice(5,7); D=+a.date.slice(8,10); } else { M=Number(a.month); D=Number(a.day); }
+      if(!M||!D)return null; await setSent(n=>({...n,birthdays:[...(n.birthdays||[]),{id:"bd"+Date.now(),name:a.name||"friend",month:M,day:D}]}));
+      return "🎂 "+(a.name||"friend")+"'s birthday — "+fmtDate(new Date().getFullYear()+"-"+String(M).padStart(2,"0")+"-"+String(D).padStart(2,"0")); }
+    if(T==="addGameTopic"){ if(!a.name)return null; await gameTopicAdd(a.name); return "🎮 now tracking "+a.name; }
+    if(T==="removeGameTopic"){ if(!a.name)return null; await gameTopicRemove(a.name); return "🎮 stopped tracking "+a.name; }
     if(T==="startScript"){ state.script={kind:(a.kind==="long"?"long":"short"),title:a.title||"",references:a.references||"",raw:a.raw||"",out:null}; state.tab="script";
       if(a.format && (state.script.raw||state.script.references)){ setTimeout(()=>{ try{scrFormat();}catch(e){} },150); }
       return "✍️ started a "+(a.kind==="long"?"long-form":"short")+" script"+(a.title?" — “"+a.title+"”":""); }
@@ -2744,13 +2925,14 @@ function checkReminders(){
     if(!rem.browser) return;
     if(typeof Notification==="undefined" || Notification.permission!=="granted") return;
     if(document.body.classList.contains("calm")) return;
-    const offs=rem.offsets||[0,1]; const today=new Date(TODAY+"T00:00");
+    const offs=rem.offsets||[0,1]; const BDAY_OFFS=[30,7,1,0]; const today=new Date(TODAY+"T00:00");
     const items=[];
-    (sent.calendarEvents||[]).forEach(ev=>{ const days=Math.round((new Date(ev.date+"T00:00")-today)/86400000); items.push({id:ev.id,title:ev.title,date:ev.date,days}); });
-    (sent.birthdays||[]).forEach(b=>{ const ni=nextBirthdayInfo(b); items.push({id:b.id,title:"🎂 "+b.name+"'s birthday",date:ni.date,days:ni.days}); });
-    items.forEach(it=>{ if(!offs.includes(it.days))return; const key="mifu-notif-"+it.id+"-"+it.date+"-"+it.days;
+    (sent.calendarEvents||[]).forEach(ev=>{ const days=Math.round((new Date(ev.date+"T00:00")-today)/86400000); items.push({id:ev.id,title:ev.title,date:ev.date,days,offs}); });
+    // birthdays always get a one-month-ahead nudge (gift time!) plus 1 week, 1 day, day-of
+    (sent.birthdays||[]).forEach(b=>{ const ni=nextBirthdayInfo(b); items.push({id:b.id,title:"🎂 "+b.name+"'s birthday",date:ni.date,days:ni.days,offs:BDAY_OFFS}); });
+    items.forEach(it=>{ if(!(it.offs||offs).includes(it.days))return; const key="mifu-notif-"+it.id+"-"+it.date+"-"+it.days;
       if(localStorage.getItem(key))return;
-      const when=it.days===0?" — today!":it.days===1?" — tomorrow":" — in "+it.days+" days";
+      const when=it.days===0?" — today!":it.days===1?" — tomorrow":it.days>=28?" — in about a month":" — in "+it.days+" days";
       try{ new Notification("❄️ Mifuyu reminder", {body: it.title+when, icon:"Sakura.png"}); localStorage.setItem(key,"1"); }catch(e){}
     });
   }catch(e){ console.error(e); }
