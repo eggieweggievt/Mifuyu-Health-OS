@@ -432,8 +432,11 @@ async function render(){
   $("#nav").innerHTML = TABS.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
   const st=$("#status"); st.textContent=DEMO?"◇ demo data":(SB?"● live":"◌ connecting…"); st.className="chip"+(DEMO?" demo":(SB?" on":""));
   const v=$("#view");
-  if(state._lastTab!==state.tab){ v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim'); state._lastTab=state.tab;
-    clearTimeout(state._animT); state._animT=setTimeout(()=>{ const vv=$("#view"); if(vv) vv.classList.remove('anim'); },720); } // pop-in only on real page changes (no flicker on in-tab taps)
+  // pop-in only on REAL page changes — and never on the very first paint, so the
+  // boot splash hands straight off to the home view as one smooth load (no "double load").
+  if(state._booted && state._lastTab!==state.tab){ v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
+    clearTimeout(state._animT); state._animT=setTimeout(()=>{ const vv=$("#view"); if(vv) vv.classList.remove('anim'); },720); }
+  state._lastTab=state.tab; state._booted=true;
   try{
     state.sentinel = await DB.daily(SENTINEL);
     state.today = await DB.daily(TODAY);
