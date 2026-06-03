@@ -93,6 +93,18 @@ async function claudeWith(system: string, user: string, maxTokens = 1200): Promi
   if (j.error) throw new Error(j.error.message || "Claude error");
   return (j.content && j.content[0] && j.content[0].text) || "";
 }
+// custom system + user, with optional server-side tools (e.g. web search). Returns the joined text blocks.
+async function claudeWithTools(system: string, user: string, maxTokens = 1500, tools?: any[]): Promise<string> {
+  if (!ANTHROPIC_KEY) throw new Error("Claude key isn't set on the server.");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }], ...(tools && tools.length ? { tools } : {}) }),
+  });
+  const j = await res.json();
+  if (j.error) throw new Error(j.error.message || "Claude error");
+  return (j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
+}
 // custom system + arbitrary message content (supports images) — used by the food estimator
 async function claudeMsg(system: string, content: any, maxTokens = 700): Promise<string> {
   if (!ANTHROPIC_KEY) throw new Error("Claude key isn't set on the server.");
@@ -259,13 +271,17 @@ Allowed action objects (use ONLY these shapes; include just the fields you need)
 - {"type":"cycleStart"}   (period started today)
 - {"type":"cycleEnd"}     (period ended today)
 - {"type":"logPcos","field":"fatigue|bloating|cravings|acne|shedding","value":0-5}
+- {"type":"logFood","name":"...","serving":"the portion","kcal":<integer>,"protein":<grams>,"carbs":<grams>,"fiber":<grams>,"fat":<grams>}   (when she tells you about a meal/snack to log WITHOUT a photo, ESTIMATE its calories and macros yourself from standard nutrition knowledge for the portion she describes — she cares most about PROTEIN and FIBRE for her health, so be especially careful with those. If she gives her own numbers, use them. Don't ask her for the numbers; make a sensible estimate and mention in your reply that it's an estimate.)
 - {"type":"startScript","kind":"short|long","title":"...","raw":"<the idea/notes she gave you to script>","references":"...","format":true|false}   (opens the Script Writer seeded with this; set format:true only if there's already enough to shape a draft now)
+
+You can SEARCH THE WEB when it would help — for current info (game update dates/times, patch notes, news), facts you're unsure of, nutrition details, prices, anything time-sensitive or that you don't reliably know. Search when it makes your answer more accurate, then weave what you found into your warm reply (and into an action if relevant — e.g. search a game's update time, then addEvent it). You don't need to search for simple chit-chat or things you already know.
 
 Rules:
 - Compute all dates relative to TODAY and her timezone, given below. "tomorrow"/"next friday"/"in 2 weeks" → real YYYY-MM-DD. Multi-day → set endDate.
 - Only include actions she clearly asked for. If she's just chatting or asking a question, use "actions":[] and answer in "reply".
 - If something's ambiguous, do your best reasonable guess and mention it in the reply (don't refuse).
-- Always include a brief warm "reply" confirming what you did or answering her.`;
+- Always include a brief warm "reply" confirming what you did or answering her.
+- CRITICAL: after any web searching, your FINAL output must be ONLY the JSON object { "reply": ..., "actions": [...] } and nothing else.`;
 
 async function agent(input: any) {
   const today = input.today || "", tz = input.tz || "Europe/Amsterdam", tab = input.tab || "home";
@@ -281,7 +297,11 @@ async function agent(input: any) {
     + `Her CURRENT weekly STREAM SCHEDULE (recurring weekdays): ${schedStr}\n`
     + `Her UPCOMING one-off EVENTS (specific dates): ${evStr}\n\n`
     + `She said: "${(input.question || "").slice(0, 1500)}"`;
-  const out = parseJSON(await claudeWith(AGENT_SYSTEM, user, 1200));
+  const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
+  let text = "";
+  try { text = await claudeWithTools(AGENT_SYSTEM, user, 1500, tools); }
+  catch (_e) { text = await claudeWith(AGENT_SYSTEM, user, 1200); }   // if web search is unavailable, fall back to a plain reply
+  const out = parseJSON(text);
   if (!out) return { reply: "my whiskers twitched — could you say that again? 🦊", actions: [] };
   if (!Array.isArray(out.actions)) out.actions = [];
   if (!out.reply) out.reply = "okay! ❄️";

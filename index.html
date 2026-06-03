@@ -473,7 +473,7 @@ function applyPrefs(){
   document.body.classList.toggle("calm",PREF.calm);
   document.body.classList.toggle("text-lg",PREF.text);
 }
-const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true };
+const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true, wtMetrics:["w"], wtType:"area", wtRange:"all" };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
 const TABS=[["home","🏠 Home"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🎯 Optimize"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
@@ -822,6 +822,46 @@ function withBMI(wl){ // attach a derived bmi to entries that have weight + we k
   const h=state.sentinel.heightCm; if(!h) return wl;
   return wl.map(x=> (x.w!=null && x.bmi==null) ? {...x, bmi: Math.round((x.w/Math.pow(h/100,2))*10)/10} : x);
 }
+const WT_COLORS={w:"#ef9ccb",bmi:"#9b8cf0",fat:"#f0869b",muscle:"#5fc59a",bone:"#c8a8ca",water:"#5ba6e8",visceral:"#f0b057",hr:"#7d83e6"};
+function wtYRange(vs){ if(!vs.length)return null; let mn=Math.min(...vs),mx=Math.max(...vs); if(mn===mx){mn-=1;mx+=1;} const p=(mx-mn)*0.12||1; return {mn:mn-p,mx:mx+p}; }
+function buildWeightChartSVG(keys,type){
+  let wl=withBMI((state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1));
+  const r=state.wtRange||"all";
+  if(r!=="all"){ const days=r==="30d"?30:r==="90d"?90:365; const cut=dayAgo(-days); wl=wl.filter(x=>x.date>=cut); }
+  keys=(keys||["w"]).filter(k=>BODYCOMP.some(b=>b[0]===k)); if(!keys.length)keys=["w"];
+  const single=keys.length===1;
+  const W=600,H=230,padX=42,padT=18,padB=32,plotW=W-padX*2,plotH=H-padT-padB,base=padT+plotH;
+  const ts=wl.map(x=>Date.parse(x.date+"T00:00")); const t0=ts.length?Math.min(...ts):0,t1=ts.length?Math.max(...ts):1; const tspan=Math.max(1,t1-t0);
+  const xi=iso=> padX + (ts.length>1 ? (Date.parse(iso+"T00:00")-t0)/tspan*plotW : plotW/2);
+  let grid=""; for(let g=0;g<=2;g++){ const yy=padT+g*(plotH/2); grid+=`<line x1="${padX}" y1="${yy.toFixed(0)}" x2="${W-padX}" y2="${yy.toFixed(0)}" stroke="#e7e2f2" stroke-width="1"/>`; }
+  // y-axis labels: real numbers when one metric, low/high when several
+  let ylab="", r0=null;
+  if(single){ r0=wtYRange(wl.filter(x=>x[keys[0]]!=null).map(x=>x[keys[0]]));
+    if(r0){ [[padT,r0.mx],[padT+plotH/2,(r0.mn+r0.mx)/2],[base,r0.mn]].forEach(([yy,val])=>{ ylab+=`<text x="${padX-8}" y="${(yy+4).toFixed(0)}" text-anchor="end" font-size="11" fill="#9b96b6">${Math.round(val*10)/10}</text>`; }); } }
+  else { ylab=`<text x="${padX-8}" y="${(padT+9).toFixed(0)}" text-anchor="end" font-size="10.5" fill="#9b96b6">high</text><text x="${padX-8}" y="${base.toFixed(0)}" text-anchor="end" font-size="10.5" fill="#9b96b6">low</text>`; }
+  let ticks=""; if(wl.length){ [...new Set([0,Math.floor(wl.length/2),wl.length-1])].forEach(i=>{ ticks+=`<text x="${xi(wl[i].date).toFixed(0)}" y="${H-8}" text-anchor="middle" font-size="11" fill="#9b96b6">${fmtDate(wl[i].date)}</text>`; }); }
+  let defs="", body="";
+  keys.forEach((k,ki)=>{
+    const col=WT_COLORS[k]||"#9b8cf0"; const raw=wl.filter(x=>x[k]!=null); if(!raw.length)return;
+    const rng = single ? r0 : wtYRange(raw.map(x=>x[k])); if(!rng)return;
+    const yv=v=> padT + (1-((v-rng.mn)/(rng.mx-rng.mn)))*plotH;
+    const pts=raw.map(x=>({x:xi(x.date),y:yv(x[k])}));
+    if(single && type==="bars"){ const gid="wbg"+ki; defs+=`<linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${col}"/><stop offset="1" stop-color="${col}" stop-opacity=".5"/></linearGradient>`;
+      const bw=Math.min(22,plotW/Math.max(1,pts.length)*0.6);
+      pts.forEach(p=>{ const h=Math.max(2,base-p.y); body+=`<rect x="${(p.x-bw/2).toFixed(1)}" y="${p.y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="5" fill="url(#${gid})"/>`; });
+    } else if(single && type==="dots"){
+      pts.forEach(p=>{ body+=`<line x1="${p.x.toFixed(1)}" y1="${base}" x2="${p.x.toFixed(1)}" y2="${p.y.toFixed(1)}" stroke="${col}" stroke-width="2" opacity=".3"/><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5.5" fill="${col}"/>`; });
+    } else {
+      const fid="wfg"+ki; if(single)defs+=`<linearGradient id="${fid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".4"/><stop offset="1" stop-color="${col}" stop-opacity=".03"/></linearGradient>`;
+      const path=pts.map(p=>`${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" L");
+      if(single && pts.length) body+=`<path d="M${pts[0].x.toFixed(1)} ${base} L${path} L${pts[pts.length-1].x.toFixed(1)} ${base} Z" fill="url(#${fid})"/>`;
+      if(pts.length>1) body+=`<path d="M${path}" fill="none" stroke="${col}" stroke-width="${single?3:2.4}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      pts.forEach(p=>{ body+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${single?3.5:3}" fill="#fff" stroke="${col}" stroke-width="2.2"/>`; });
+    }
+  });
+  if(!wl.length) body=`<text x="${W/2}" y="${(base-plotH/2).toFixed(0)}" text-anchor="middle" font-size="12" fill="#b9b3cf">no entries in this range yet ❄️</text>`;
+  return `<svg class="trchart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${grid}${ylab}${body}${ticks}</svg>`;
+}
 function viewWeight(){
   const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
   const vals=wl.map(x=>x.w), avg=rollingAvg(wl);
@@ -829,8 +869,9 @@ function viewWeight(){
   const disp=CONFIG.weightDisplay, showNum=disp!=="hidden";
   const nsv=(state.sentinel.nsv||[]).slice().reverse();
   const meas=(state.sentinel.measurements||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
-  let bars=""; if(vals.length){ const mn=Math.min(...vals),mx=Math.max(...vals),rng=Math.max(.6,mx-mn);
-    bars=`<div class="spark" style="height:54px">${vals.map(v=>`<span style="height:${Math.round(((v-mn)/rng)*86+12)}%"></span>`).join("")}</div>`; }
+  const wtKeys=(state.wtMetrics&&state.wtMetrics.length)?state.wtMetrics:["w"];
+  const wtType=state.wtType||"area";
+  const availKeys=BODYCOMP.filter(([k])=> k==="w" || (k==="bmi"&&state.sentinel.heightCm) || (state.sentinel.weightLog||[]).some(x=>x[k]!=null));
   return `
   <section class="panel">
     <div class="card-head"><h2 style="font-size:18px">⚖️ The gentle journey</h2><span class="pill pill-gray">trend-first</span></div>
@@ -838,8 +879,18 @@ function viewWeight(){
     <div class="soft-card">
       ${showNum?`<div class="label">Rolling weekly avg</div><div class="bignum" id="numSlot">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`
         :`<div id="numSlot"><button class="btn" data-act="revealNum">Tap to peek at the number</button></div>`}
-      ${bars}
       <p class="soft" style="font-size:11.5px;text-align:center;margin:6px 0 0">A calm line over time — no good days or bad days here. ❄️</p>
+    </div>
+    <div class="tr-frame" style="margin-top:10px">
+      <div class="chiprow" style="margin-bottom:10px">
+        ${availKeys.map(([k,l,u,e])=>`<button class="chiptog ${wtKeys.includes(k)?'on':''}" data-act="wtMetric" data-v="${k}"><span>${wtKeys.includes(k)?'✓':e}</span>${l}</button>`).join("")}
+      </div>
+      <div id="wtChart">${buildWeightChartSVG(wtKeys,wtType)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <span class="tr-range">${[["30d","30d"],["90d","90d"],["all","all"]].map(([v,l])=>`<button class="${(state.wtRange||'all')===v?'on':''}" data-act="wtRange" data-v="${v}">${l}</button>`).join("")}</span>
+        <span style="display:flex;gap:6px">${["area","bars","dots"].map(t=>`<button class="btn ${wtType===t?'btn-grad':''}" data-act="wtType" data-v="${t}" style="padding:5px 11px;font-size:14px" title="${({area:'soft line',bars:'bars',dots:'dots'})[t]}">${({area:'∿',bars:'▮',dots:'•'})[t]}</button>`).join("")}</span>
+      </div>
+      ${wtKeys.length>1?'<p class="soft" style="font-size:10.5px;text-align:center;margin-top:8px">Comparing several — each line is scaled to its own range.</p>':''}
     </div>
     <div class="field"><div class="label" style="margin-bottom:6px">${dueWeekly?'🗓️ Time for a gentle weekly weigh-in':'✅ Weighed in recently — no rush'}</div>
       <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="wInput" placeholder="${CONFIG.weightUnit}" style="max-width:140px"><button class="btn btn-grad" data-act="logWeight">Log it</button></div>
@@ -1868,6 +1919,10 @@ const H={
     try{ const d=await aiCall("withingsSync",{}); if(d&&d.error){ toast(d.error); return; }
       await loadData(); render(); toast(`synced ${d&&d.days||0} day(s) ❄️`); }
     catch(e){ toast("sync hiccup — try again 🌧️"); } },
+  // --- weight chart options ---
+  wtMetric(el){ const k=el.dataset.v; let arr=(state.wtMetrics||["w"]).slice(); if(arr.includes(k)){ if(arr.length>1)arr=arr.filter(x=>x!==k); } else arr.push(k); state.wtMetrics=arr; render(); },
+  wtType(el){ state.wtType=el.dataset.v; render(); },
+  wtRange(el){ state.wtRange=el.dataset.v; render(); },
   // --- food tracking ---
   async foodAnalyze(){ const d=state.foodDraft||(state.foodDraft={image:null,desc:"",est:null});
     const ta=$("#foodDesc"); if(ta)d.desc=ta.value;
@@ -2055,9 +2110,11 @@ const H={
     }
     KIKO.log.push({role:"pet",text:"and that's our journal for today 🌸 you showed up for yourself, and that counts. ❄️🦊"});
     paintKiko(); await finishJournal(J); },
-  async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); if(!q||KIKO.busy)return;
-    KIKO.log.push({role:"me",text:q});
-    if(KIKO.journal && KIKO.journal.active){ paintKiko(); return H.kikoJournalReply(q); }   // guided journal handles its own replies
+  async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); const img=KIKO.pendingImage;
+    if((!q && !img)||KIKO.busy)return;
+    KIKO.log.push({role:"me",text:(img?("📷 "+(q||"")).trim():q)});
+    if(KIKO.journal && KIKO.journal.active){ KIKO.pendingImage=null; paintKiko(); return H.kikoJournalReply(q||"(sent a photo)"); }
+    if(img){ KIKO.pendingImage=null; return H.kikoFoodPhoto(q,img); }   // a photo → estimate & log the food
     KIKO.busy=true; paintKiko();
     let ans, didActions=false;
     try{
@@ -2075,6 +2132,22 @@ const H={
     }catch(e){ ans="aw, I couldn't reach the server — "+(e.message||"try again")+" 🌧️"; }
     KIKO.log.push({role:"pet",text:ans}); KIKO.busy=false;
     if(didActions){ try{ await loadData(); await render(); }catch(_){} }   // re-pull so agent's writes show
+    paintKiko(); },
+  kikoClearImg(){ KIKO.pendingImage=null; paintKiko(); },
+  async kikoFoodPhoto(desc,img){
+    if(DEMO||!SB){ KIKO.log.push({role:"pet",text:"I can look at your food once I'm connected to the server 💤❄️"}); paintKiko(); return; }
+    KIKO.busy=true; paintKiko();
+    try{
+      const r=await aiCall("food",{image:img, description:desc||""});
+      if(r&&r.error){ KIKO.log.push({role:"pet",text:"hmm, I couldn't quite read that one — try a clearer photo, or just tell me what it is 🌧️"}); }
+      else {
+        const item={id:"fd"+Date.now(), name:r.name||"food", serving:r.serving||"", kcal:Math.round(r.kcal||0), protein:r.protein||0, carbs:r.carbs||0, fiber:r.fiber||0, fat:r.fat||0, time:new Date().toISOString()};
+        await setToday(n=>({...n,food:[...(n.food||[]),item]}));
+        KIKO.log.push({role:"pet",text:`logged ${item.name} 🍽️ — about ${item.kcal} kcal, ${item.protein}g protein, ${item.fiber}g fibre.${r.note?" "+r.note:""} (an estimate — tweak it on the Food tab if needed 💗)`});
+      }
+    }catch(e){ KIKO.log.push({role:"pet",text:"aw, that didn't go through — want to try again? 🌧️"}); }
+    KIKO.busy=false;
+    if(state.tab==='food'){ try{ await render(); }catch(_){} }
     paintKiko(); },
 
   // --- Optimize ---
@@ -2122,6 +2195,16 @@ document.addEventListener("change",e=>{
       try{ state.foodDraft.image=c.toDataURL("image/jpeg",0.82); }catch(e){ state.foodDraft.image=r.result; }
       render();
     }; img.onerror=()=>{ if(!state.foodDraft)state.foodDraft={image:null,desc:"",est:null}; state.foodDraft.image=r.result; render(); }; img.src=r.result; };
+    r.readAsDataURL(f);
+  } else if(t.id==="kikoFile"){
+    const f=t.files&&t.files[0]; if(!f) return;
+    const ta=$("#kikoInput"); const keep=ta?ta.value:"";   // don't lose a typed note on re-paint
+    const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{
+      const max=1024; let w=img.width,h=img.height; const sc=Math.min(1,max/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc);
+      const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h);
+      try{ KIKO.pendingImage=c.toDataURL("image/jpeg",0.82); }catch(e){ KIKO.pendingImage=r.result; }
+      paintKiko(); const ni=$("#kikoInput"); if(ni){ ni.value=keep; ni.focus(); }
+    }; img.onerror=()=>{ KIKO.pendingImage=r.result; paintKiko(); const ni=$("#kikoInput"); if(ni){ ni.value=keep; } }; img.src=r.result; };
     r.readAsDataURL(f);
   } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value;
     setSent(n=>({...n,schedule:(n.schedule||[]).map(r=>r.id===id?{...r,[k]:v}:r)})); // fire-and-forget; no re-render mid-edit
@@ -2312,7 +2395,7 @@ window.addEventListener('error',ev=>{ const v=document.getElementById('view');
   if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p></div>'; } });
 
 /* ===================== KIKO — AI snowfox pet ===================== */
-const KIKO={ open:false, busy:false, log:[], journal:null };
+const KIKO={ open:false, busy:false, log:[], journal:null, pendingImage:null };
 const KIKO_GREETS=["Konfuyu~! Need anything? ❄️","Pspsps… ask me something! 🦊","I'm right here if you need me 💗","Hi Mifu~ ✿","Wanna brainstorm? 🌸"];
 /* sprite walk engine + desktop-pet physics — frames measured from fox.png (164x210). Row 2 = 4-frame walk cycle. */
 const KIKO_SHEET={url:"fox.png",W:164,H:210};
@@ -2391,10 +2474,15 @@ function paintKiko(){
   const c=$("#kikoChat"); if(!c)return;
   const logHtml = KIKO.log.length
     ? KIKO.log.map(m=>`<div class="kiko-msg ${m.role}">${esc(m.role==='pet'?stripMd(m.text):m.text)}</div>`).join("")
-    : `<div class="kiko-msg pet">Konfuyu~! I'm Kiko 🦊 Tell me to do things — "add a stream Saturday 7pm", "log my mood as 4", "make a task to refill meds", "park an idea", "start a short script" — and I'll handle it. Or just chat. ❄️</div>`;
+    : `<div class="kiko-msg pet">Konfuyu~! I'm Kiko 🦊 Tell me to do things — "add a stream Saturday 7pm", "log my mood as 4", "log lunch: chicken and rice", "start a short script" — and I'll handle it. Tap 📷 to send a food photo and I'll log the macros for you. Or just chat. ❄️</div>`;
   c.innerHTML=`<div class="kiko-head"><div class="kiko-av"></div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoToggle">✕</button></div>
     <div class="kiko-log" id="kikoLog">${logHtml}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
-    <div class="kiko-input"><input class="inp" id="kikoInput" placeholder="tell Kiko to do something…" ${KIKO.busy?"disabled":""}><button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button></div>`;
+    ${KIKO.pendingImage?`<div style="padding:8px 10px 0"><span style="position:relative;display:inline-block"><img src="${KIKO.pendingImage}" alt="attached" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><button class="x" data-act="kikoClearImg" title="remove" style="position:absolute;top:-7px;right:-7px;background:#fff;border:1px solid var(--line);border-radius:50%;width:19px;height:19px;font-size:11px;line-height:1;padding:0">✕</button></span> <span class="soft" style="font-size:11px">photo ready — add a note &amp; send to log it 🍽️</span></div>`:""}
+    <div class="kiko-input">
+      <label class="btn" style="cursor:pointer;padding:0 9px;display:flex;align-items:center;font-size:16px" title="add a photo (e.g. your food)">📷<input type="file" id="kikoFile" accept="image/*" style="display:none" ${KIKO.busy?"disabled":""}></label>
+      <input class="inp" id="kikoInput" placeholder="${KIKO.pendingImage?'what is it? (optional)':'tell Kiko to do something…'}" ${KIKO.busy?"disabled":""}>
+      <button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button>
+    </div>`;
   const log=$("#kikoLog"); if(log) log.scrollTop=log.scrollHeight;
   const inp=$("#kikoInput"); if(inp&&!KIKO.busy) try{ inp.focus(); }catch(_){}
 }
@@ -2428,6 +2516,9 @@ async function execAgentAction(a){
     if(T==="cycleStart"){ await setSent(n=>{ const cycle={...(n.cycle||{}),lastStart:TODAY}; cycle.history=[...(cycle.history||[]),{start:TODAY,end:null,flow:"med"}]; return {...n,cycle}; }); return "🌙 period start logged"; }
     if(T==="cycleEnd"){ await setSent(n=>{ const c=n.cycle; if(!c||!c.history||!c.history.length)return n; const cycle={...c}; cycle.history=cycle.history.map((h,i)=>i===cycle.history.length-1?{...h,end:TODAY}:h); return {...n,cycle}; }); return "🌙 period end logged"; }
     if(T==="logPcos"){ await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[a.field]=Math.max(0,Math.min(5,Number(a.value))); return {...n,pcos}; }); return "❄️ "+a.field+" logged"; }
+    if(T==="logFood"){ const num=v=>{const n=Number(v);return isNaN(n)?0:Math.round(n*10)/10;};
+      const item={id:"fd"+Date.now(),name:a.name||"food",serving:a.serving||"",kcal:Math.round(Number(a.kcal)||0),protein:num(a.protein),carbs:num(a.carbs),fiber:num(a.fiber),fat:num(a.fat),time:new Date().toISOString()};
+      await setToday(n=>({...n,food:[...(n.food||[]),item]})); return "🍽️ "+item.name+" — "+item.kcal+" kcal · "+item.protein+"g protein · "+item.fiber+"g fibre"; }
     if(T==="startScript"){ state.script={kind:(a.kind==="long"?"long":"short"),title:a.title||"",references:a.references||"",raw:a.raw||"",out:null}; state.tab="script";
       if(a.format && (state.script.raw||state.script.references)){ setTimeout(()=>{ try{scrFormat();}catch(e){} },150); }
       return "✍️ started a "+(a.kind==="long"?"long-form":"short")+" script"+(a.title?" — “"+a.title+"”":""); }
