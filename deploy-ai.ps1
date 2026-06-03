@@ -28,24 +28,26 @@ if (-not $sb) {
 #    "Access token not provided" error.
 #    Get one (30 seconds): https://supabase.com/dashboard/account/tokens
 #    -> "Generate new token" -> copy it.
-Write-Host "Open https://supabase.com/dashboard/account/tokens and generate a token." -ForegroundColor Cyan
-$token = Read-Host "Paste your Supabase access token (starts with sbp_)"
+# Reuse a saved token if we have one (so you only enter it once, ever).
+$tokenFile = Join-Path $PSScriptRoot ".supabase-token"
+$token = ""
+if (Test-Path $tokenFile) { $token = (Get-Content $tokenFile -Raw).Trim() }
 if ([string]::IsNullOrWhiteSpace($token)) {
-  Write-Host "No token entered. Run again with a token." -ForegroundColor Yellow
-  Read-Host "Press Enter to exit"; exit 1
+  Write-Host "Open https://supabase.com/dashboard/account/tokens and generate a token." -ForegroundColor Cyan
+  $token = (Read-Host "Paste your Supabase access token (starts with sbp_)").Trim()
+  if ([string]::IsNullOrWhiteSpace($token)) { Write-Host "No token entered. Run again with a token." -ForegroundColor Yellow; Read-Host "Press Enter to exit"; exit 1 }
+  [System.IO.File]::WriteAllText($tokenFile, $token)
+  Write-Host "Token saved to .supabase-token — you won't be asked again." -ForegroundColor Green
 }
-$env:SUPABASE_ACCESS_TOKEN = $token.Trim()
+$env:SUPABASE_ACCESS_TOKEN = $token
 
-# 3) Collect the keys (typed into YOUR terminal; sent only to YOUR Supabase project).
+# 3) Collect the keys. Your keys are stored ONCE in Supabase and persist — so on later
+#    runs you can press Enter to SKIP any key you don't want to change. (For a plain code
+#    update with no key changes, just use update-ai.ps1 instead — no prompts at all.)
 Write-Host ""
-Write-Host "Paste your keys. They are stored as Supabase secrets - never saved to a file." -ForegroundColor Magenta
-$anthropic = Read-Host "Claude (Anthropic) API key  [sk-ant-...]"
-$youtube   = Read-Host "YouTube Data API key"
-
-if ([string]::IsNullOrWhiteSpace($anthropic) -or [string]::IsNullOrWhiteSpace($youtube)) {
-  Write-Host "Both keys are needed. Run again when you have them." -ForegroundColor Yellow
-  Read-Host "Press Enter to exit"; exit 1
-}
+Write-Host "Paste keys to set/replace them. Press Enter to KEEP the one already stored." -ForegroundColor Magenta
+$anthropic = Read-Host "Claude (Anthropic) API key  [sk-ant-...]  (Enter = keep existing)"
+$youtube   = Read-Host "YouTube Data API key                      (Enter = keep existing)"
 
 # Optional: Resend key for EMAIL reminders (leave blank to skip - browser reminders still work).
 Write-Host ""
@@ -60,9 +62,12 @@ $withId = Read-Host "Withings Client ID      (press Enter to skip)"
 $withSecret = ""
 if (-not [string]::IsNullOrWhiteSpace($withId)) { $withSecret = Read-Host "Withings Client Secret" }
 
-# 4) Store secrets + deploy the function (both use $env:SUPABASE_ACCESS_TOKEN).
+# 4) Store ONLY the secrets you actually entered (blank = keep what's already in Supabase).
+$pairs = @("YT_HANDLE=@mifuyu")
+if (-not [string]::IsNullOrWhiteSpace($anthropic)) { $pairs += "ANTHROPIC_API_KEY=$($anthropic.Trim())" }
+if (-not [string]::IsNullOrWhiteSpace($youtube))   { $pairs += "YOUTUBE_API_KEY=$($youtube.Trim())" }
 Write-Host "Saving secrets to your Supabase project..." -ForegroundColor Cyan
-supabase secrets set "ANTHROPIC_API_KEY=$anthropic" "YOUTUBE_API_KEY=$youtube" "YT_HANDLE=@mifuyu" --project-ref $ProjectRef
+supabase secrets set @pairs --project-ref $ProjectRef
 if (-not [string]::IsNullOrWhiteSpace($resend)) {
   supabase secrets set "RESEND_API_KEY=$($resend.Trim())" --project-ref $ProjectRef
   Write-Host "Resend key saved - finish email setup with REMINDERS-EMAIL-SETUP.md (schedule the daily cron)." -ForegroundColor Green

@@ -158,6 +158,25 @@
   .joy-pick{min-height:26px;font-family:var(--display);font-size:16px;color:var(--lav-deep);margin-top:8px;text-align:center;}
   .joy-pick.pop{animation:joypop .5s ease;} @keyframes joypop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.13)}100%{transform:scale(1);opacity:1}}
   /* sticky notes */
+  /* modular layout — drag-reorder · resize · minimize/remove · masonry */
+  .grid-modular{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));grid-auto-rows:8px;grid-auto-flow:row dense;gap:16px;}
+  .home-widget{position:relative;transition:transform .24s cubic-bezier(.2,.8,.25,1);min-width:0;}
+  .home-widget.resizing{transition:none;outline:2px dashed var(--sakura);outline-offset:3px;border-radius:18px;}
+  .home-widget.reordering{outline:2px dashed var(--lav);outline-offset:3px;border-radius:18px;}
+  .home-widget.dragsrc,#nav .tab.dragsrc{visibility:hidden;}
+  .home-widget.min>.panel,.home-widget.min>section{max-height:54px;overflow:hidden;}
+  #nav .tab{touch-action:none;user-select:none;-webkit-user-select:none;}
+  .drag-clone{position:fixed;left:0;top:0;z-index:9999;pointer-events:none;border-radius:18px;box-shadow:0 16px 38px rgba(120,80,120,.34);opacity:.97;}
+  .home-tools{position:absolute;top:8px;right:8px;z-index:6;display:flex;gap:3px;}
+  .home-tools button{border:none;background:rgba(255,255,255,.72);border-radius:8px;font-size:13px;line-height:1;color:#9b8fae;cursor:pointer;padding:5px 7px;opacity:.45;touch-action:none;user-select:none;-webkit-user-select:none;}
+  .home-tools .home-grip{cursor:grab;}
+  .home-widget:hover .home-tools button,.home-tools button:hover{opacity:.95;}
+  .home-resize{position:absolute;right:4px;bottom:4px;z-index:6;border:none;background:rgba(255,255,255,.72);border-radius:8px;font-size:14px;line-height:1;color:#9b8fae;cursor:nwse-resize;padding:4px 6px;opacity:.45;touch-action:none;user-select:none;-webkit-user-select:none;}
+  .home-widget:hover .home-resize,.home-resize:hover{opacity:.95;}
+  .home-add{border:2px dashed var(--line);border-radius:16px;background:rgba(255,255,255,.4);color:var(--lav-deep);font-size:13px;cursor:pointer;min-height:80px;grid-column:span 4;grid-row:span 6;}
+  body.locked .home-tools,body.locked .home-resize,body.locked .home-add{display:none!important;}
+  #lockChip.on{background:#fde2f2;color:var(--sakura-deep);}
+  @media (hover:none){ .home-tools button,.home-resize{opacity:.92;} .home-tools button{padding:7px 9px;font-size:14px;} .home-resize{padding:6px 9px;font-size:15px;} }
   #stickyLayer{position:fixed;inset:0;z-index:80;pointer-events:none;}
   .sticky{position:absolute;width:200px;height:150px;min-width:140px;min-height:110px;border-radius:12px;box-shadow:0 8px 22px rgba(110,100,150,.24);pointer-events:auto;display:flex;flex-direction:column;transform:rotate(-1deg);overflow:hidden;}
   .sticky-head{height:26px;display:flex;align-items:center;gap:2px;padding:0 4px 0 8px;cursor:grab;border-radius:12px 12px 0 0;}
@@ -266,6 +285,7 @@
   </div>
   <div class="right">
     <span id="status" class="chip">…</span>
+    <button id="lockChip" class="chip" data-act="toggleLock" title="Lock / unlock the layout">🔓</button>
     <button class="chip" data-act="settings" title="Comfort &amp; display">⚙️</button>
     <span class="avatar"><img src="AYAYA.png" alt="Mifu" /></span>
   </div>
@@ -472,6 +492,40 @@ function applyPrefs(){
   }catch{}
   document.body.classList.toggle("calm",PREF.calm);
   document.body.classList.toggle("text-lg",PREF.text);
+  const locked=localStorage.getItem("layout-locked")==="1";
+  document.body.classList.toggle("locked",locked);
+  const lc=document.getElementById("lockChip"); if(lc){ lc.textContent=locked?"🔒":"🔓"; lc.className="chip"+(locked?" on":""); }
+}
+const MODULAR_TABS=["home","care","food"];
+const MODULAR_LABELS={};
+function modLayout(tab){ const L=(state.sentinel.layout||{})[tab]||{}; return {order:L.order||[],size:L.size||{},min:L.min||{},hidden:L.hidden||{}}; }
+async function setLayout(tab, mut){ await setSent(n=>{ const layout={...(n.layout||{})}; const L={order:[],size:{},min:{},hidden:{},...(layout[tab]||{})}; mut(L); layout[tab]=L; return {...n,layout}; }); }
+function modularGrid(tab, items, addable){
+  const L=modLayout(tab); MODULAR_LABELS[tab]={}; const byKey={};
+  items.forEach(it=>{ byKey[it.key]=it; MODULAR_LABELS[tab][it.key]=it.label||it.key; });
+  let order=L.order.filter(k=>byKey[k]); items.forEach(it=>{ if(!order.includes(it.key)) order.push(it.key); });
+  const cells=order.filter(k=>!L.hidden[k]).map(k=>{ const it=byKey[k]; const s=L.size[k]||{}; const cols=Math.max(3,s.c||it.cols||4); const min=!!L.min[k];
+    return `<div class="home-widget ${min?'min':''}" data-w="${k}" data-tab="${tab}" data-h="${s.h||''}" style="grid-column:span ${cols}">
+      <div class="home-tools"><button class="home-grip" title="drag to move">⠿</button><button data-act="homeMin" data-w="${k}" data-tab="${tab}" title="${min?'expand':'minimize'}">${min?'＋':'–'}</button><button data-act="homeHide" data-w="${k}" data-tab="${tab}" title="remove">✕</button></div>
+      <span class="home-resize" title="drag to resize">⤡</span>
+      ${it.html}</div>`; }).join("");
+  const hiddenN=Object.keys(L.hidden).filter(k=>L.hidden[k]&&byKey[k]).length;
+  const add= addable===false?"":`<button class="home-add" data-act="manageCards" data-tab="${tab}">＋ cards${hiddenN?` · ${hiddenN} hidden`:""}</button>`;
+  return `<div class="grid-modular" data-tab="${tab}">${cells}${add}</div>`;
+}
+function layoutHome(){
+  const grid=document.querySelector(".grid-modular"); if(!grid)return; const rowH=8, gap=16;
+  grid.querySelectorAll(".home-widget").forEach(w=>{ const panel=w.querySelector(".panel,section")||w.lastElementChild; if(!panel)return;
+    let h; if(w.classList.contains("min")){ h=54; } else { const sh=parseFloat(w.dataset.h||"0")||0; panel.style.minHeight=sh?sh+"px":""; h=panel.getBoundingClientRect().height; }
+    if(h>0) w.style.gridRowEnd="span "+Math.max(1,Math.ceil((h+gap)/(rowH+gap))); });
+}
+function manageCardsModal(tab){
+  const L=modLayout(tab); const labels=MODULAR_LABELS[tab]||{}; const keys=Object.keys(labels);
+  $("#modal").innerHTML=`<div class="modal-bg" data-act="closeModal"><div class="modal" data-act="noop" style="max-width:380px;width:100%;max-height:90vh;overflow:auto"><div class="card-head"><h3 style="font-size:16px">🧩 Cards</h3><button class="btn" data-act="closeModal">✕</button></div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">Toggle which cards show here. You can also drag, resize or minimize them right on the page. 🌸</p>
+    ${keys.map(k=>`<button class="chiptog ${L.hidden[k]?'':'on'}" data-act="cardToggle" data-w="${k}" data-tab="${tab}" style="width:100%;justify-content:flex-start;margin-top:6px"><span>${L.hidden[k]?'＋':'✓'}</span>${esc(labels[k])}</button>`).join("")}
+    <button class="btn" data-act="resetLayout" data-tab="${tab}" style="margin-top:12px">↺ reset this page's layout</button>
+  </div></div>`;
 }
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true, wtMetrics:["w"], wtType:"area", wtRange:"all" };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
@@ -507,7 +561,9 @@ function spark(vals,max){
 /* ===================== RENDER ROOT ===================== */
 async function render(){
   applyPrefs();
-  $("#nav").innerHTML = TABS.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
+  let _to=[]; try{_to=JSON.parse(localStorage.getItem("tab-order")||"[]");}catch(e){}
+  const _tabs=_to.length?[...TABS].sort((a,b)=>{const ia=_to.indexOf(a[0]),ib=_to.indexOf(b[0]);return (ia<0?999:ia)-(ib<0?999:ib);}):TABS;
+  $("#nav").innerHTML = _tabs.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
   const st=$("#status"); st.textContent=DEMO?"◇ demo data":(SB?"● live":"◌ connecting…"); st.className="chip"+(DEMO?" demo":(SB?" on":""));
   const v=$("#view");
   // Decide NOW whether this is a real page change, but DON'T start the animation yet.
@@ -534,6 +590,7 @@ async function render(){
     if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
     if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } } else { stopTrendsLoop(); }
+    if(MODULAR_TABS.includes(state.tab)){ requestAnimationFrame(()=>{try{layoutHome();}catch(e){}}); setTimeout(()=>{try{layoutHome();}catch(e){}},150); }
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
 }
 
@@ -585,6 +642,45 @@ function cardBrainDump(){
   </section>`;
 }
 
+function cardSnowfox(){ const energy=state.today.energy||0;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">Snowfox</span><span class="pill pill-mint">● here for you</span></div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="avatar" style="width:52px;height:52px"><img src="AYAYA.png" alt="Mifu"/></div>
+      <div><div style="font-family:var(--display);font-size:18px">${esc(CONFIG.creator.name)}</div><div class="label" style="margin-top:1px">${esc(CONFIG.creator.pronouns)}</div></div>
+    </div>
+    <div class="soft-card" style="margin-top:12px;font-style:italic;font-size:12.5px">${esc(CONFIG.creator.tagline)}</div>
+    <div style="margin-top:12px"><div class="label" style="margin-bottom:5px">Energy today 🥄</div>
+      <div class="seg">${[["1","🌙","Low"],["3","🌤","Med"],["5","🌞","High"]].map(([v,e,l])=>`<button data-act="energySet" data-v="${v}" class="${energy==v?'on':''}">${e} ${l}</button>`).join("")}</div></div>
+  </section>`; }
+function cardCheckin(){ const m=state.today.mind||{};
+  return `<section class="panel">
+    <h2 style="font-size:19px">${CONFIG.creator.greeting} ${greeting()}, ${esc(CONFIG.creator.name)} ✿</h2>
+    <p class="soft" style="font-size:12.5px;margin:4px 0 10px">How are you today? Three taps is a whole check-in. 💗</p>
+    ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
+    ${scaleRow("Anxiety / overwhelm","mindSet","anxiety",m.anxiety,"calm","high")}
+    ${scaleRow("Energy","mindSet","energy",m.energy,"empty","full")}
+    <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
+  </section>`; }
+function cardGlance(){ const s=state.sentinel; const lastShot=(s.injectionLog||[]).slice(-1)[0];
+  let nextDose=null; if(lastShot){ const d=new Date(lastShot.date+"T00:00"); d.setDate(d.getDate()+7); nextDose=d.toLocaleDateString("en-CA"); }
+  const dueIn=nextDose?daysBetween(TODAY,nextDose):null;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">Today at a glance</span></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span class="pill pill-ice" style="padding:6px 11px">💉 ${lastShot?"Last shot "+fmtDate(lastShot.date):"No shot logged yet"}</span>
+      ${nextDose?`<span class="pill pill-lav" style="padding:6px 11px">📅 Next dose ${fmtDate(nextDose)}${dueIn!=null?` · ${dueIn<=0?'around now':'in '+dueIn+'d'}`:''}</span>`:''}
+      <span class="pill pill-peri" style="padding:6px 11px">💊 ${(s.medsList||[]).length} meds tracked</span>
+    </div>
+    <p class="soft" style="font-size:11.5px;margin-top:8px;text-align:center">No pressure — just a soft snapshot. ❄️</p>
+  </section>`; }
+function cardWeightTrend(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  return `<section class="panel">
+    <div class="card-head"><span class="label">Weight trend</span><button class="btn" data-act="tab" data-tab="weight">open →</button></div>
+    ${wl.length?spark(wl.map(x=>x.w),Math.max(...wl.map(x=>x.w))):'<p class="soft" style="font-size:12px">No weigh-ins yet.</p>'}
+    <p class="soft" style="font-size:11.5px;margin-top:6px;text-align:center">The trend is the story, not any single day.</p>
+  </section>`; }
+
 /* ===================== HOME ===================== */
 function viewHome(){
   const m=state.today.mind||{}, s=state.sentinel;
@@ -608,53 +704,17 @@ function viewHome(){
     </div>${DISCLAIMER}`;
   }
 
-  return `<div class="grid-home">
-    <div class="col">
-      <section class="panel">
-        <div class="card-head"><span class="label">Snowfox</span><span class="pill pill-mint">● here for you</span></div>
-        <div style="display:flex;gap:12px;align-items:center">
-          <div class="avatar" style="width:52px;height:52px"><img src="AYAYA.png" alt="Mifu"/></div>
-          <div><div style="font-family:var(--display);font-size:18px">${esc(CONFIG.creator.name)}</div><div class="label" style="margin-top:1px">${esc(CONFIG.creator.pronouns)}</div></div>
-        </div>
-        <div class="soft-card" style="margin-top:12px;font-style:italic;font-size:12.5px">${esc(CONFIG.creator.tagline)}</div>
-        <div style="margin-top:12px"><div class="label" style="margin-bottom:5px">Energy today 🥄</div>
-          <div class="seg">${[["1","🌙","Low"],["3","🌤","Med"],["5","🌞","High"]].map(([v,e,l])=>`<button data-act="energySet" data-v="${v}" class="${energy==v?'on':''}">${e} ${l}</button>`).join("")}</div></div>
-      </section>
-      ${slipBanner()}
-      ${cardSchedule()}
-    </div>
-
-    <div class="col">
-      <section class="panel">
-        <h2 style="font-size:19px">${CONFIG.creator.greeting} ${greeting()}, ${esc(CONFIG.creator.name)} ✿</h2>
-        <p class="soft" style="font-size:12.5px;margin:4px 0 10px">How are you today? Three taps is a whole check-in. 💗</p>
-        ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
-        ${scaleRow("Anxiety / overwhelm","mindSet","anxiety",m.anxiety,"calm","high")}
-        ${scaleRow("Energy","mindSet","energy",m.energy,"empty","full")}
-        <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
-      </section>
-      ${cardBrainDump()}
-      ${cardJournal()}
-    </div>
-
-    <div class="col">
-      <section class="panel">
-        <div class="card-head"><span class="label">Today at a glance</span></div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <span class="pill pill-ice" style="padding:6px 11px">💉 ${lastShot?"Last shot "+fmtDate(lastShot.date):"No shot logged yet"}</span>
-          ${nextDose?`<span class="pill pill-lav" style="padding:6px 11px">📅 Next dose ${fmtDate(nextDose)}${dueIn!=null?` · ${dueIn<=0?'around now':'in '+dueIn+'d'}`:''}</span>`:''}
-          <span class="pill pill-peri" style="padding:6px 11px">💊 ${(s.medsList||[]).length} meds tracked</span>
-        </div>
-        <p class="soft" style="font-size:11.5px;margin-top:8px;text-align:center">No pressure — just a soft snapshot. ❄️</p>
-      </section>
-      <section class="panel">
-        <div class="card-head"><span class="label">Weight trend</span><button class="btn" data-act="tab" data-tab="weight">open →</button></div>
-        ${wl.length?spark(wl.map(x=>x.w),Math.max(...wl.map(x=>x.w))):'<p class="soft" style="font-size:12px">No weigh-ins yet.</p>'}
-        <p class="soft" style="font-size:11.5px;margin-top:6px;text-align:center">The trend is the story, not any single day.</p>
-      </section>
-      ${cardGoals()}
-    </div>
-  </div>${DISCLAIMER}`;
+  const items=[
+    {key:"snowfox",label:"Snowfox",cols:4,html:cardSnowfox()},
+    {key:"checkin",label:"Daily check-in",cols:4,html:cardCheckin()},
+    {key:"glance",label:"At a glance",cols:4,html:cardGlance()},
+    {key:"schedule",label:"Stream schedule",cols:4,html:cardSchedule()},
+    {key:"braindump",label:"Brain-dump",cols:4,html:cardBrainDump()},
+    {key:"journal",label:"Journal",cols:4,html:cardJournal()},
+    {key:"weight",label:"Weight trend",cols:4,html:cardWeightTrend()},
+    {key:"goals",label:"Goals",cols:4,html:cardGoals()},
+  ];
+  return `${slipBanner()}${modularGrid("home",items)}${DISCLAIMER}`;
 }
 
 /* ===================== PCOS / HEALTH ===================== */
@@ -970,35 +1030,34 @@ function viewFood(){
   const d=state.foodDraft, T=foodTargets(), tot=foodTotals(), list=foodToday();
   const pct=(v,t)=>Math.max(0,Math.min(100,Math.round((v/(t||1))*100)));
   const bar=(label,v,t,col)=>`<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span class="label">${label}</span><span><b>${Math.round(v*10)/10}</b><span class="soft"> / ${t} g</span></span></div><div class="bar" style="margin-top:4px"><span style="width:${pct(v,t)}%;background:${col}"></span></div></div>`;
-  return `
-  <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">🍱 Today's food</h2><span class="pill pill-gray">${list.length} logged</span></div>
-    <div class="soft-card">
-      <div class="bignum" style="text-align:center">${Math.round(tot.kcal)} <span class="soft" style="font-size:12px;font-family:var(--sans)">kcal${T.kcal?` / ${T.kcal}`:''}</span></div>
-      ${bar("Protein 💪",tot.protein,T.protein,"linear-gradient(90deg,var(--peri),var(--sakura))")}
-      ${bar("Fiber 🌿",tot.fiber,T.fiber,"linear-gradient(90deg,#7fc8a9,#9fc7f0)")}
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><span class="pill pill-ice">Carbs ${Math.round(tot.carbs)}g</span><span class="pill pill-lav">Fat ${Math.round(tot.fat)}g</span></div>
-    </div>
-    <p class="soft" style="font-size:11px;text-align:center;margin-top:8px">Protein &amp; fibre are the stars for you — aim to fill those bars. 💗 Numbers are friendly estimates.</p>
-  </section>
-
-  <section class="panel">
-    <div class="label" style="margin-bottom:6px">📸 Add a meal</div>
-    <p class="soft" style="font-size:12px;margin:0 0 10px">Snap or upload your food and add a quick note — Kiko estimates the macros for you.${DEMO?` <b>(Deploy the ai function &amp; turn demo off to estimate.)</b>`:''}</p>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
-      <label class="btn btn-grad" style="cursor:pointer">📷 Photo<input type="file" id="foodFile" accept="image/*" capture="environment" style="display:none"></label>
-      ${d.image?`<img src="${d.image}" alt="meal" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`:''}
-    </div>
-    <textarea class="inp" id="foodDesc" rows="2" placeholder="what is it? (e.g. grilled chicken, rice &amp; kimchi · ~1 bowl)" style="margin-top:10px">${esc(d.desc||"")}</textarea>
-    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-grad" data-act="foodAnalyze" ${state.foodBusy?'disabled':''}>${state.foodBusy?'estimating… ❄️':'✨ Estimate macros'}</button>${(d.image||d.desc)?'<button class="btn" data-act="foodClear">clear</button>':''}</div>
-    ${d.est?foodEstCard(d.est):''}
-  </section>
-
-  <section class="panel">
-    <div class="card-head"><span class="label">🍽️ Logged today</span></div>
-    ${list.length?list.slice().reverse().map(x=>`<div class="listrow"><span class="grow"><b style="font-size:13px">${esc(x.name)}</b> <span class="soft" style="font-size:11px">${x.serving?'· '+esc(x.serving):''}</span><div class="soft" style="font-size:11px">${Math.round(x.kcal)} kcal · P ${x.protein}g · Fb ${x.fiber}g · C ${x.carbs}g · F ${x.fat}g</div></span><button class="x" data-act="foodDel" data-id="${x.id}">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">Nothing logged yet today. ❄️</p>`}
-  </section>
-
+  const items=[
+    {key:"summary",label:"Today's totals",cols:5,html:`<section class="panel">
+      <div class="card-head"><h2 style="font-size:18px">🍱 Today's food</h2><span class="pill pill-gray">${list.length} logged</span></div>
+      <div class="soft-card">
+        <div class="bignum" style="text-align:center">${Math.round(tot.kcal)} <span class="soft" style="font-size:12px;font-family:var(--sans)">kcal${T.kcal?` / ${T.kcal}`:''}</span></div>
+        ${bar("Protein 💪",tot.protein,T.protein,"linear-gradient(90deg,var(--peri),var(--sakura))")}
+        ${bar("Fiber 🌿",tot.fiber,T.fiber,"linear-gradient(90deg,#7fc8a9,#9fc7f0)")}
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><span class="pill pill-ice">Carbs ${Math.round(tot.carbs)}g</span><span class="pill pill-lav">Fat ${Math.round(tot.fat)}g</span></div>
+      </div>
+      <p class="soft" style="font-size:11px;text-align:center;margin-top:8px">Protein &amp; fibre are the stars for you — aim to fill those bars. 💗 Numbers are friendly estimates.</p>
+    </section>`},
+    {key:"add",label:"Add a meal",cols:5,html:`<section class="panel">
+      <div class="label" style="margin-bottom:6px">📸 Add a meal</div>
+      <p class="soft" style="font-size:12px;margin:0 0 10px">Snap or upload your food and add a quick note — Kiko estimates the macros for you.${DEMO?` <b>(Deploy the ai function &amp; turn demo off to estimate.)</b>`:''}</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+        <label class="btn btn-grad" style="cursor:pointer">📷 Photo<input type="file" id="foodFile" accept="image/*" capture="environment" style="display:none"></label>
+        ${d.image?`<img src="${d.image}" alt="meal" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`:''}
+      </div>
+      <textarea class="inp" id="foodDesc" rows="2" placeholder="what is it? (e.g. grilled chicken, rice &amp; kimchi · ~1 bowl)" style="margin-top:10px">${esc(d.desc||"")}</textarea>
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-grad" data-act="foodAnalyze" ${state.foodBusy?'disabled':''}>${state.foodBusy?'estimating… ❄️':'✨ Estimate macros'}</button>${(d.image||d.desc)?'<button class="btn" data-act="foodClear">clear</button>':''}</div>
+      ${d.est?foodEstCard(d.est):''}
+    </section>`},
+    {key:"logged",label:"Logged today",cols:5,html:`<section class="panel">
+      <div class="card-head"><span class="label">🍽️ Logged today</span></div>
+      ${list.length?list.slice().reverse().map(x=>`<div class="listrow"><span class="grow"><b style="font-size:13px">${esc(x.name)}</b> <span class="soft" style="font-size:11px">${x.serving?'· '+esc(x.serving):''}</span><div class="soft" style="font-size:11px">${Math.round(x.kcal)} kcal · P ${x.protein}g · Fb ${x.fiber}g · C ${x.carbs}g · F ${x.fat}g</div></span><button class="x" data-act="foodDel" data-id="${x.id}">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">Nothing logged yet today. ❄️</p>`}
+    </section>`},
+  ];
+  return `${modularGrid("food",items)}
   <details class="acc"><summary>🎯 Daily targets</summary><div class="acc-body">
     <p class="soft" style="font-size:11.5px;margin:0 0 8px">Tune these to whatever your care team suggests.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -1128,27 +1187,23 @@ function viewCare(){
   const m=state.today.mind||{}, jar=state.sentinel.joyJar||[];
   const journaledToday=(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY);
   const lastEntry=(state.sentinel.journalEntries||[]).slice().reverse()[0];
-  return `
-  ${slipBanner(true)}
-  <div class="care-cols">
-    <section class="panel" style="text-align:center">
+  const items=[
+    {key:"breathing",label:"Breathing bubble",cols:4,html:`<section class="panel" style="text-align:center">
       <div class="label">🫧 Breathing bubble</div>
       <p class="soft" style="font-size:12px;margin:4px 0 6px">In 4 · hold 2 · out 6 — a longer exhale tells your body it's safe.</p>
       <div class="breath-wrap"><div class="breath-bubble" id="bubble"></div><div class="breath-label" id="breathLabel">ready</div></div>
       <button class="btn btn-grad" data-act="breath">${state.breathOn?'Stop':'Start'}</button>
       ${PREF.calm?'<p class="soft" style="font-size:11px;margin-top:8px">Calm mode on — the bubble holds still; breathe with the words at your own pace.</p>':''}
-    </section>
-
-    <section class="panel">
+    </section>`},
+    {key:"checkin",label:"Gentle check-in",cols:4,html:`<section class="panel">
       <div class="label" style="margin-bottom:4px">🌤️ Gentle check-in</div>
       <p class="soft" style="font-size:12px;margin:0 0 8px">How's the weather inside today? No wrong answer. 🌧️→🌞</p>
       ${scaleRow("Weather inside","mindSet","weather",m.weather,"🌧️ stormy","🌞 bright")}
       ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
       ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
       <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
-    </section>
-
-    <section class="panel" style="text-align:center">
+    </section>`},
+    {key:"joyjar",label:"Joy jar",cols:4,html:`<section class="panel" style="text-align:center">
       <div class="label">🫙 Joy jar</div>
       <p class="soft" style="font-size:12px;margin:4px 0 8px">Pull out a little joy when you need one.</p>
       <div class="jar-stage">
@@ -1164,22 +1219,19 @@ function viewCare(){
     <button class="btn btn-grad" data-act="drawJoy" style="margin-top:6px">Pull a joy 🦊</button>
     <div style="display:flex;gap:8px;margin-top:10px"><input class="inp" id="joyInput" placeholder="add your own little joy…"><button class="btn" data-act="addJoy">Add</button></div>
     <p class="soft" style="font-size:11px;margin-top:6px">${jar.length} joys in the jar ❄️</p>
-    </section>
-  </div>
-
-  <section class="panel">
-    <div class="card-head"><div class="label">✍️ Daily journal with Kiko</div>${journaledToday?'<span class="pill pill-mint">done today ✓</span>':''}</div>
-    <p class="soft" style="font-size:12.5px;margin:0 0 10px">A few playful questions, walked through with Kiko — light and cozy, never heavy. He'll tuck your answers away in your journal. 🦊❄️</p>
-    <button class="btn btn-grad" data-act="startKikoJournal">${journaledToday?'Journal again with Kiko 🌸':'Start today’s journal 🦊'}</button>
-  </section>
-
-  ${journalArchive()}
-
-  <section class="panel">
-    <div class="label" style="margin-bottom:8px">🌸 Soft reframes</div>
-    <div class="deck">${REFRAMES.map(flipCard).join("")}</div>
-  </section>
-  ${DISCLAIMER}`;
+    </section>`},
+    {key:"journal",label:"Daily journal",cols:4,html:`<section class="panel">
+      <div class="card-head"><div class="label">✍️ Daily journal with Kiko</div>${journaledToday?'<span class="pill pill-mint">done today ✓</span>':''}</div>
+      <p class="soft" style="font-size:12.5px;margin:0 0 10px">A few playful questions, walked through with Kiko — light and cozy, never heavy. He'll tuck your answers away in your journal. 🦊❄️</p>
+      <button class="btn btn-grad" data-act="startKikoJournal">${journaledToday?'Journal again with Kiko 🌸':'Start today’s journal 🦊'}</button>
+    </section>`},
+    {key:"journals",label:"Your journals",cols:6,html:journalArchive()},
+    {key:"reframes",label:"Soft reframes",cols:6,html:`<section class="panel">
+      <div class="label" style="margin-bottom:8px">🌸 Soft reframes</div>
+      <div class="deck">${REFRAMES.map(flipCard).join("")}</div>
+    </section>`},
+  ];
+  return `${slipBanner(true)}${modularGrid("care",items)}${DISCLAIMER}`;
 }
 
 /* ===================== TRENDS ===================== */
@@ -2003,6 +2055,14 @@ const H={
   calLink(el){ const u=el.dataset.url; if(u) window.open(u,"_blank","noopener"); },
   closeModal(){ $("#modal").innerHTML=""; },
   noop(){},
+  // --- modular layout ---
+  toggleLock(){ const v=localStorage.getItem("layout-locked")==="1"?"0":"1"; localStorage.setItem("layout-locked",v); applyPrefs(); toast(v==="1"?"Layout locked 🔒":"Layout unlocked 🔓"); },
+  async homeMin(el){ const k=el.dataset.w, tab=el.dataset.tab||state.tab; await setLayout(tab,L=>{ L.min={...L.min,[k]:!L.min[k]}; }); render(); },
+  async homeHide(el){ const k=el.dataset.w, tab=el.dataset.tab||state.tab; await setLayout(tab,L=>{ L.hidden={...L.hidden,[k]:true}; }); toast("card hidden — restore it from ＋ cards 🌸"); render(); },
+  manageCards(el){ manageCardsModal(el.dataset.tab||state.tab); },
+  async cardToggle(el){ const k=el.dataset.w, tab=el.dataset.tab||state.tab; await setLayout(tab,L=>{ L.hidden={...L.hidden,[k]:!L.hidden[k]}; if(!L.hidden[k]&&!L.order.includes(k))L.order.push(k); }); manageCardsModal(tab); render(); },
+  async resetLayout(el){ const tab=el.dataset.tab||state.tab; await setSent(n=>{ const layout={...(n.layout||{})}; delete layout[tab]; return {...n,layout}; }); $("#modal").innerHTML=""; toast("layout reset 🌸"); render(); },
+  noop(){},
   editSchedule(){ $("#modal").innerHTML=""; state.tab="home"; state.schedEdit=true; render(); },
   async saveCalEvent(){
     const title=($("#calTitle").value||"").trim(), date=$("#calDate").value, eid=$("#calEid").value;
@@ -2110,11 +2170,11 @@ const H={
     }
     KIKO.log.push({role:"pet",text:"and that's our journal for today 🌸 you showed up for yourself, and that counts. ❄️🦊"});
     paintKiko(); await finishJournal(J); },
-  async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); const img=KIKO.pendingImage;
-    if((!q && !img)||KIKO.busy)return;
-    KIKO.log.push({role:"me",text:(img?("📷 "+(q||"")).trim():q)});
-    if(KIKO.journal && KIKO.journal.active){ KIKO.pendingImage=null; paintKiko(); return H.kikoJournalReply(q||"(sent a photo)"); }
-    if(img){ KIKO.pendingImage=null; return H.kikoFoodPhoto(q,img); }   // a photo → estimate & log the food
+  async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); const imgs=(KIKO.pendingImages||[]).slice();
+    if((!q && !imgs.length)||KIKO.busy)return;
+    KIKO.log.push({role:"me",text:(imgs.length?("📷"+(imgs.length>1?"×"+imgs.length:"")+" "+(q||"")).trim():q)});
+    if(KIKO.journal && KIKO.journal.active){ KIKO.pendingImages=[]; paintKiko(); return H.kikoJournalReply(q||"(sent a photo)"); }
+    if(imgs.length){ KIKO.pendingImages=[]; return H.kikoFoodPhoto(q,imgs); }   // photos → estimate & log the food
     KIKO.busy=true; paintKiko();
     let ans, didActions=false;
     try{
@@ -2133,17 +2193,24 @@ const H={
     KIKO.log.push({role:"pet",text:ans}); KIKO.busy=false;
     if(didActions){ try{ await loadData(); await render(); }catch(_){} }   // re-pull so agent's writes show
     paintKiko(); },
-  kikoClearImg(){ KIKO.pendingImage=null; paintKiko(); },
-  async kikoFoodPhoto(desc,img){
+  kikoClearImg(el){ const i=el&&el.dataset.i!=null?Number(el.dataset.i):-1; if(i>=0) KIKO.pendingImages.splice(i,1); else KIKO.pendingImages=[]; paintKiko(); },
+  async kikoFoodPhoto(desc,imgs){
     if(DEMO||!SB){ KIKO.log.push({role:"pet",text:"I can look at your food once I'm connected to the server 💤❄️"}); paintKiko(); return; }
+    imgs=Array.isArray(imgs)?imgs:[imgs];
     KIKO.busy=true; paintKiko();
     try{
-      const r=await aiCall("food",{image:img, description:desc||""});
-      if(r&&r.error){ KIKO.log.push({role:"pet",text:"hmm, I couldn't quite read that one — try a clearer photo, or just tell me what it is 🌧️"}); }
+      const r=await aiCall("food",{images:imgs, description:desc||""});
+      if(r&&r.error){ KIKO.log.push({role:"pet",text:"hmm, I couldn't quite read those — try clearer photos, or just tell me what they are 🌧️"}); }
       else {
-        const item={id:"fd"+Date.now(), name:r.name||"food", serving:r.serving||"", kcal:Math.round(r.kcal||0), protein:r.protein||0, carbs:r.carbs||0, fiber:r.fiber||0, fat:r.fat||0, time:new Date().toISOString()};
-        await setToday(n=>({...n,food:[...(n.food||[]),item]}));
-        KIKO.log.push({role:"pet",text:`logged ${item.name} 🍽️ — about ${item.kcal} kcal, ${item.protein}g protein, ${item.fiber}g fibre.${r.note?" "+r.note:""} (an estimate — tweak it on the Food tab if needed 💗)`});
+        const items=(r&&Array.isArray(r.items))?r.items:[r];
+        const logged=[];
+        for(const it of items){ if(!it||it.kcal==null)continue;
+          const item={id:"fd"+Date.now()+Math.floor(Math.random()*1000), name:it.name||"food", serving:it.serving||"", kcal:Math.round(it.kcal||0), protein:it.protein||0, carbs:it.carbs||0, fiber:it.fiber||0, fat:it.fat||0, time:new Date().toISOString()};
+          await setToday(n=>({...n,food:[...(n.food||[]),item]})); logged.push(item); }
+        if(logged.length===1){ const it=logged[0]; KIKO.log.push({role:"pet",text:`logged ${it.name} 🍽️ — about ${it.kcal} kcal, ${it.protein}g protein, ${it.fiber}g fibre. (an estimate — tweak it on the Food tab if needed 💗)`}); }
+        else if(logged.length>1){ const tk=logged.reduce((a,x)=>a+x.kcal,0), tp=Math.round(logged.reduce((a,x)=>a+x.protein,0)), tf=Math.round(logged.reduce((a,x)=>a+x.fiber,0));
+          KIKO.log.push({role:"pet",text:`logged ${logged.length} items 🍽️\n${logged.map(x=>`• ${x.name} — ${x.kcal} kcal, ${x.protein}g protein, ${x.fiber}g fibre`).join("\n")}\n\ntotal: ${tk} kcal, ${tp}g protein, ${tf}g fibre. (estimates — tweak any on the Food tab 💗)`}); }
+        else { KIKO.log.push({role:"pet",text:"hmm, I couldn't read those — tell me what they are and I'll log them 🌧️"}); }
       }
     }catch(e){ KIKO.log.push({role:"pet",text:"aw, that didn't go through — want to try again? 🌧️"}); }
     KIKO.busy=false;
@@ -2197,15 +2264,15 @@ document.addEventListener("change",e=>{
     }; img.onerror=()=>{ if(!state.foodDraft)state.foodDraft={image:null,desc:"",est:null}; state.foodDraft.image=r.result; render(); }; img.src=r.result; };
     r.readAsDataURL(f);
   } else if(t.id==="kikoFile"){
-    const f=t.files&&t.files[0]; if(!f) return;
+    const files=t.files?[...t.files]:[]; if(!files.length) return;
     const ta=$("#kikoInput"); const keep=ta?ta.value:"";   // don't lose a typed note on re-paint
-    const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{
+    files.slice(0,8).forEach(f=>{ const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>{
       const max=1024; let w=img.width,h=img.height; const sc=Math.min(1,max/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc);
       const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h);
-      try{ KIKO.pendingImage=c.toDataURL("image/jpeg",0.82); }catch(e){ KIKO.pendingImage=r.result; }
-      paintKiko(); const ni=$("#kikoInput"); if(ni){ ni.value=keep; ni.focus(); }
-    }; img.onerror=()=>{ KIKO.pendingImage=r.result; paintKiko(); const ni=$("#kikoInput"); if(ni){ ni.value=keep; } }; img.src=r.result; };
-    r.readAsDataURL(f);
+      try{ KIKO.pendingImages.push(c.toDataURL("image/jpeg",0.82)); }catch(e){ KIKO.pendingImages.push(r.result); }
+      paintKiko(); const ni=$("#kikoInput"); if(ni&&keep){ ni.value=keep; }
+    }; img.onerror=()=>{ KIKO.pendingImages.push(r.result); paintKiko(); const ni=$("#kikoInput"); if(ni&&keep){ni.value=keep;} }; img.src=r.result; }; r.readAsDataURL(f); });
+    t.value="";   // allow re-selecting the same file later
   } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value;
     setSent(n=>({...n,schedule:(n.schedule||[]).map(r=>r.id===id?{...r,[k]:v}:r)})); // fire-and-forget; no re-render mid-edit
   }
@@ -2395,7 +2462,7 @@ window.addEventListener('error',ev=>{ const v=document.getElementById('view');
   if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p></div>'; } });
 
 /* ===================== KIKO — AI snowfox pet ===================== */
-const KIKO={ open:false, busy:false, log:[], journal:null, pendingImage:null };
+const KIKO={ open:false, busy:false, log:[], journal:null, pendingImages:[] };
 const KIKO_GREETS=["Konfuyu~! Need anything? ❄️","Pspsps… ask me something! 🦊","I'm right here if you need me 💗","Hi Mifu~ ✿","Wanna brainstorm? 🌸"];
 /* sprite walk engine + desktop-pet physics — frames measured from fox.png (164x210). Row 2 = 4-frame walk cycle. */
 const KIKO_SHEET={url:"fox.png",W:164,H:210};
@@ -2477,10 +2544,10 @@ function paintKiko(){
     : `<div class="kiko-msg pet">Konfuyu~! I'm Kiko 🦊 Tell me to do things — "add a stream Saturday 7pm", "log my mood as 4", "log lunch: chicken and rice", "start a short script" — and I'll handle it. Tap 📷 to send a food photo and I'll log the macros for you. Or just chat. ❄️</div>`;
   c.innerHTML=`<div class="kiko-head"><div class="kiko-av"></div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoToggle">✕</button></div>
     <div class="kiko-log" id="kikoLog">${logHtml}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
-    ${KIKO.pendingImage?`<div style="padding:8px 10px 0"><span style="position:relative;display:inline-block"><img src="${KIKO.pendingImage}" alt="attached" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><button class="x" data-act="kikoClearImg" title="remove" style="position:absolute;top:-7px;right:-7px;background:#fff;border:1px solid var(--line);border-radius:50%;width:19px;height:19px;font-size:11px;line-height:1;padding:0">✕</button></span> <span class="soft" style="font-size:11px">photo ready — add a note &amp; send to log it 🍽️</span></div>`:""}
+    ${KIKO.pendingImages.length?`<div style="padding:8px 10px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${KIKO.pendingImages.map((im,i)=>`<span style="position:relative;display:inline-block"><img src="${im}" alt="attached" style="width:50px;height:50px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><button class="x" data-act="kikoClearImg" data-i="${i}" title="remove" style="position:absolute;top:-7px;right:-7px;background:#fff;border:1px solid var(--line);border-radius:50%;width:19px;height:19px;font-size:11px;line-height:1;padding:0">✕</button></span>`).join("")}<span class="soft" style="font-size:11px">${KIKO.pendingImages.length} photo${KIKO.pendingImages.length>1?'s':''} ready — add a note &amp; send to log 🍽️ (📷 adds more)</span></div>`:""}
     <div class="kiko-input">
-      <label class="btn" style="cursor:pointer;padding:0 9px;display:flex;align-items:center;font-size:16px" title="add a photo (e.g. your food)">📷<input type="file" id="kikoFile" accept="image/*" style="display:none" ${KIKO.busy?"disabled":""}></label>
-      <input class="inp" id="kikoInput" placeholder="${KIKO.pendingImage?'what is it? (optional)':'tell Kiko to do something…'}" ${KIKO.busy?"disabled":""}>
+      <label class="btn" style="cursor:pointer;padding:0 9px;display:flex;align-items:center;font-size:16px" title="add photos (e.g. your food)">📷<input type="file" id="kikoFile" accept="image/*" multiple style="display:none" ${KIKO.busy?"disabled":""}></label>
+      <input class="inp" id="kikoInput" placeholder="${KIKO.pendingImages.length?'what are they? (optional)':'tell Kiko to do something…'}" ${KIKO.busy?"disabled":""}>
       <button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button>
     </div>`;
   const log=$("#kikoLog"); if(log) log.scrollTop=log.scrollHeight;
@@ -2550,6 +2617,59 @@ function start(){
   document.head.appendChild(sc);
 }
 start();
+
+/* ===== modular layout engine: drag-reorder (cards + tabs) · freeform resize · masonry · iPad/Pencil-ready ===== */
+(function(){
+  let d=null, sc=false, rafL=0;
+  const gridEl=()=>document.querySelector(".grid-modular");
+  function maxCols(){ const g=gridEl(); return g?Math.max(3,Math.min(16,Math.floor(g.clientWidth/88))):3; }
+  function relayoutSoon(){ if(rafL)return; rafL=requestAnimationFrame(()=>{ rafL=0; try{layoutHome();}catch(_){} }); }
+  function commitTabs(order){ try{ localStorage.setItem("tab-order",JSON.stringify(order)); }catch(e){} }
+  function moveGhost(x,y,scale){ if(d&&d.ghost)d.ghost.style.transform="translate("+(x-d.gx)+"px,"+(y-d.gy)+"px) scale("+(scale||1.04)+")"; }
+  function flipReorder(c, mutate){
+    const kids=[...c.children], firsts=kids.map(k=>k.getBoundingClientRect());
+    mutate(); try{layoutHome();}catch(_){}
+    kids.forEach((k,i)=>{ if(k===(d&&d.item))return; const a=firsts[i], b=k.getBoundingClientRect(), dx=a.left-b.left, dy=a.top-b.top; if(!dx&&!dy)return; k.style.transition="none"; k.style.transform="translate("+dx+"px,"+dy+"px)"; requestAnimationFrame(()=>{ k.style.transition=""; k.style.transform=""; }); });
+  }
+  document.addEventListener("pointerdown",e=>{
+    if(document.body.classList.contains("locked"))return;
+    const rez=e.target.closest(".home-resize");
+    if(rez){ const item=rez.closest(".home-widget"); if(item){ const r=item.getBoundingClientRect(), cur=parseInt(((item.style.gridColumn||"").match(/span (\d+)/)||[])[1]||"1"), panel=item.querySelector(".panel,section"), startH=panel?panel.getBoundingClientRect().height:160;
+      d={mode:"resize",item,panel,key:item.getAttribute("data-w"),tab:item.getAttribute("data-tab"),startW:r.width,startCols:cur,cols:cur,startH,h:startH,sx:e.clientX,sy:e.clientY,moved:false,cap:rez,pid:e.pointerId}; try{rez.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); } return; }
+    const grip=e.target.closest(".home-grip");
+    if(grip){ const item=grip.closest(".home-widget"), c=item&&item.parentElement; if(item&&c){ d={mode:"order",item,c,itemSel:".home-widget",key:"data-w",horiz:false,sx:e.clientX,sy:e.clientY,moved:false,cap:grip,pid:e.pointerId}; try{grip.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); } return; }
+    const tab=e.target.closest("#nav .tab");
+    if(tab){ const c=tab.parentElement; d={mode:"order",item:tab,c,itemSel:".tab",key:"data-tab",isTab:true,horiz:true,sx:e.clientX,sy:e.clientY,moved:false,cap:tab,pid:e.pointerId}; try{tab.setPointerCapture(e.pointerId);}catch(_){} }
+  },true);
+  document.addEventListener("pointermove",e=>{
+    if(!d)return;
+    if(!d.moved){ if(Math.abs(e.clientX-d.sx)+Math.abs(e.clientY-d.sy)<6)return; d.moved=true;
+      if(d.mode==="resize"){ d.item.classList.add("resizing"); }
+      else { const r=d.item.getBoundingClientRect(); d.gx=d.sx-r.left; d.gy=d.sy-r.top; const g=d.item.cloneNode(true); g.classList.add("drag-clone"); g.classList.remove("reordering","dragsrc"); g.style.width=r.width+"px"; g.style.height=r.height+"px"; g.querySelectorAll(".home-tools,.home-resize").forEach(x=>x.remove()); document.body.appendChild(g); d.ghost=g; d.item.classList.add("dragsrc"); moveGhost(d.sx,d.sy); }
+    }
+    e.preventDefault();
+    if(d.mode==="resize"){ const unit=d.startW/d.startCols||d.startW; let nc=Math.round((d.startW+(e.clientX-d.sx))/unit); nc=Math.max(3,Math.min(maxCols(),nc)); if(nc!==d.cols){ d.cols=nc; d.item.style.gridColumn="span "+nc; } const nh=Math.max(120,Math.round(d.startH+(e.clientY-d.sy))); d.h=nh; if(d.panel)d.panel.style.minHeight=nh+"px"; d.item.dataset.h=nh; relayoutSoon(); return; }
+    moveGhost(e.clientX,e.clientY);
+    const el=document.elementFromPoint(e.clientX,e.clientY), over=el&&el.closest(d.itemSel);
+    if(over&&over!==d.item&&over.parentElement===d.c){ const r=over.getBoundingClientRect(), before=d.horiz?(e.clientX<r.left+r.width/2):(e.clientY<r.top+r.height/2); const ref=before?over:over.nextSibling; if(ref!==d.item){ flipReorder(d.c, ()=>d.c.insertBefore(d.item, ref)); } }
+  },true);
+  document.addEventListener("pointerup",()=>{
+    if(!d)return; const x=d; d=null; try{x.cap.releasePointerCapture(x.pid);}catch(_){}
+    if(x.mode==="resize"){ x.item.classList.remove("resizing"); if(x.moved){ sc=true; setTimeout(()=>sc=false,350); setLayout(x.tab,L=>{ L.size={...L.size,[x.key]:{c:x.cols,h:Math.round(x.h)}}; }); try{layoutHome();}catch(_){} } return; }
+    if(!x.moved)return;
+    sc=true; setTimeout(()=>sc=false,350);
+    const fr=x.item.getBoundingClientRect();
+    if(x.ghost){ x.ghost.style.transition="transform .2s cubic-bezier(.2,.8,.25,1),opacity .2s"; x.ghost.style.transform="translate("+fr.left+"px,"+fr.top+"px) scale(1)"; x.ghost.style.opacity="0"; const gh=x.ghost; setTimeout(()=>{ gh&&gh.remove(); },220); }
+    x.item.classList.remove("dragsrc");
+    const order=[...x.c.querySelectorAll(x.itemSel)].map(it=>it.getAttribute(x.key));
+    if(x.isTab){ commitTabs(order); }
+    else { const tab=x.c.getAttribute("data-tab"); setLayout(tab,L=>{ L.order=order; }); try{layoutHome();}catch(_){} }
+  },true);
+  document.addEventListener("pointercancel",()=>{ if(!d)return; if(d.ghost)d.ghost.remove(); if(d.item){d.item.classList.remove("dragsrc","resizing","reordering");} d=null; },true);
+  document.addEventListener("click",e=>{ if(sc){ e.stopPropagation(); e.preventDefault(); sc=false; } },true);
+  document.addEventListener("toggle",()=>{ if(MODULAR_TABS.includes(state.tab)){ try{layoutHome();}catch(_){} } },true);
+  window.addEventListener("resize",()=>{ if(MODULAR_TABS.includes(state.tab)){ clearTimeout(window._lhT); window._lhT=setTimeout(()=>{try{layoutHome();}catch(e){}},150); } });
+})();
 
 /* ===== in-browser event / birthday reminders (fires while the app is open) ===== */
 function checkReminders(){

@@ -463,19 +463,29 @@ Return ONLY JSON:
 
 Numbers are estimates; round sensibly (kcal to nearest 5–10, grams to nearest whole or 0.5). Keep the note warm and brief, no markdown.`;
 
+function normFoodItem(out: any) {
+  const num = (v: any) => (v == null || isNaN(Number(v)) ? 0 : Math.round(Number(v) * 10) / 10);
+  return { name: out.name || "food", serving: out.serving || "", kcal: Math.round(Number(out.kcal) || 0), protein: num(out.protein), carbs: num(out.carbs), fiber: num(out.fiber), fat: num(out.fat), confidence: out.confidence || "medium", note: out.note || "" };
+}
 async function foodMode(input: any) {
   const desc = (input.description || "").toString().slice(0, 600);
+  const imgs: string[] = Array.isArray(input.images) ? input.images : (input.image ? [input.image] : []);
   const content: any[] = [];
-  if (input.image) {
-    const m = String(input.image).match(/^data:(image\/\w+);base64,(.*)$/);
-    if (m) content.push({ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } });
-  }
+  imgs.slice(0, 8).forEach((im) => { const m = String(im).match(/^data:(image\/\w+);base64,(.*)$/); if (m) content.push({ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } }); });
   if (!content.length && !desc) return { error: "Add a photo or a description of the food first." };
+  const multi = imgs.length > 1;
+  if (multi) {
+    content.push({ type: "text", text: `These are ${imgs.length} photos of her food${desc ? ` — her note: "${desc}"` : ""}. Each photo is (usually) a separate dish or item. Identify EACH distinct food and estimate its nutrition for the portion shown. Return ONLY JSON: { "items": [ {"name":..., "serving":..., "kcal":<int>, "protein":<g>, "carbs":<g>, "fiber":<g>, "fat":<g>, "confidence":"low|medium|high", "note":"short"} , ... ] }` });
+    const out = parseJSON(await claudeMsg(FOOD_SYSTEM, content, 1400));
+    let items = (out && Array.isArray(out.items)) ? out.items : (out && out.kcal != null ? [out] : []);
+    items = items.filter((x: any) => x && x.kcal != null).map(normFoodItem);
+    if (!items.length) return { error: "Couldn't read those — try clearer photos or a quick description." };
+    return { items };
+  }
   content.push({ type: "text", text: `Estimate the nutrition for this meal.${desc ? ' Her description: "' + desc + '"' : " (no description given — go by the photo.)"} Return ONLY the JSON.` });
   const out = parseJSON(await claudeMsg(FOOD_SYSTEM, content, 700));
   if (!out || out.kcal == null) return { error: "Couldn't read that one — try a clearer photo or a quick description." };
-  const num = (v: any) => (v == null || isNaN(Number(v)) ? 0 : Math.round(Number(v) * 10) / 10);
-  return { name: out.name || "food", serving: out.serving || "", kcal: Math.round(Number(out.kcal) || 0), protein: num(out.protein), carbs: num(out.carbs), fiber: num(out.fiber), fat: num(out.fat), confidence: out.confidence || "medium", note: out.note || "" };
+  return normFoodItem(out);
 }
 
 // ===================== WITHINGS (Body Smart scale → weight log) =====================

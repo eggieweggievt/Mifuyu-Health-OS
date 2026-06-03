@@ -1,3 +1,7 @@
 ﻿*.pdf
-publish.ps1
+.supabase-token
+*.ps1
+supabase/
 HOW TO PUBLISH.md
+REMINDERS-EMAIL-SETUP.md
+WITHINGS-SETUP.md
