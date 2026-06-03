@@ -1794,15 +1794,16 @@ function kikoGreet(){
 
 function start(){
   applyPrefs();
-  render();   // show the app instantly — never blank, even before/without Supabase
-  try{ kikoStart(); setTimeout(kikoGreet,3000); setInterval(kikoGreet,45000); }catch(e){ console.error(e); }
-  if(!DEMO){
-    const sc=document.createElement('script');
-    sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-    sc.onload=()=>{ try{ SB=window.supabase.createClient(CONFIG.url,CONFIG.anonKey); }catch(e){ console.error(e); } render(); };
-    sc.onerror=()=>{ console.error("Supabase library couldn't load; staying offline for now."); };
-    document.head.appendChild(sc);
-  }
+  try{ kikoStart(); setTimeout(kikoGreet,3500); setInterval(kikoGreet,45000); }catch(e){ console.error(e); }
+  if(DEMO){ render(); return; }                 // demo: data is instant — one render
+  // live: gentle loader while Supabase connects, then render ONCE (no double-load flash)
+  const v=$("#view");
+  if(v) v.innerHTML='<div class="panel" style="max-width:380px;margin:48px auto;text-align:center"><div style="font-size:28px">❄️🦊</div><p class="soft" style="margin:8px 0 0">Konfuyu~ getting your cozy space ready…</p></div>';
+  const sc=document.createElement('script');
+  sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+  sc.onload=()=>{ try{ SB=window.supabase.createClient(CONFIG.url,CONFIG.anonKey); }catch(e){ console.error(e); } render(); };
+  sc.onerror=()=>{ render(); };                 // offline fallback — render with whatever we have
+  document.head.appendChild(sc);
 }
 start();
 </script>
