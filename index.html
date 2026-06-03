@@ -411,6 +411,23 @@ function seedDemo(){
 }
 let demo = DEMO ? seedDemo() : null;
 
+/* ===================== UNDO (Ctrl/⌘+Z rolls back the last data change) ===================== */
+let UNDO=[]; const UNDO_MAX=50; let UNDO_RESTORING=false;
+async function undoLast(){
+  if(!UNDO.length){ toast("nothing to undo ❄️"); return; }
+  const {date,prev}=UNDO.pop(); const snap=JSON.parse(JSON.stringify(prev||{}));
+  UNDO_RESTORING=true;
+  try{
+    if(DEMO){ demo[date]=snap; }
+    else if(SB){ await SB.from("daily_logs").upsert({user_id:UID,date,notes:snap},{onConflict:"user_id,date"}); }
+    if(date===SENTINEL) state.sentinel=JSON.parse(JSON.stringify(snap));
+    else if(date===TODAY) state.today=JSON.parse(JSON.stringify(snap));
+  }catch(e){ console.error(e); }
+  UNDO_RESTORING=false;
+  try{ await render(); }catch(_){ try{ renderStickies(); }catch(__){} }
+  toast("undone ↩️");
+}
+
 /* ===================== DATA LAYER ===================== */
 const DB = {
   async daily(date){
@@ -421,6 +438,7 @@ const DB = {
   },
   async saveDaily(date,merge){
     const cur=await DB.daily(date); const next=merge({...cur});
+    if(!UNDO_RESTORING){ try{ UNDO.push({date, prev:JSON.parse(JSON.stringify(cur||{}))}); if(UNDO.length>UNDO_MAX) UNDO.shift(); }catch(e){} }
     if(DEMO){ demo[date]=next; return next; }
     if(!SB) return next;
     await SB.from("daily_logs").upsert({user_id:UID,date,notes:next},{onConflict:"user_id,date"});
@@ -2000,6 +2018,14 @@ document.addEventListener("change",e=>{
 });
 document.addEventListener("click",async e=>{ const el=e.target.closest("[data-act]"); if(!el)return; const fn=H[el.dataset.act];
   if(fn){ try{ await fn(el); }catch(err){ console.error(err); toast("hmm, try again"); } } });
+// global undo — Ctrl+Z / ⌘Z rolls back the last data change, unless you're typing in a field (native undo wins there)
+document.addEventListener("keydown",e=>{
+  if((e.key==="z"||e.key==="Z") && (e.ctrlKey||e.metaKey) && !e.shiftKey && !e.altKey){
+    const t=e.target, tag=t&&t.tagName;
+    if(tag==="INPUT"||tag==="TEXTAREA"||(t&&t.isContentEditable)) return;   // let the textbox handle its own undo
+    e.preventDefault(); undoLast();
+  }
+});
 
 /* ===================== BREATHING (JS paced) ===================== */
 let breathRAF=null;
