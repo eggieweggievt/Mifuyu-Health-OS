@@ -1749,6 +1749,7 @@ function viewPlanner(){
   ${done.length?`<details class="acc"><summary>✅ Done (${done.length})</summary><div class="acc-body">
     ${done.map(t=>`<div class="listrow"><span class="grow soft" style="text-decoration:line-through">${esc(t.text)}</span><button class="x" data-act="delTask" data-v="${t.id}">✕</button></div>`).join("")}
   </div></details>`:''}
+  ${remindersCard()}
   ${DISCLAIMER}`;
 }
 
@@ -2084,7 +2085,15 @@ function calAgenda(sent){
       </div>
     </div>
   </section>
-  <section class="panel" style="max-width:920px;margin:14px auto 0">
+  ${remindersCard()}`;
+}
+/* the 🔔 Reminders card — shared by the Calendar and the Planner (same data, same buttons) */
+function remindersCard(){
+  const rem=state.sentinel.reminders||{};
+  const OFFSETS=[[0,"Same day"],[1,"1 day before"],[3,"3 days before"],[7,"1 week before"]];
+  const offs=rem.offsets||[0,1];
+  const notif=(typeof Notification!=="undefined")?Notification.permission:"unsupported";
+  return `<section class="panel" style="max-width:920px;margin:14px auto 0">
     <div class="card-head"><h2 style="font-size:17px">🔔 Reminders</h2></div>
     <p class="soft" style="font-size:12px;margin:0 0 10px">Get a gentle nudge before events &amp; birthdays. Pick how far ahead you'd like to be reminded.</p>
     <div class="chiprow" style="margin-bottom:12px">
