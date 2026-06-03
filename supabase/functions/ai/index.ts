@@ -71,6 +71,17 @@ async function claudeJSON(user: string, maxTokens = 1400): Promise<any> {
   if (!out) throw new Error("Couldn't parse the AI response — try again.");
   return out;
 }
+async function claudeWith(system: string, user: string, maxTokens = 1200): Promise<string> {
+  if (!ANTHROPIC_KEY) throw new Error("Claude key isn't set on the server.");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
+  });
+  const j = await res.json();
+  if (j.error) throw new Error(j.error.message || "Claude error");
+  return (j.content && j.content[0] && j.content[0].text) || "";
+}
 
 // History/personalisation: pull her recent YouTube upload titles (learn her patterns).
 async function recentTitles(): Promise<string> {
@@ -190,6 +201,47 @@ async function channelSnapshot(input: any) {
     views: Number(ch.statistics?.viewCount || 0), videos: Number(ch.statistics?.videoCount || 0), recent } };
 }
 
+// ===================== AGENT (Kiko controls the app) =====================
+const AGENT_SYSTEM = `You are Kiko, Mifuyu's cozy snowfox companion living inside her personal app "Mifuyu Health OS". You are warm, sweet, gentle, a little playful, snowfox/❄️🦊 energy, spoon-theory-aware (never pushy). You both chat AND perform actions in her app on her behalf.
+
+You manage: a calendar, a planner (tasks), weekly/monthly goals, daily mood/anxiety/energy check-ins, weight + body measurements, her Mounjaro (tirzepatide) injections & water, PCOS symptom logs & cycle, a brain-dump list, sticky notes, and tab navigation. You are NOT a doctor — never give medical advice or invent health numbers she didn't say; just log what she tells you. Keep replies short and kind.
+
+Return ONLY a JSON object, no prose outside it:
+{ "reply": "<a short, warm message to her>", "actions": [ <zero or more action objects> ] }
+
+Allowed action objects (use ONLY these shapes; include just the fields you need):
+- {"type":"navigate","tab":"home|planner|calendar|optimize|pcos|mj|weight|care|trends|settings"}
+- {"type":"addEvent","title":"...","date":"YYYY-MM-DD","endDate":"YYYY-MM-DD or null","time":"HH:MM or empty","tz":"IANA zone (default Europe/Amsterdam)","note":"","url":""}
+- {"type":"addTask","text":"...","bucket":"personal|health|content|hobbies|someday","spoon":"low|some|full"}
+- {"type":"addGoal","period":"week|month","text":"..."}
+- {"type":"logMind","mood":0-5,"anxiety":0-5,"energy":0-5,"weather":0-5,"kind":true}   (include only what she gave; 0-5 scales)
+- {"type":"logWeight","value":<number, kg>}
+- {"type":"addNSV","text":"<a non-scale victory>"}
+- {"type":"addMeasurement","bust":<cm>,"waist":<cm>,"hips":<cm>,"thighs":<cm>,"arms":<cm>}   (include only provided)
+- {"type":"logShot","date":"YYYY-MM-DD or today","dose":2.5|5|7.5|10|12.5|15,"site":"L abdomen|R abdomen|L thigh|R thigh|L upper arm|R upper arm","time":"HH:MM or empty","note":""}
+- {"type":"logWater","cups":<number>}
+- {"type":"addCapture","text":"..."}   (a brain-dump note)
+- {"type":"addSticky","text":"..."}
+- {"type":"cycleStart"}   (period started today)
+- {"type":"cycleEnd"}     (period ended today)
+- {"type":"logPcos","field":"fatigue|bloating|cravings|acne|shedding","value":0-5}
+
+Rules:
+- Compute all dates relative to TODAY and her timezone, given below. "tomorrow"/"next friday"/"in 2 weeks" → real YYYY-MM-DD. Multi-day → set endDate.
+- Only include actions she clearly asked for. If she's just chatting or asking a question, use "actions":[] and answer in "reply".
+- If something's ambiguous, do your best reasonable guess and mention it in the reply (don't refuse).
+- Always include a brief warm "reply" confirming what you did or answering her.`;
+
+async function agent(input: any) {
+  const today = input.today || "", tz = input.tz || "Europe/Amsterdam", tab = input.tab || "home";
+  const user = `TODAY is ${today} (timezone ${tz}). Her current tab is "${tab}".\n\nShe said: "${(input.question || "").slice(0, 1500)}"`;
+  const out = parseJSON(await claudeWith(AGENT_SYSTEM, user, 1200));
+  if (!out) return { reply: "my whiskers twitched — could you say that again? 🦊", actions: [] };
+  if (!Array.isArray(out.actions)) out.actions = [];
+  if (!out.reply) out.reply = "okay! ❄️";
+  return out;
+}
+
 // ===================== router =====================
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -199,6 +251,7 @@ Deno.serve(async (req) => {
     if (mode === "optimize") return json(await optimize(input, vidiq));
     if (mode === "analyze") return json(await analyze(input, vidiq));
     if (mode === "ask") return json(await ask(input));
+    if (mode === "agent") return json(await agent(input));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);

@@ -1484,13 +1484,23 @@ const H={
     if(KIKO.open){ $("#kikoBubble").classList.add("hidden"); kikoState="sit"; kikoStateT=0; $("#kikoChat").classList.remove("hidden"); paintKiko(); positionKikoUI(); }
     else { $("#kikoChat").classList.add("hidden"); kikoState="walk"; kikoStateT=0; } },
   async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); if(!q||KIKO.busy)return;
-    KIKO.log.push({role:"me",text:q}); KIKO.busy=true; paintKiko(); $("#kiko").classList.add("think");
-    let ans;
+    KIKO.log.push({role:"me",text:q}); KIKO.busy=true; paintKiko();
+    let ans, didActions=false;
     try{
-      if(DEMO||!SB){ ans="I'm a sleepy demo kiko right now 💤 — once you connect me to the server I can really chat! ❄️"; }
-      else { const d=await aiCall("ask",{question:q}); ans=(d&&(d.answer||d.text))||"hmm, my whiskers twitched — ask me again? 🦊"; }
+      if(DEMO||!SB){ ans="I'm a sleepy demo kiko right now 💤 — connect me to the server and I can chat *and* actually run things for you! ❄️"; }
+      else {
+        const d=await aiCall("agent",{question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab});
+        if(d&&d.error) throw new Error(d.error);
+        ans=(d&&(d.reply||d.answer))||"hmm, my whiskers twitched — ask me again? 🦊";
+        const acts=(d&&Array.isArray(d.actions))?d.actions:[];
+        const done=[];
+        for(const a of acts){ const r=await execAgentAction(a); if(r) done.push(r); }
+        if(done.length){ didActions=true; ans+="\n\n"+done.map(x=>"✓ "+x).join("\n"); }
+      }
     }catch(e){ ans="aw, I couldn't reach the server — "+(e.message||"try again")+" 🌧️"; }
-    KIKO.log.push({role:"pet",text:ans}); KIKO.busy=false; $("#kiko").classList.remove("think"); paintKiko(); },
+    KIKO.log.push({role:"pet",text:ans}); KIKO.busy=false;
+    if(didActions){ try{ await render(); }catch(_){} }
+    paintKiko(); },
 
   // --- Optimize ---
   optMode(el){ OPT.mode=el.dataset.v; OPT.err=""; render(); },
@@ -1777,10 +1787,10 @@ function paintKiko(){
   const c=$("#kikoChat"); if(!c)return;
   const logHtml = KIKO.log.length
     ? KIKO.log.map(m=>`<div class="kiko-msg ${m.role}">${esc(m.text)}</div>`).join("")
-    : `<div class="kiko-msg pet">Konfuyu~! I'm Kiko 🦊 Ask me anything — content ideas, a gentle pep talk, or whatever's on your mind. ❄️</div>`;
+    : `<div class="kiko-msg pet">Konfuyu~! I'm Kiko 🦊 Tell me to *do* things — "add a stream Saturday 7pm", "log my mood as 4", "make a task to refill meds", "park an idea" — and I'll handle it. Or just chat. ❄️</div>`;
   c.innerHTML=`<div class="kiko-head"><div class="kiko-av"></div><div style="flex:1"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoToggle">✕</button></div>
     <div class="kiko-log" id="kikoLog">${logHtml}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
-    <div class="kiko-input"><input class="inp" id="kikoInput" placeholder="ask Kiko…" ${KIKO.busy?"disabled":""}><button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button></div>`;
+    <div class="kiko-input"><input class="inp" id="kikoInput" placeholder="tell Kiko to do something…" ${KIKO.busy?"disabled":""}><button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button></div>`;
   const log=$("#kikoLog"); if(log) log.scrollTop=log.scrollHeight;
   const inp=$("#kikoInput"); if(inp&&!KIKO.busy) try{ inp.focus(); }catch(_){}
 }
@@ -1790,6 +1800,32 @@ function kikoGreet(){
   b.style.left=Math.max(10,Math.round((kikoX||100)-18))+"px"; b.style.right="auto";
   b.classList.remove("hidden");
   clearTimeout(b._h); b._h=setTimeout(()=>b.classList.add("hidden"),5500);
+}
+
+/* Kiko agent — execute an AI action against the app's data/state */
+async function execAgentAction(a){
+  if(!a||!a.type) return null; const T=a.type;
+  try{
+    if(T==="navigate"){ if(TABS.some(t=>t[0]===a.tab)) state.tab=a.tab; return "opened "+a.tab; }
+    if(T==="addEvent"){ const ev={id:uid(),title:a.title||"event",date:a.date||TODAY,endDate:(a.endDate&&a.endDate>(a.date||TODAY))?a.endDate:null,time:a.time||"",tz:a.tz||"Europe/Amsterdam",note:a.note||"",url:a.url||"",color:(typeof CAL_COLORS!=="undefined"&&CAL_COLORS[1])||"#c9b8f0"};
+      await DB.saveDaily(SENTINEL,n=>({...n,calendarEvents:[...(n.calendarEvents||[]),ev]})); return "📅 added “"+ev.title+"” ("+fmtDate(ev.date)+")"; }
+    if(T==="addTask"){ await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text:a.text,bucket:a.bucket||"personal",spoon:a.spoon||"some",done:false,sub:[]}]})); return "🗒️ task: "+a.text; }
+    if(T==="addGoal"){ const key=a.period==="month"?"goalsMonth":"goalsWeek"; await setSent(n=>({...n,[key]:[...(n[key]||[]),{id:"g"+Date.now(),text:a.text,done:false}]})); return "🌷 "+(a.period==="month"?"monthly":"weekly")+" goal: "+a.text; }
+    if(T==="logMind"){ await setToday(n=>{ const mind={...(n.mind||{})}; ["mood","anxiety","energy","weather"].forEach(k=>{ if(a[k]!=null) mind[k]=Math.max(0,Math.min(5,Number(a[k]))); }); if(a.kind!=null) mind.kind=!!a.kind; return {...n,mind}; }); return "💗 check-in logged"; }
+    if(T==="logWeight"){ const v=Number(a.value); if(isNaN(v))return null; await setSent(n=>({...n,weightLog:[...(n.weightLog||[]),{date:TODAY,w:v}]})); return "⚖️ "+v+" "+CONFIG.weightUnit+" logged"; }
+    if(T==="addNSV"){ await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t:a.text,date:TODAY}]})); return "🌟 "+a.text; }
+    if(T==="addMeasurement"){ const e={date:TODAY}; let any=false; ["bust","waist","hips","thighs","arms"].forEach(k=>{ const v=Number(a[k]); if(a[k]!=null&&!isNaN(v)){ e[k]=v; any=true; } }); if(!any)return null; await setSent(n=>({...n,measurements:[...(n.measurements||[]),e]})); return "📏 measurements saved"; }
+    if(T==="logShot"){ const date=(!a.date||a.date==="today")?TODAY:a.date; const dose=Number(a.dose);
+      await setSent(n=>{ const log=[...(n.injectionLog||[]),{id:"i"+Date.now(),date,time:a.time||"",dose,site:a.site||"",after:null,note:a.note||""}].sort((x,y)=>(x.date+(x.time||""))<(y.date+(y.time||""))?-1:1);
+        let dh=n.doseHistory||[]; const cur=dh.slice().sort((p,q)=>p.started<q.started?-1:1).slice(-1)[0]; if(!cur||cur.dose!==dose) dh=[...dh,{dose,started:date}]; return {...n,injectionLog:log,doseHistory:dh}; }); return "💉 "+dose+"mg shot logged"; }
+    if(T==="logWater"){ await setToday(n=>{ const mj={...(n.mounjaro||{})}; mj.water=Math.max(0,Number(a.cups)); return {...n,mounjaro:mj}; }); return "🥤 water: "+a.cups+" cups"; }
+    if(T==="addCapture"){ await setSent(n=>({...n,captures:[...(n.captures||[]),{id:"cap"+Date.now(),text:a.text,date:TODAY}]})); return "🧠 "+a.text; }
+    if(T==="addSticky"){ await addSticky(a.text); return "🗒️ sticky added"; }
+    if(T==="cycleStart"){ await setSent(n=>{ const cycle={...(n.cycle||{}),lastStart:TODAY}; cycle.history=[...(cycle.history||[]),{start:TODAY,end:null,flow:"med"}]; return {...n,cycle}; }); return "🌙 period start logged"; }
+    if(T==="cycleEnd"){ await setSent(n=>{ const c=n.cycle; if(!c||!c.history||!c.history.length)return n; const cycle={...c}; cycle.history=cycle.history.map((h,i)=>i===cycle.history.length-1?{...h,end:TODAY}:h); return {...n,cycle}; }); return "🌙 period end logged"; }
+    if(T==="logPcos"){ await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[a.field]=Math.max(0,Math.min(5,Number(a.value))); return {...n,pcos}; }); return "❄️ "+a.field+" logged"; }
+  }catch(e){ console.error("action failed",T,e); return null; }
+  return null;
 }
 
 function start(){
