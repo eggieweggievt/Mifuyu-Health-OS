@@ -218,8 +218,10 @@ IMPORTANT — STREAM SCHEDULE vs EVENTS (don't confuse these):
 - Quick test: if she names a weekday with no date and it's about her regular streaming, it's the STREAM SCHEDULE. If she names/implies a specific date, it's an EVENT. A one-time special stream on a given date is an event; her usual weekly streaming is the schedule.
 - The current schedule and upcoming events are provided below so you can answer questions about them and edit the right one.
 
+Write your "reply" in PLAIN TEXT only — no Markdown, no asterisks for bold/italics, no backticks, no headers, no bullet syntax. Just normal sentences. Emojis are welcome (❄️🦊💗). Keep it short and warm.
+
 Return ONLY a JSON object, no prose outside it:
-{ "reply": "<a short, warm message to her>", "actions": [ <zero or more action objects> ] }
+{ "reply": "<a short, warm PLAIN-TEXT message to her>", "actions": [ <zero or more action objects> ] }
 
 Allowed action objects (use ONLY these shapes; include just the fields you need):
 - {"type":"navigate","tab":"home|planner|calendar|optimize|pcos|mj|weight|care|trends|settings"}
@@ -240,6 +242,7 @@ Allowed action objects (use ONLY these shapes; include just the fields you need)
 - {"type":"cycleStart"}   (period started today)
 - {"type":"cycleEnd"}     (period ended today)
 - {"type":"logPcos","field":"fatigue|bloating|cravings|acne|shedding","value":0-5}
+- {"type":"startScript","kind":"short|long","title":"...","raw":"<the idea/notes she gave you to script>","references":"...","format":true|false}   (opens the Script Writer seeded with this; set format:true only if there's already enough to shape a draft now)
 
 Rules:
 - Compute all dates relative to TODAY and her timezone, given below. "tomorrow"/"next friday"/"in 2 weeks" → real YYYY-MM-DD. Multi-day → set endDate.
@@ -319,6 +322,31 @@ async function remind(_input: any) {
 }
 function escapeHtml(s: string){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]||c)); }
 
+// ===================== SCRIPT WRITER (spoken notes + research → formatted script) =====================
+async function scriptMode(input: any) {
+  const i = input || {};
+  const kind = i.kind === "long" ? "long" : "short";
+  const title = (i.title || "").toString().slice(0, 200);
+  const refs = (i.references || "").toString().slice(0, 4000);
+  const raw = (i.raw || "").toString().slice(0, 7000);
+  if (!raw && !refs) return { error: "Add some spoken words or references first." };
+  const common = `Her working title: ${title || "(none)"}\n\nResearch / references she pasted (facts, links, source notes — ground the script in these, don't invent facts):\n${refs || "(none)"}\n\nHer own spoken words (raw voice-to-text — may ramble, mis-punctuate, or repeat; clean it up but KEEP her phrasing, jokes, and voice — do not blandify her):\n${raw || "(none)"}`;
+  const prompt = kind === "short"
+    ? `Shape this into a tight SHORT-form video script (YouTube Shorts / TikTok, ~45–55 seconds, roughly 110–150 spoken words). Return ONLY JSON:
+{ "title": string, "hooks": string[3], "script": string, "cta": string }
+- hooks: 3 punchy first-line options (the first 1–2 seconds — curiosity / shock / a specific claim).
+- script: the full spoken script in her voice. Open on the strongest hook, 2–4 fast beats, one clear payoff. Spoken lines only (no camera directions). Tight enough for a short.
+- cta: one soft, on-brand closing line.
+${common}`
+    : `Shape this into a LONG-form YouTube script. Return ONLY JSON:
+{ "title": string, "hooks": string[3], "script": string, "cta": string }
+- script: a full script in her voice — a strong cold-open hook, then clear sections using short "## Section name" headers, natural spoken paragraphs grounded in the research, building logically, with a warm outro. Tighten the rambling but preserve her points, phrasing, and personality.
+- hooks: 3 cold-open options. cta: a warm subscribe / community CTA.
+${common}`;
+  const txt = await claude([{ role: "user", content: prompt }], 2400);
+  return parseJSON(txt) || { title, hooks: [], script: txt, cta: "" };
+}
+
 // ===================== router =====================
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -330,6 +358,7 @@ Deno.serve(async (req) => {
     if (mode === "ask") return json(await ask(input));
     if (mode === "agent") return json(await agent(input));
     if (mode === "remind") return json(await remind(input));
+    if (mode === "script") return json(await scriptMode(input));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);
