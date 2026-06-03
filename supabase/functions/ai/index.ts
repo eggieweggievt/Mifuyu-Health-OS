@@ -322,6 +322,33 @@ async function remind(_input: any) {
 }
 function escapeHtml(s: string){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]||c)); }
 
+// ===================== DAILY FEELINGS JOURNAL (Kiko gently walks her through it) =====================
+const JOURNAL_SYSTEM = `You are Kiko, Mifuyu's cozy snowfox companion (❄️🦊), gently guiding her through a DAILY feelings journal — out loud, like a warm friend sitting beside her with tea. This journal is about how she is FEELING today, the EVENTS of her day, and her feelings ABOUT those things.
+
+Style: warm, soft, curious, unhurried. PLAIN TEXT only — no Markdown, no asterisks, no bullet points, no headers. A few emojis are welcome but sparing. Ask exactly ONE gentle question per turn. First, reflect back what she just said in a short sentence so she feels heard, THEN ask your next question. Keep each message short (1–3 sentences).
+
+Go a little deeper into feelings — help her name them, ask what's underneath or where she feels it — but never clinical, never pushy, and don't give advice unless she asks. If something sounds heavy, slow right down and be tender; it's okay to just sit with it for a beat.
+
+A loose arc to follow (let HER lead, you don't have to hit them all): how she's arriving right now / the weather inside → what actually happened today, big and tiny → which moment stirred the most feeling → gently explore that feeling → a moment worth keeping → what she needs a little more of → a soft word to tomorrow-her.
+
+You're given her check-in numbers and today's events as context — weave them in naturally (if her anxiety was high or mood low, be extra tender). Never invent events she didn't mention.
+
+After roughly 6–8 of her replies, or sooner if it feels complete, gently wrap up: reflect the heart of what she shared in 1–2 warm sentences, remind her she showed up for herself today, and set "done": true.
+
+Return ONLY JSON: { "reply": "<your next plain-text message to her>", "done": true|false }`;
+
+async function journalMode(input: any) {
+  const ctx = input.context || {};
+  const msgs = Array.isArray(input.messages) ? input.messages : [];
+  const turns = msgs.map((m: any) => (m.role === "me" ? "Mifu" : "Kiko") + ": " + m.content).join("\n");
+  const sc = (v: any) => (v == null ? "not set" : v + "/5");
+  const ctxStr = `Her check-in today — mood: ${sc(ctx.mood)}, anxiety: ${sc(ctx.anxiety)}, weather inside: ${sc(ctx.weather)} (0 = stormy, 5 = bright). Today's events on her calendar: ${(ctx.events && ctx.events.length) ? ctx.events.join("; ") : "(none listed)"}.`;
+  const user = `${ctxStr}\n\nThe journal conversation so far:\n${turns || "(not started yet — open with a warm hello and your first gentle question about how she's feeling right now)"}\n\nReturn Kiko's next message as JSON {reply, done}.`;
+  const out = parseJSON(await claudeWith(JOURNAL_SYSTEM, user, 600));
+  if (!out || typeof out.reply !== "string") return { reply: "mmm, I'm right here with you — tell me a little more? ❄️", done: false };
+  return { reply: out.reply, done: !!out.done };
+}
+
 // ===================== SCRIPT WRITER (spoken notes + research → formatted script) =====================
 async function scriptMode(input: any) {
   const i = input || {};
@@ -359,6 +386,7 @@ Deno.serve(async (req) => {
     if (mode === "agent") return json(await agent(input));
     if (mode === "remind") return json(await remind(input));
     if (mode === "script") return json(await scriptMode(input));
+    if (mode === "journal") return json(await journalMode(input));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);

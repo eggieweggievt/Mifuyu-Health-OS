@@ -855,24 +855,35 @@ const REFRAMES=[
   {e:"🫂",t:"Talk to yourself like a friend",tint:"#fde2f2",b:["What would you say to someone you love feeling this? Say that to you."]},
   {e:"🌱",t:"Good enough is enough",tint:"#fdeadb",b:["You don't have to do it perfectly. Showing up softly counts.","A low-demand day is care, not falling behind."]},
 ];
-// fun, gentle daily journaling prompts Kiko walks Mifu through (kept light, never heavy)
-const KIKO_JOURNAL_PROMPTS=[
-  "What's one tiny thing that made you smile today? 🌸",
-  "If today had a flavour, what would it taste like? 🍡",
-  "What's something small you're a little proud of right now? ✨",
-  "Who or what are you grateful for today, even a little? 💗",
-  "What's one cozy thing you're looking forward to? ❄️",
-  "If your mood today were weather, what would it be? 🌤️",
-  "What song, game, or show is giving you comfort lately? 🎧",
-  "Name one nice thing someone did — or that you did! 🫶",
-  "What's a tiny win from today, however small? 🏆",
-  "If you could send morning-you a kind note, what would it say? 💌",
-  "What felt soft or easy today? 🍵",
-  "What's one thing future-you will be glad you did? 🌱",
-  "What made you go 'aww' recently? 🦊",
-  "What's a little treat you'd love to give yourself this week? 🎁",
+// gentle daily journaling — feelings + the day's events. Used live (AI follows her) and as the offline arc.
+const KIKO_JOURNAL_ARC=[
+  "First, let's just arrive. How are you feeling right now, in this moment? ☁️",
+  "What actually happened today — walk me through it, the big things and the tiny ones. 🗓️",
+  "Out of everything today, which moment stirred up the most feeling — good or hard? 💗",
+  "Can you name that feeling a little more? Where did you notice it? 🫧",
+  "Was there a moment, however small, you'd want to keep? ✨",
+  "Looking back on it all now, how are you feeling about today? 🌤️",
+  "What do you need a little more of right now — rest, comfort, fun, softness? 🍵",
+  "Last one: what's a kind word you'd leave for tomorrow-you? 🌙",
 ];
-const KIKO_JOURNAL_ACKS=["aw, I love that 🥹","ooh, noted ❄️","that's so you 🦊","yay — thank you for sharing 💗","mmm, cozy 🍵","that made me smile too 🌸","love that for you ✨","noted with care 📓"];
+const KIKO_JOURNAL_ACKS=["mm, thank you for telling me 💗","I hear you ❄️","that makes sense 🦊","I'm glad you noticed that 🌸","ooh, that's worth holding onto ✨","sitting with that with you for a sec 🍵","noted with care 📓"];
+// context Kiko has while journalling — her check-in + today's events
+function journalContext(){
+  const m=(state.today&&state.today.mind)||{};
+  const ev=(state.sentinel.calendarEvents||[]).filter(e=> e.date<=TODAY && TODAY<=(e.endDate||e.date)).map(e=>e.title).slice(0,8);
+  return { mood:m.mood, anxiety:m.anxiety, weather:m.weather, events:ev };
+}
+async function saveJournalEntry(J){
+  const log=(J.log||[]).filter(x=>x&&x.text);
+  if(!log.length) return;
+  const entry={ date:TODAY, ts:new Date().toISOString(), mode:J.mode||"ai", log };
+  try{ await setSent(n=>({...n,journalEntries:[...(n.journalEntries||[]),entry]})); }catch(e){ console.error(e); }
+}
+function renderJournalEntry(e){
+  if(e&&e.log&&e.log.length) return e.log.map(x=>`<div style="margin:6px 0"><div class="label" style="color:${x.who==='Mifu'?'var(--sakura-deep)':'var(--peri-deep)'}">${x.who==='Mifu'?'Mifu':'Kiko 🦊'}</div><div style="font-size:13px">${esc(x.text)}</div></div>`).join("");
+  if(e&&e.qa&&e.qa.length) return e.qa.map(x=>`<div style="margin:6px 0"><div class="label">${esc(x.q)}</div><div style="font-size:13px">${esc(x.a)}</div></div>`).join("");
+  return `<p class="soft" style="font-size:12px">(empty)</p>`;
+}
 function flipCard(c){
   return `<div class="flip" data-act="flip"><div class="flip-inner">
     <div class="flip-face" style="background:${c.tint}">
@@ -930,7 +941,7 @@ function viewCare(){
     <div class="card-head"><div class="label">✍️ Daily journal with Kiko</div>${journaledToday?'<span class="pill pill-mint">done today ✓</span>':''}</div>
     <p class="soft" style="font-size:12.5px;margin:0 0 10px">A few playful questions, walked through with Kiko — light and cozy, never heavy. He'll tuck your answers away in your journal. 🦊❄️</p>
     <button class="btn btn-grad" data-act="startKikoJournal">${journaledToday?'Journal again with Kiko 🌸':'Start today’s journal 🦊'}</button>
-    ${lastEntry?`<details class="acc" style="margin-top:12px"><summary>📖 last journal · ${esc(fmtDate(lastEntry.date))}</summary><div class="acc-body">${(lastEntry.qa||[]).map(x=>`<div style="margin:6px 0"><div class="label">${esc(x.q)}</div><div style="font-size:13px">${esc(x.a)}</div></div>`).join("")}</div></details>`:''}
+    ${lastEntry?`<details class="acc" style="margin-top:12px"><summary>📖 last journal · ${esc(fmtDate(lastEntry.date))}</summary><div class="acc-body">${renderJournalEntry(lastEntry)}</div></details>`:''}
   </section>
 
   <section class="panel">
@@ -1765,33 +1776,64 @@ const H={
   kikoToggle(){ KIKO.open=!KIKO.open;
     if(KIKO.open){ $("#kikoBubble").classList.add("hidden"); kikoState="sit"; kikoStateT=0; $("#kikoChat").classList.remove("hidden"); paintKiko(); positionKikoUI(); }
     else { $("#kikoChat").classList.add("hidden"); kikoState="walk"; kikoStateT=0; } },
-  // --- guided daily journal (runs inside Kiko's chat, no AI, kept gentle) ---
-  startKikoJournal(){
-    const pool=KIKO_JOURNAL_PROMPTS; const seed=parseInt(TODAY.replace(/-/g,""),10)%pool.length;
-    const prompts=[]; for(let i=0;i<4;i++) prompts.push(pool[(seed+i)%pool.length]);
-    KIKO.journal={active:true,prompts,step:0,answers:[]};
-    KIKO.log.push({role:"pet",text:"Konfuyu~! Let's do a tiny journal together 🦊 Just a few fun questions — nothing heavy. Answer however you like, and say \"stop\" anytime. 💗"});
-    KIKO.log.push({role:"pet",text:prompts[0]});
-    KIKO.open=true; const b=$("#kikoBubble"); if(b)b.classList.add("hidden"); kikoState="sit"; kikoStateT=0;
+  // --- guided daily feelings journal (Kiko walks her through it, in his chat) ---
+  openKikoChatPanel(){ KIKO.open=true; const b=$("#kikoBubble"); if(b)b.classList.add("hidden"); kikoState="sit"; kikoStateT=0;
     const c=$("#kikoChat"); if(c)c.classList.remove("hidden"); paintKiko(); positionKikoUI(); },
-  async kikoJournalStep(answer){
-    const J=KIKO.journal; if(!J){ return; }
-    if(/^(stop|cancel|nvm|never ?mind|quit|exit)\.?$/i.test(answer)){ J.active=false;
-      KIKO.log.push({role:"pet",text:"okay, we can pick it up another time — no pressure at all 💗❄️"}); paintKiko(); return; }
-    J.answers.push({q:J.prompts[J.step], a:answer}); J.step++;
-    if(J.step<J.prompts.length){
+  async startKikoJournal(){
+    const live = !DEMO && !!SB;
+    KIKO.journal={active:true, mode: live?"ai":"script", msgs:[], step:0, log:[]};
+    H.openKikoChatPanel();
+    if(!live){
+      const intro="Konfuyu~ let's sit together a moment 🦊 A gentle journal about today and how you're feeling. One question at a time, and you can say \"stop\" whenever. 💗";
+      KIKO.log.push({role:"pet",text:intro}); KIKO.log.push({role:"pet",text:KIKO_JOURNAL_ARC[0]});
+      KIKO.journal.log.push({who:"Kiko",text:KIKO_JOURNAL_ARC[0]}); paintKiko(); return;
+    }
+    // AI-guided: let Kiko open
+    KIKO.busy=true; paintKiko();
+    try{ const d=await aiCall("journal",{messages:[], context:journalContext()});
+      if(d&&d.error) throw new Error(d.error);
+      const reply=(d&&d.reply)||"Konfuyu~ let's sit together a moment 🦊 How are you arriving here right now — what's the weather inside today?";
+      KIKO.journal.msgs.push({role:"pet",content:reply}); KIKO.journal.log.push({who:"Kiko",text:reply});
+      KIKO.log.push({role:"pet",text:reply});
+    }catch(e){ KIKO.journal.mode="script"; KIKO.log.push({role:"pet",text:KIKO_JOURNAL_ARC[0]}); KIKO.journal.log.push({who:"Kiko",text:KIKO_JOURNAL_ARC[0]}); }
+    KIKO.busy=false; paintKiko(); },
+  // router for a journal answer (called from kikoSend; the user line is already in the log)
+  async kikoJournalReply(answer){
+    const J=KIKO.journal; if(!J)return;
+    J.log.push({who:"Mifu",text:answer});
+    if(/^(stop|cancel|nvm|never ?mind|quit|exit|done)\.?$/i.test(answer)){
+      J.active=false; KIKO.log.push({role:"pet",text:"okay, we can pick it up another time — no pressure at all 💗❄️"}); paintKiko();
+      if(J.log.length>1) await saveJournalEntry(J); return; }
+    if(J.mode==="script") return H.kikoJournalScriptStep(answer);
+    // AI-guided turn
+    J.msgs.push({role:"me",content:answer}); J.step++;
+    KIKO.busy=true; paintKiko();
+    try{
+      const d=await aiCall("journal",{messages:J.msgs, context:journalContext()});
+      if(d&&d.error) throw new Error(d.error);
+      let reply=(d&&d.reply)||"mm, I'm right here with you 💗"; let done=!!(d&&d.done) || J.step>=9;
+      J.msgs.push({role:"pet",content:reply}); J.log.push({who:"Kiko",text:reply});
+      KIKO.log.push({role:"pet",text:reply}); KIKO.busy=false;
+      if(done){ J.active=false; await saveJournalEntry(J); if(state.tab==='care'){ try{ await render(); }catch(_){} } }
+      paintKiko();
+    }catch(e){ // fall back to the gentle scripted arc if the journal endpoint isn't available
+      J.mode="script"; KIKO.busy=false;
+      const next=KIKO_JOURNAL_ARC[Math.min(J.step,KIKO_JOURNAL_ARC.length-1)];
+      KIKO.log.push({role:"pet",text:next}); J.log.push({who:"Kiko",text:next}); paintKiko(); }
+  },
+  async kikoJournalScriptStep(answer){
+    const J=KIKO.journal; J.step++;
+    if(J.step<KIKO_JOURNAL_ARC.length){
       KIKO.log.push({role:"pet",text:KIKO_JOURNAL_ACKS[Math.floor(Math.random()*KIKO_JOURNAL_ACKS.length)]});
-      KIKO.log.push({role:"pet",text:J.prompts[J.step]}); paintKiko(); return;
+      KIKO.log.push({role:"pet",text:KIKO_JOURNAL_ARC[J.step]}); J.log.push({who:"Kiko",text:KIKO_JOURNAL_ARC[J.step]}); paintKiko(); return;
     }
     J.active=false;
-    KIKO.log.push({role:"pet",text:"and that's the lot! 🌸 I tucked it into your journal. You showed up for yourself today, and that counts. ❄️🦊"});
-    paintKiko();
-    const entry={date:TODAY, ts:new Date().toISOString(), qa:J.answers};
-    try{ await setSent(n=>({...n,journalEntries:[...(n.journalEntries||[]),entry]})); }catch(e){ console.error(e); }
+    KIKO.log.push({role:"pet",text:"and that's our journal for today 🌸 I tucked it away safe. You showed up for yourself, and that counts. ❄️🦊"});
+    paintKiko(); await saveJournalEntry(J);
     if(state.tab==='care'){ try{ await render(); }catch(_){} } },
   async kikoSend(){ const inp=$("#kikoInput"); const q=(inp?inp.value:"").trim(); if(!q||KIKO.busy)return;
     KIKO.log.push({role:"me",text:q});
-    if(KIKO.journal && KIKO.journal.active){ return H.kikoJournalStep(q); }   // guided journal handles its own replies (no AI)
+    if(KIKO.journal && KIKO.journal.active){ paintKiko(); return H.kikoJournalReply(q); }   // guided journal handles its own replies
     KIKO.busy=true; paintKiko();
     let ans, didActions=false;
     try{
