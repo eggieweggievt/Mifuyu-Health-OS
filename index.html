@@ -98,15 +98,9 @@
   @keyframes popUp{from{opacity:0;transform:translateY(13px) scale(.99)}to{opacity:1;transform:none}}
   @keyframes softPop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  #view.anim{animation:viewFade .30s cubic-bezier(.22,.7,.3,1);}
-  /* gentle staggered pop-in of cards on page change (only while .anim is present) */
-  #view.anim .panel,#view.anim .slip,#view.anim>details.acc{animation:popUp .44s cubic-bezier(.2,.75,.3,1) backwards;}
-  #view.anim .panel:nth-of-type(2){animation-delay:.05s}
-  #view.anim .panel:nth-of-type(3){animation-delay:.1s}
-  #view.anim .panel:nth-of-type(4){animation-delay:.15s}
-  #view.anim .panel:nth-of-type(n+5){animation-delay:.2s}
-  #view.anim .col{animation:fadeIn .4s ease backwards}
-  #view.anim .col:nth-of-type(2){animation-delay:.07s} #view.anim .col:nth-of-type(3){animation-delay:.14s}
+  /* ONE gentle whole-page fade on page change — calm, and never looks like it plays twice.
+     (Deliberately no per-card stagger / no second layer of pop-ins on top of this.) */
+  #view.anim{animation:viewFade .42s cubic-bezier(.22,.7,.3,1);}
   /* modal + pet chat scale-in */
   .modal-bg{animation:fadeIn .18s ease;}
   .modal{animation:softPop .26s cubic-bezier(.2,.8,.3,1);}
