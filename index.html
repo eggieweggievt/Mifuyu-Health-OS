@@ -1889,7 +1889,7 @@ function renderCalendar(){
   const events=sent.calendarEvents||[];
   const schedule=sent.schedule||[];
   const gameColor=sent.gameColor||GAME_COLOR_DEFAULT;
-  const showStreams=state.calShowStreams!==false, showGames=state.calShowGames!==false;
+  const showStreams=state.calShowStreams!==false, showGames=state.calShowGames!==false, showEvents=state.calShowEvents!==false, showBdays=state.calShowBdays!==false;
   if(!state.calRef){ const t=new Date(); state.calRef=new Date(t.getFullYear(),t.getMonth(),1); }
   const ref=state.calRef, y=ref.getFullYear(), m=ref.getMonth();
   const startDow=new Date(y,m,1).getDay();
@@ -1904,35 +1904,29 @@ function renderCalendar(){
     const inMonth=d.getMonth()===m, isToday=ds===TODAY;
     const dayShort=dayShortFull[d.getDay()];
     const streamChips=showStreams?schedule.filter(s=>s.day===dayShort).map(s=>`<div class="cal-stream" data-act="editSchedule" title="Stream day — tap to edit your schedule">🔴 ${s.time?esc(s.time)+" · ":""}${esc(s.show||s.title||"Stream")}</div>`).join(""):"";
-    const bdayChips=(sent.birthdays||[]).filter(b=>(d.getMonth()+1)===Number(b.month)&&d.getDate()===Number(b.day)).map(b=>`<div class="cal-bday" data-act="scrollAgenda" title="🎂 ${esc(b.name)}'s birthday">🎂 ${esc(b.name)}</div>`).join("");
+    const bdayChips=showBdays?(sent.birthdays||[]).filter(b=>(d.getMonth()+1)===Number(b.month)&&d.getDate()===Number(b.day)).map(b=>`<div class="cal-bday" data-act="scrollAgenda" title="🎂 ${esc(b.name)}'s birthday">🎂 ${esc(b.name)}</div>`).join(""):"";
     const dow=d.getDay();
-    const dayEvents=events.filter(ev=> ds>=ev.date && ds<=(ev.endDate||ev.date) && (showGames||!gameSrc(ev)));
-    // multi-day events → one continuous bar (rendered first so they line up across cells)
-    const spanBars=dayEvents.filter(ev=>ev.endDate&&ev.endDate>ev.date)
-      .sort((a,b)=>(a.date+a.id).localeCompare(b.date+b.id)).map(ev=>{
-        const bg=gameSrc(ev)?gameSrcColor(ev,gameColor):(ev.color||CAL_COLORS[0]);
-        const ic=gameSrcIcon(ev);
-        const isStart=ds===ev.date, isEnd=ds===ev.endDate, leftCap=isStart||dow===0, rightCap=isEnd||dow===6, showTitle=isStart||dow===0;
-        const linkable=gameSrc(ev)&&ev.url, act=linkable?`data-act="calLink" data-url="${esc(ev.url)}"`:`data-act="calEvent"`, lk=linkable?" 🔗":"";
-        const tip=esc(ic+ev.title+(ev.note?" — "+ev.note:"")+(linkable?" — (tap to open update)":""));
-        return `<div class="cal-span${leftCap?' lcap':''}${rightCap?' rcap':''}" data-eid="${ev.id}" ${act} draggable="${isStart?'true':'false'}" style="background:${bg}" title="${tip}">${showTitle?ic+esc(ev.title)+lk:"&nbsp;"}</div>`;
-      }).join("");
-    // single-day events → compact pill, just a short title (time + note open in the event)
-    const singleChips=dayEvents.filter(ev=>!(ev.endDate&&ev.endDate>ev.date))
+    // events show only on their actual day(s): single-day → one chip; multi-day → a "starts" chip on the
+    // first day and an "ends" chip on the last day (no long bar across the middle).
+    const dayEvents=events.filter(ev=> (ds===ev.date || ds===(ev.endDate||ev.date)) && (gameSrc(ev)?showGames:showEvents));
+    const evChips=dayEvents
       .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")).map(ev=>{
+        const multi=ev.endDate&&ev.endDate>ev.date, isEnd=multi&&ds===ev.endDate, suffix=multi?(isEnd?" · ends":" · starts"):"";
         const bg=gameSrc(ev)?gameSrcColor(ev,gameColor):(ev.color||CAL_COLORS[0]);
         const ic=gameSrcIcon(ev);
         const et=toLocal(ev.date,ev.time,ev.tz);
         const linkable=gameSrc(ev)&&ev.url, act=linkable?`data-act="calLink" data-url="${esc(ev.url)}"`:`data-act="calEvent"`, lk=linkable?" 🔗":"";
-        const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(ev.note?" — "+ev.note:"")+(linkable?" — (tap to open update)":""));
-        return `<div class="cal-ev" draggable="true" data-eid="${ev.id}" ${act} style="background:${bg}" title="${tip}">${ic}${esc(ev.title)}${lk}</div>`;
+        const tip=esc((et?et.tTime+" "+CAL_TZ_LABEL+" — ":"")+ev.title+(multi?` (${fmtDate(ev.date)}–${fmtDate(ev.endDate)})`:"")+(ev.note?" — "+ev.note:"")+(linkable?" — (tap to open)":""));
+        return `<div class="cal-ev" draggable="${(!multi||!isEnd)?'true':'false'}" data-eid="${ev.id}" ${act} style="background:${bg}" title="${tip}">${ic}${esc(ev.title)}${suffix}${lk}</div>`;
       }).join("");
-    cells+=`<div class="cal-cell ${inMonth?"":"other"} ${isToday?"today":""}" data-date="${ds}" data-act="calAdd"><span class="cal-daynum">${d.getDate()}</span>${spanBars}${streamChips}${bdayChips}${singleChips}</div>`;
+    cells+=`<div class="cal-cell ${inMonth?"":"other"} ${isToday?"today":""}" data-date="${ds}" data-act="calAdd"><span class="cal-daynum">${d.getDate()}</span>${streamChips}${bdayChips}${evChips}</div>`;
   }
   return `<div class="panel" style="max-width:920px;margin:0 auto">
     <div class="card-head"><div><h2 style="font-size:18px">📅 ${monthName}</h2><div class="label" style="margin-top:2px">tap a day to add · drag to move · 🔴 streams · 🎮 game updates ❄️🦊</div></div>
       <div style="display:flex;gap:6px"><button class="btn" data-act="calPrev" title="previous month">‹</button><button class="btn" data-act="calToday">today</button><button class="btn" data-act="calNext" title="next month">›</button></div></div>
     <div class="chiprow" style="margin-bottom:8px">
+      <button class="chiptog ${showEvents?'on':''}" data-act="calToggleEvents"><span>${showEvents?'✓':''}</span>📌 Events</button>
+      <button class="chiptog ${showBdays?'on':''}" data-act="calToggleBdays"><span>${showBdays?'✓':''}</span>🎂 Birthdays</button>
       <button class="chiptog ${showStreams?'on':''}" data-act="calToggleStreams"><span>${showStreams?'✓':''}</span>🔴 Stream schedule</button>
       <button class="chiptog ${showGames?'on':''}" data-act="calToggleGames"><span>${showGames?'✓':''}</span>🎮 Games (updates · events · streams)</button>
     </div>
@@ -2273,6 +2267,8 @@ const H={
   async setGameColor(el){ await setSent(n=>({...n,gameColor:el.dataset.v})); toast("colour set 🎮"); render(); },
   calToggleStreams(){ state.calShowStreams = !(state.calShowStreams!==false); render(); },
   calToggleGames(){ state.calShowGames = !(state.calShowGames!==false); render(); },
+  calToggleEvents(){ state.calShowEvents = !(state.calShowEvents!==false); render(); },
+  calToggleBdays(){ state.calShowBdays = !(state.calShowBdays!==false); render(); },
   async addGameTopic(){ const el=$("#gameTopicInput"); const name=(el?el.value:"").trim(); if(!name)return; await gameTopicAdd(name); toast("tracking "+name+" 🎮"); render(); },
   async delGameTopic(el){ const name=el.dataset.v; await gameTopicRemove(name); toast("stopped tracking "+name); render(); },
   // --- script writer ---
