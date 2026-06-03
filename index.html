@@ -690,10 +690,16 @@ function cardGlance(){ const s=state.sentinel; const lastShot=(s.injectionLog||[
     </div>
     <p class="soft" style="font-size:11.5px;margin-top:8px;text-align:center">No pressure — just a soft snapshot. ❄️</p>
   </section>`; }
-function cardWeightTrend(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+function cardWeightTrend(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1).filter(x=>x.w!=null).slice(-26);
+  const vals=wl.map(x=>x.w);
+  let bars="";
+  if(vals.length){ const mn=Math.min(...vals), mx=Math.max(...vals), rng=Math.max(0.4,mx-mn);
+    // scale to the actual min–max range (not from zero) so real ups & downs are visible
+    bars=`<div class="spark" style="height:56px">${vals.map(v=>`<span style="height:${Math.round(((v-mn)/rng)*80+16)}%"></span>`).join("")}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:2px"><span>${mn.toFixed(1)}</span><span>now ${vals[vals.length-1].toFixed(1)} ${CONFIG.weightUnit}</span><span>${mx.toFixed(1)}</span></div>`; }
   return `<section class="panel">
     <div class="card-head"><span class="label">Weight trend</span><button class="btn" data-act="tab" data-tab="weight">open →</button></div>
-    ${wl.length?spark(wl.map(x=>x.w),Math.max(...wl.map(x=>x.w))):'<p class="soft" style="font-size:12px">No weigh-ins yet.</p>'}
+    ${vals.length?bars:'<p class="soft" style="font-size:12px">No weigh-ins yet.</p>'}
     <p class="soft" style="font-size:11.5px;margin-top:6px;text-align:center">The trend is the story, not any single day.</p>
   </section>`; }
 
