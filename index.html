@@ -205,12 +205,10 @@
   /* glowing petal cursor trail */
   .petal{position:fixed;pointer-events:none;z-index:9000;border-radius:150% 0 150% 0;will-change:transform,opacity;opacity:0;}
   @keyframes petalFloat{ 0%{opacity:0;transform:translate(0,0) rotate(0deg) scale(.55);} 18%{opacity:var(--o,.7);} 100%{opacity:0;transform:translate(var(--dx,12px),var(--dy,60px)) rotate(var(--dr,200deg)) scale(1);} }
-  /* falling-snow background — behind every panel, on the blue gradient */
-  #snowLayer{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
-  .flake{position:absolute;top:-6vh;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffffff,#dbe7fb);box-shadow:0 0 6px rgba(180,205,240,.6);opacity:0;will-change:transform,opacity;animation:snowFall linear infinite;}
-  @keyframes snowFall{ 0%{transform:translateY(-6vh) translateX(0);opacity:0;} 8%{opacity:var(--o,.85);} 92%{opacity:var(--o,.85);} 100%{transform:translateY(112vh) translateX(var(--sx,20px));opacity:0;} }
-  body.calm #snowLayer{display:none;}
-  @media (prefers-reduced-motion:reduce){ #snowLayer{display:none;} }
+  /* falling-snow background (interactive canvas) — behind every panel, on the blue gradient */
+  #snowCanvas{position:fixed;inset:0;z-index:-1;pointer-events:none;display:block;}
+  body.calm #snowCanvas{display:none;}
+  @media (prefers-reduced-motion:reduce){ #snowCanvas{display:none;} }
   /* trends chart */
   .trchart{width:100%;height:auto;display:block;}
   .tr-line{stroke-dashoffset:0;} .tr-area{opacity:1;} .tr-bar,.tr-stem,.tr-dot{transform:none;}
@@ -1973,24 +1971,44 @@ start();
   window.addEventListener("pointermove",e=>{ if(e.pointerType==="touch")return; const now=performance.now(); if(now-last<55)return; last=now; spawn(e.clientX,e.clientY); },{passive:true});
 })();
 
-/* ===== gentle falling snow in the background (behind all panels) ===== */
+/* ===== gentle falling snow, pushed around by the cursor (behind all panels) ===== */
 (function(){
-  if(document.getElementById("snowLayer")) return;
-  const layer=document.createElement("div"); layer.id="snowLayer";
-  const N=48;
-  for(let i=0;i<N;i++){
-    const f=document.createElement("div"); f.className="flake";
-    const size=(3+Math.random()*6).toFixed(1);
-    f.style.width=f.style.height=size+"px";
-    f.style.left=(Math.random()*100).toFixed(2)+"vw";
-    f.style.setProperty("--sx",(Math.random()*70-35).toFixed(0)+"px");   // gentle sideways drift
-    f.style.setProperty("--o",(0.4+Math.random()*0.5).toFixed(2));        // per-flake brightness
-    const dur=8+Math.random()*13;
-    f.style.animationDuration=dur.toFixed(1)+"s";
-    f.style.animationDelay=(-Math.random()*dur).toFixed(1)+"s";           // negative delay → screen starts already snowing
-    layer.appendChild(f);
+  if(document.getElementById("snowCanvas")) return;
+  const reduce=()=>{ try{ return document.body.classList.contains("calm")||matchMedia("(prefers-reduced-motion:reduce)").matches; }catch(e){ return false; } };
+  const cv=document.createElement("canvas"); cv.id="snowCanvas";
+  document.body.insertBefore(cv, document.body.firstChild);
+  const ctx=cv.getContext("2d");
+  let W=0,H=0; const DPR=Math.min(2,window.devicePixelRatio||1);
+  function resize(){ W=window.innerWidth; H=window.innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px"; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  resize(); window.addEventListener("resize",resize);
+  const N=Math.max(34,Math.min(95,Math.round(W*H/21000)));
+  const flakes=[];
+  for(let i=0;i<N;i++){ flakes.push({ x:Math.random()*W, y:Math.random()*H, r:1.4+Math.random()*2.8,
+    fall:0.35+Math.random()*0.9, sway:0.3+Math.random()*0.7, ph:Math.random()*6.28, phs:0.01+Math.random()*0.02,
+    vx:0, vy:0, o:0.45+Math.random()*0.5 }); }
+  let mx=-9999, my=-9999;
+  window.addEventListener("pointermove",e=>{ if(e.pointerType==="touch")return; mx=e.clientX; my=e.clientY; },{passive:true});
+  window.addEventListener("pointerout",()=>{ mx=-9999; my=-9999; });
+  const R=95;                 // how close the cursor has to be to nudge a flake
+  function frame(){
+    requestAnimationFrame(frame);
+    if(reduce()){ ctx.clearRect(0,0,W,H); return; }
+    ctx.clearRect(0,0,W,H);
+    ctx.shadowColor="rgba(180,205,240,.85)"; ctx.shadowBlur=6;
+    for(const f of flakes){
+      f.ph+=f.phs; const baseVx=Math.sin(f.ph)*f.sway;
+      const dx=f.x-mx, dy=f.y-my, d2=dx*dx+dy*dy;
+      if(d2<R*R){ const d=Math.sqrt(d2)||1; const force=(R-d)/R*2.6; f.vx+=(dx/d)*force; f.vy+=(dy/d)*force; } // push away from cursor
+      f.vx=f.vx*0.90+baseVx*0.10;          // ease back to gentle sway
+      f.vy=f.vy*0.90+f.fall*0.10;          // ease back to falling
+      f.x+=f.vx; f.y+=f.vy;
+      if(f.y>H+8){ f.y=-8; f.x=Math.random()*W; f.vx=0; f.vy=0; }   // recycle at top
+      if(f.x<-8) f.x=W+8; else if(f.x>W+8) f.x=-8;
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,6.2832);
+      ctx.fillStyle="rgba(255,255,255,"+f.o+")"; ctx.fill();
+    }
   }
-  document.body.insertBefore(layer, document.body.firstChild);
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
