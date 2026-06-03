@@ -25,6 +25,11 @@ const SB_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") || "";
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "Mifuyu Health OS <onboarding@resend.dev>";
 const REMIND_TZ = Deno.env.get("REMIND_TZ") || "Europe/Amsterdam";
+// Withings (Body Smart scale) — optional; set via deploy-ai.ps1 once API access is granted
+const WITHINGS_ID = Deno.env.get("WITHINGS_CLIENT_ID") || "";
+const WITHINGS_SECRET = Deno.env.get("WITHINGS_CLIENT_SECRET") || "";
+const SITE_URL = Deno.env.get("SITE_URL") || "https://eggieweggievt.github.io/Mifuyu-Health-OS/";
+const WITHINGS_REDIRECT = (SB_URL ? SB_URL + "/functions/v1/ai" : "") + "?withings=callback";
 
 // ===================== 🔒 BRAND system prompt =====================
 const BRAND = `You are the content strategist living inside "Mifuyu Health OS", the personal operating system of Mifuyu / Mifu (@mifuyuvt) — a cozy, sweet, slightly chaotic VTuber and snowfox shrine maiden. Your voice is warm, welcoming, high-energy but gentle, spoon-theory-aware (sustainable, not hustle-culture), with the occasional ❄️ or 🦊. You are practical and specific, never preachy.
@@ -381,6 +386,7 @@ async function journalWrite(input: any) {
   if (ctx.lastShot) facts.push(`Most recent injection: ${ctx.lastShot.dose}mg${ctx.lastShot.site ? " in " + ctx.lastShot.site : ""} on ${ctx.lastShot.date}`);
   if (ctx.weightToday != null) facts.push(`Weight today: ${ctx.weightToday}${unit}` + (ctx.weightChange != null ? ` (change since first logged weight: ${ctx.weightChange > 0 ? "+" : ""}${ctx.weightChange}${unit})` : ""));
   if (ctx.measLatest) { const m = ctx.measLatest; const parts = ["bust", "waist", "hips", "thighs", "arms"].filter(k => m[k] != null).map(k => `${k} ${m[k]}cm`); if (parts.length) facts.push("Latest measurements: " + parts.join(", ")); }
+  if (ctx.comp) { const names: Record<string,string> = {bmi:"BMI",fat:"body fat %",muscle:"muscle kg",bone:"bone kg",water:"body water %",visceral:"visceral fat",hr:"heart rate bpm"}; const parts = Object.keys(ctx.comp).map((k:string)=>{ const c=ctx.comp[k]; return `${names[k]||k} ${c.v}${c.d!=null&&c.d!==0?` (change ${c.d>0?"+":""}${c.d})`:""}`; }); if (parts.length) facts.push("Body composition from her scale: " + parts.join(", ")); }
   const sc = (v: any) => (v == null ? "not set" : v + "/5");
   facts.push(`Check-in — mood ${sc(ctx.mood)}, anxiety ${sc(ctx.anxiety)}, weather inside ${sc(ctx.weather)} (0 stormy → 5 bright)`);
   if (ctx.events && ctx.events.length) facts.push("Today's calendar: " + ctx.events.join("; "));
@@ -414,8 +420,87 @@ ${common}`;
   return parseJSON(txt) || { title, hooks: [], script: txt, cta: "" };
 }
 
+// ===================== WITHINGS (Body Smart scale → weight log) =====================
+async function sbGetNotes(userId: string) {
+  const r = await fetch(`${SB_URL}/rest/v1/daily_logs?user_id=eq.${encodeURIComponent(userId)}&date=eq.2000-01-01&select=notes`, { headers: { apikey: SB_SERVICE_KEY, Authorization: "Bearer " + SB_SERVICE_KEY } });
+  const rows = await r.json(); return (Array.isArray(rows) && rows[0] && rows[0].notes) || {};
+}
+async function sbSaveNotes(userId: string, notes: any) {
+  await fetch(`${SB_URL}/rest/v1/daily_logs?on_conflict=user_id,date`, { method: "POST", headers: { apikey: SB_SERVICE_KEY, Authorization: "Bearer " + SB_SERVICE_KEY, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ user_id: userId, date: "2000-01-01", notes }) });
+}
+async function withingsToken(extra: Record<string, string>) {
+  const body = new URLSearchParams({ action: "requesttoken", client_id: WITHINGS_ID, client_secret: WITHINGS_SECRET, ...extra });
+  const r = await fetch("https://wbsapi.withings.net/v2/oauth2", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
+  const j = await r.json(); if (j.status !== 0) throw new Error("Withings token error: " + (j.error || j.status)); return j.body;
+}
+function r1(n: number) { return Math.round(n * 10) / 10; }
+function withingsAuthUrl(userId: string) {
+  if (!WITHINGS_ID) return { error: "Withings client id not set on the server yet." };
+  const url = `https://account.withings.com/oauth2_user/authorize2?response_type=code&client_id=${encodeURIComponent(WITHINGS_ID)}&scope=user.metrics&redirect_uri=${encodeURIComponent(WITHINGS_REDIRECT)}&state=${encodeURIComponent(userId || "mifuyu")}`;
+  return { url };
+}
+async function withingsStatus(userId: string) {
+  const n = await sbGetNotes(userId); const w = n.withings || {};
+  return { connected: !!w.refresh_token, lastSync: w.lastSync || null };
+}
+function mapWithings(body: any) {
+  const byDate: Record<string, any> = {};
+  (body.measuregrps || []).forEach((g: any) => {
+    const ds = new Intl.DateTimeFormat("en-CA", { timeZone: REMIND_TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(g.date * 1000));
+    const e = byDate[ds] || { date: ds }; const v: Record<number, number> = {};
+    (g.measures || []).forEach((mm: any) => { v[mm.type] = mm.value * Math.pow(10, mm.unit); });
+    if (v[1] != null) e.w = r1(v[1]);
+    if (v[6] != null) e.fat = r1(v[6]);
+    if (v[76] != null) e.muscle = r1(v[76]);
+    if (v[88] != null) e.bone = r1(v[88]);
+    if (v[77] != null && v[1]) e.water = r1((v[77] / v[1]) * 100);
+    if (v[170] != null) e.visceral = r1(v[170]);
+    if (v[11] != null) e.hr = Math.round(v[11]);
+    byDate[ds] = e;
+  });
+  return byDate;
+}
+async function withingsSync(userId: string) {
+  if (!SB_URL || !SB_SERVICE_KEY) return { error: "Supabase service env missing" };
+  const notes = await sbGetNotes(userId); const w = notes.withings;
+  if (!w || !w.refresh_token) return { error: "Withings isn't connected yet." };
+  let access = w.access_token;
+  if (!w.expires_at || Date.now() > w.expires_at - 60000) {
+    const t = await withingsToken({ grant_type: "refresh_token", refresh_token: w.refresh_token });
+    access = t.access_token; w.access_token = t.access_token; w.refresh_token = t.refresh_token; w.expires_at = Date.now() + (t.expires_in * 1000);
+  }
+  const start = w.lastSync ? (w.lastSync - 2 * 86400) : (Math.floor(Date.now() / 1000) - 90 * 86400);
+  const body = new URLSearchParams({ action: "getmeas", meastypes: "1,6,76,77,88,170,11", category: "1", startdate: String(start) });
+  const r = await fetch("https://wbsapi.withings.net/measure", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: "Bearer " + access }, body });
+  const j = await r.json(); if (j.status !== 0) return { error: "Withings getmeas error: " + (j.error || j.status) };
+  const mapped = mapWithings(j.body);
+  const wl = (notes.weightLog || []).slice(); let added = 0;
+  Object.values(mapped).forEach((e: any) => { const i = wl.findIndex((x: any) => x.date === e.date); if (i >= 0) wl[i] = { ...wl[i], ...e }; else { wl.push(e); added++; } });
+  wl.sort((a: any, b: any) => (a.date < b.date ? -1 : 1));
+  notes.weightLog = wl; w.lastSync = Math.floor(Date.now() / 1000); notes.withings = w;
+  await sbSaveNotes(userId, notes);
+  return { ok: true, days: Object.keys(mapped).length, added };
+}
+
 // ===================== router =====================
 Deno.serve(async (req) => {
+  // Withings OAuth callback (GET) — exchange the code, store tokens, bounce back to the app
+  if (req.method === "GET") {
+    const u = new URL(req.url);
+    if (u.searchParams.get("withings") === "callback") {
+      const code = u.searchParams.get("code") || ""; const state = u.searchParams.get("state") || "mifuyu";
+      try {
+        const t = await withingsToken({ grant_type: "authorization_code", code, redirect_uri: WITHINGS_REDIRECT });
+        const notes = await sbGetNotes(state);
+        notes.withings = { access_token: t.access_token, refresh_token: t.refresh_token, expires_at: Date.now() + t.expires_in * 1000, userid: t.userid, lastSync: 0 };
+        await sbSaveNotes(state, notes);
+        return new Response(null, { status: 302, headers: { ...cors, Location: SITE_URL + "?withings=ok" } });
+      } catch (e) {
+        return new Response(null, { status: 302, headers: { ...cors, Location: SITE_URL + "?withings=err" } });
+      }
+    }
+    return new Response("ok", { headers: cors });
+  }
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
     const body = await req.json();
@@ -428,6 +513,9 @@ Deno.serve(async (req) => {
     if (mode === "script") return json(await scriptMode(input));
     if (mode === "journal") return json(await journalMode(input));
     if (mode === "journalWrite") return json(await journalWrite(input));
+    if (mode === "withingsAuthUrl") return json(withingsAuthUrl(body.userId));
+    if (mode === "withingsStatus") return json(await withingsStatus(body.userId || "mifuyu"));
+    if (mode === "withingsSync") return json(await withingsSync(body.userId || "mifuyu"));
     if (mode === "thumbnail") return json(await thumbnail(input));
     if (mode === "channelSnapshot") return json(await channelSnapshot(input));
     return json({ error: "Unknown mode: " + mode }, 200);

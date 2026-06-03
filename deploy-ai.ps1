@@ -52,12 +52,26 @@ Write-Host ""
 Write-Host "Optional - email reminders. Get a free key at https://resend.com (API Keys)." -ForegroundColor Magenta
 $resend = Read-Host "Resend API key  [re_...]  (press Enter to skip)"
 
+# Optional: Withings (Body Smart scale) API. Create an app at https://developer.withings.com
+# and set the callback URL to:  https://ahneitzrgiwjufqyzttl.supabase.co/functions/v1/ai?withings=callback
+Write-Host ""
+Write-Host "Optional - Withings Body Smart scale. From https://developer.withings.com (your app)." -ForegroundColor Magenta
+$withId = Read-Host "Withings Client ID      (press Enter to skip)"
+$withSecret = ""
+if (-not [string]::IsNullOrWhiteSpace($withId)) { $withSecret = Read-Host "Withings Client Secret" }
+
 # 4) Store secrets + deploy the function (both use $env:SUPABASE_ACCESS_TOKEN).
 Write-Host "Saving secrets to your Supabase project..." -ForegroundColor Cyan
 supabase secrets set "ANTHROPIC_API_KEY=$anthropic" "YOUTUBE_API_KEY=$youtube" "YT_HANDLE=@mifuyu" --project-ref $ProjectRef
 if (-not [string]::IsNullOrWhiteSpace($resend)) {
   supabase secrets set "RESEND_API_KEY=$($resend.Trim())" --project-ref $ProjectRef
   Write-Host "Resend key saved - finish email setup with REMINDERS-EMAIL-SETUP.md (schedule the daily cron)." -ForegroundColor Green
+}
+if (-not [string]::IsNullOrWhiteSpace($withId) -and -not [string]::IsNullOrWhiteSpace($withSecret)) {
+  supabase secrets set "WITHINGS_CLIENT_ID=$($withId.Trim())" "WITHINGS_CLIENT_SECRET=$($withSecret.Trim())" "SITE_URL=https://eggieweggievt.github.io/Mifuyu-Health-OS/" --project-ref $ProjectRef
+  Write-Host "Withings keys saved. In your Withings app, set the callback URL to:" -ForegroundColor Green
+  Write-Host "  https://ahneitzrgiwjufqyzttl.supabase.co/functions/v1/ai?withings=callback" -ForegroundColor White
+  Write-Host "Then open the Weight tab and tap 'Connect Withings'. (See WITHINGS-SETUP.md)" -ForegroundColor Green
 }
 
 Write-Host "Deploying the 'ai' Edge Function..." -ForegroundColor Cyan

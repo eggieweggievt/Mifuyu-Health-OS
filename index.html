@@ -373,7 +373,10 @@ function seedDemo(){
       {id:"i3",date:dayAgo(-7),time:"19:45",dose:7.5,site:"L abdomen",after:3,note:"queasy first eve, settled"} ],
     doseHistory:[ {dose:2.5,started:start},{dose:5,started:dayAgo(-44+28)},{dose:7.5,started:dayAgo(-7)} ],
     weightLog:[ {date:dayAgo(-42),w:84.6},{date:dayAgo(-35),w:84.1},{date:dayAgo(-28),w:83.2},
-      {date:dayAgo(-21),w:82.7},{date:dayAgo(-14),w:82.0},{date:dayAgo(-7),w:81.4},{date:TODAY,w:80.9} ],
+      {date:dayAgo(-21),w:82.7},{date:dayAgo(-14),w:82.0,fat:39.1,muscle:46.2,bone:2.8,water:48.0,visceral:9,hr:72},
+      {date:dayAgo(-7),w:81.4,fat:38.6,muscle:46.4,bone:2.8,water:48.4,visceral:8,hr:70},
+      {date:TODAY,w:80.9,fat:38.1,muscle:46.6,bone:2.9,water:48.9,visceral:8,hr:69} ],
+    heightCm:165,
     measurements:[ {date:dayAgo(-28),bust:96,waist:88,hips:102,thighs:60,arms:31},{date:TODAY,bust:94,waist:85,hips:100,thighs:58,arms:30} ],
     nsv:[ {id:"n1",t:"Climbed the shrine steps without stopping ⛩️",date:dayAgo(-5)},
       {id:"n2",t:"Cravings were quiet all afternoon",date:dayAgo(-2)} ],
@@ -789,7 +792,14 @@ function viewMj(){
 }
 
 /* ===================== WEIGHT ===================== */
-function rollingAvg(arr){ if(!arr.length)return null; const l=arr.slice(-4); return l.reduce((a,b)=>a+b.w,0)/l.length; }
+function rollingAvg(arr){ if(!arr.length)return null; const l=arr.filter(x=>x.w!=null).slice(-4); return l.length?l.reduce((a,b)=>a+b.w,0)/l.length:null; }
+// everything the Withings Body Smart can report (manual entry + sync both use these keys)
+const BODYCOMP=[["w","Weight",CONFIG.weightUnit,"⚖️"],["bmi","BMI","","📐"],["fat","Body fat","%","🫧"],["muscle","Muscle","kg","💪"],["bone","Bone","kg","🦴"],["water","Body water","%","💧"],["visceral","Visceral fat","","🎯"],["hr","Heart rate","bpm","💓"]];
+function bcLatest(wl,k){ const ent=wl.filter(x=>x[k]!=null); if(!ent.length)return null; const last=ent[ent.length-1], prev=ent.length>1?ent[ent.length-2]:null; return {v:last[k], date:last.date, d:prev?Math.round((last[k]-prev[k])*10)/10:null}; }
+function withBMI(wl){ // attach a derived bmi to entries that have weight + we know height
+  const h=state.sentinel.heightCm; if(!h) return wl;
+  return wl.map(x=> (x.w!=null && x.bmi==null) ? {...x, bmi: Math.round((x.w/Math.pow(h/100,2))*10)/10} : x);
+}
 function viewWeight(){
   const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
   const vals=wl.map(x=>x.w), avg=rollingAvg(wl);
@@ -813,6 +823,33 @@ function viewWeight(){
       <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="wInput" placeholder="${CONFIG.weightUnit}" style="max-width:140px"><button class="btn btn-grad" data-act="logWeight">Log it</button></div>
       <p class="soft" style="font-size:11px;margin-top:6px">Tip: same day &amp; time each week makes the trend cleaner — but a missed week is totally fine.</p></div>
   </section>
+
+  ${(function(){
+    const wlb=withBMI(wl);
+    const wcon=!!(state.sentinel.withings && state.sentinel.withings.refresh_token);
+    const lastSync=state.sentinel.withings && state.sentinel.withings.lastSync;
+    const tiles=BODYCOMP.map(([k,l,u,e])=>{ const m=bcLatest(wlb,k); if(!m)return "";
+      const ds=m.d!=null&&m.d!==0?` <span class="soft" style="font-size:10.5px">(${m.d>0?'+':''}${m.d})</span>`:'';
+      return `<div class="soft-card" style="padding:10px 12px"><div class="label">${e} ${l}</div><div style="font-size:18px;font-weight:700">${m.v}${u?`<span class="soft" style="font-size:11px;font-weight:500"> ${u}</span>`:''}${ds}</div></div>`;
+    }).filter(Boolean).join("");
+    return `<section class="panel">
+      <div class="card-head"><h2 style="font-size:17px">📊 Body Smart metrics</h2>${wcon?'<span class="pill pill-mint">Withings linked ❄️</span>':''}</div>
+      <p class="soft" style="font-size:12px;margin:0 0 10px">Everything your Withings Body Smart tracks. Sync straight from the scale, or pop any value in by hand.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        ${wcon?`<button class="btn btn-grad" data-act="withingsSync">↻ Sync from scale</button>${lastSync?`<span class="soft" style="font-size:11px">last sync ${esc(new Date(lastSync*1000).toLocaleDateString())}</span>`:''}`
+          :`<button class="btn btn-grad" data-act="withingsConnect">🔗 Connect Withings</button><span class="soft" style="font-size:11px">links your scale so weigh-ins sync automatically</span>`}
+      </div>
+      ${tiles?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">${tiles}</div>`:'<p class="soft" style="font-size:12.5px">No body-comp data yet — connect your scale or log some below. ❄️</p>'}
+      <details class="acc" style="margin-top:12px"><summary>✍️ Log metrics by hand</summary><div class="acc-body">
+        <p class="soft" style="font-size:11.5px;margin:0 0 8px">Fill in any you like and save — they update today's entry, no need to fill them all.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${BODYCOMP.filter(([k])=>k!=="bmi").map(([k,l,u])=>`<div class="field" style="margin:4px 0"><div class="label">${l}${u?` (${u})`:''}</div><input class="inp" type="number" step="0.1" id="bc_${k}" placeholder="${u||'value'}"></div>`).join("")}
+          <div class="field" style="margin:4px 0"><div class="label">Height (cm) · for BMI</div><input class="inp" type="number" step="0.1" id="bc_height" value="${state.sentinel.heightCm||''}" placeholder="cm"></div>
+        </div>
+        <button class="btn btn-grad" data-act="setBodyComp" style="margin-top:6px">Save metrics</button>
+      </div></details>
+    </section>`;
+  })()}
 
   <section class="panel">
     <div class="card-head"><span class="label">🌟 Non-scale victories</span></div>
@@ -892,11 +929,12 @@ function journalWriteContext(){
   const m=(state.today&&state.today.mind)||{};
   const lastShot=inj.length?inj[inj.length-1]:null;
   const ev=(sent.calendarEvents||[]).filter(e=> e.date<=TODAY && TODAY<=(e.endDate||e.date)).map(e=>e.title).slice(0,8);
+  const comp={}; try{ const wlb=withBMI(wl); ["bmi","fat","muscle","bone","water","visceral","hr"].forEach(k=>{ const mm=bcLatest(wlb,k); if(mm) comp[k]={v:mm.v,d:mm.d}; }); }catch(e){}
   return { dateLabel:new Date(TODAY+"T00:00").toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}),
     unit:CONFIG.weightUnit, mjDay, mjWeek,
     lastShot: lastShot?{date:fmtDate(lastShot.date),dose:lastShot.dose,site:lastShot.site}:null,
     weightToday: latest?latest.w:null, weightChange: change,
-    measLatest: meas.length?meas[meas.length-1]:null,
+    measLatest: meas.length?meas[meas.length-1]:null, comp,
     mood:m.mood, anxiety:m.anxiety, weather:m.weather, events:ev };
 }
 function composeJournalFallback(log){
@@ -1661,6 +1699,12 @@ async function loadData(){
 }
 async function setToday(merge){ state.today=await DB.saveDaily(TODAY,n=>merge(n)); }
 async function setSent(merge){ state.sentinel=await DB.saveDaily(SENTINEL,n=>merge(n)); }
+// one weight-log entry per day — merge new fields into today's row (weight, body comp, etc.)
+async function upsertWeightToday(fields){
+  await setSent(n=>{ const wl=(n.weightLog||[]).slice(); const i=wl.findIndex(x=>x.date===TODAY);
+    if(i>=0) wl[i]={...wl[i],...fields,date:TODAY}; else wl.push({date:TODAY,...fields});
+    return {...n,weightLog:wl}; });
+}
 
 const H={
   tab(el){ setTab(el.dataset.tab); },
@@ -1705,7 +1749,27 @@ const H={
   async delShot(el){ await setSent(n=>({...n,injectionLog:(n.injectionLog||[]).filter(s=>s.id!==el.dataset.v)})); render(); },
 
   async logWeight(){ const v=parseFloat($("#wInput").value); if(isNaN(v)){ toast("enter a number"); return; }
-    await setSent(n=>({...n,weightLog:[...(n.weightLog||[]),{date:TODAY,w:v}]})); toast("logged — trend is the story ❄️"); render(); },
+    await upsertWeightToday({w:v}); toast("logged — trend is the story ❄️"); render(); },
+  async setBodyComp(){ const fields={}; let any=false;
+    BODYCOMP.forEach(([k])=>{ if(k==="bmi")return; const el=$("#bc_"+k); const v=el?parseFloat(el.value):NaN; if(!isNaN(v)){ fields[k]=v; any=true; } });
+    const h=$("#bc_height"); const hv=h?parseFloat(h.value):NaN;
+    if(isNaN(hv)&&!any){ toast("enter at least one value"); return; }
+    await setSent(n=>{ const out={...n}; if(!isNaN(hv)) out.heightCm=hv;
+      const wl=(n.weightLog||[]).slice(); const i=wl.findIndex(x=>x.date===TODAY);
+      if(i>=0) wl[i]={...wl[i],...fields,date:TODAY}; else if(Object.keys(fields).length) wl.push({date:TODAY,...fields});
+      out.weightLog=wl; return out; });
+    toast("saved ❄️"); render(); },
+  async withingsConnect(){
+    if(DEMO||!SB){ toast("connect to the server first ❄️"); return; }
+    try{ const d=await aiCall("withingsAuthUrl",{}); if(d&&d.url){ window.open(d.url,"_blank","noopener"); toast("opening Withings to link your scale… 🔗"); }
+      else toast(d&&d.error?d.error:"couldn't start the link — is the server set up?"); }
+    catch(e){ toast("couldn't reach the server 🌧️"); } },
+  async withingsSync(){
+    if(DEMO||!SB){ toast("connect to the server first ❄️"); return; }
+    toast("syncing from your scale… ↻");
+    try{ const d=await aiCall("withingsSync",{}); if(d&&d.error){ toast(d.error); return; }
+      await loadData(); render(); toast(`synced ${d&&d.days||0} day(s) ❄️`); }
+    catch(e){ toast("sync hiccup — try again 🌧️"); } },
   revealNum(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); const avg=rollingAvg(wl);
     const slot=$("#numSlot"); if(slot) slot.innerHTML=`<div class="label">Rolling weekly avg</div><div class="bignum">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`; },
   async addNSV(){ const t=$("#nsvInput").value.trim(); if(!t)return; await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t,date:TODAY}]})); toast("yay! 🌟"); render(); },
@@ -2279,6 +2343,17 @@ function checkReminders(){
 }
 setTimeout(checkReminders, 6000);
 setInterval(checkReminders, 30*60*1000);
+
+/* returning from the Withings OAuth link → tidy the URL, then pull her latest measurements */
+(function(){
+  try{
+    const p=new URLSearchParams(location.search); const w=p.get("withings");
+    if(!w) return;
+    history.replaceState(null,"",location.pathname);
+    if(w==="ok"){ setTimeout(async()=>{ try{ toast("Withings linked ❄️ pulling your measurements…"); const d=await aiCall("withingsSync",{}); if(d&&!d.error){ await loadData(); render(); toast(`synced ${d.days||0} day(s) 💗`); } else if(d&&d.error){ toast(d.error); } }catch(e){} }, 3500); }
+    else if(w==="err"){ setTimeout(()=>toast("Withings link didn't complete — try again 🌧️"),3000); }
+  }catch(e){}
+})();
 
 /* ===== glowing petal cursor trail (icy snowfox) ===== */
 (function(){
