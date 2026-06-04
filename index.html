@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Mifuyu OS ❄️🦊</title>
 <link rel="icon" type="image/png" href="sakura.png" />
 <link rel="apple-touch-icon" href="AYAYA.png" />
@@ -170,7 +170,7 @@
   .home-widget.reordering{outline:2px dashed var(--lav);outline-offset:3px;border-radius:18px;}
   .home-widget.dragsrc,#nav .tab.dragsrc{visibility:hidden;}
   .home-widget.min>.panel,.home-widget.min>section{max-height:54px;overflow:hidden;}
-  #nav .tab{touch-action:none;user-select:none;-webkit-user-select:none;}
+  #nav .tab{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}   /* pan-y: finger/Pencil can still scroll the page from a tab; sideways drag reorders */
   .drag-clone{position:fixed;left:0;top:0;z-index:9999;pointer-events:none;border-radius:18px;box-shadow:0 16px 38px rgba(120,80,120,.34);opacity:.97;}
   .home-tools{position:absolute;top:8px;right:8px;z-index:6;display:flex;gap:3px;}
   .home-tools button{border:none;background:rgba(255,255,255,.72);border-radius:8px;font-size:13px;line-height:1;color:#9b8fae;cursor:pointer;padding:5px 7px;opacity:.45;touch-action:none;user-select:none;-webkit-user-select:none;}
@@ -181,10 +181,22 @@
   .home-add{border:2px dashed var(--line);border-radius:16px;background:rgba(255,255,255,.4);color:var(--lav-deep);font-size:13px;cursor:pointer;min-height:80px;grid-column:span 4;grid-row:span 6;}
   body.locked .home-tools,body.locked .home-resize,body.locked .home-add{display:none!important;}
   #lockChip.on{background:#fde2f2;color:var(--sakura-deep);}
-  @media (hover:none){ .home-tools button,.home-resize{opacity:.92;} .home-tools button{padding:7px 9px;font-size:14px;} .home-resize{padding:6px 9px;font-size:15px;} }
+  @media (hover:none){ .home-tools button,.home-resize{opacity:.92;} .home-tools button{padding:7px 9px;font-size:14px;} .home-resize{padding:6px 9px;font-size:15px;} .sticky-tools button{width:24px;height:24px;font-size:13px;} .sticky-head{height:32px;} }
+  /* iPad portrait & narrower: tighter rail + readable calendar */
+  @media (max-width:900px){
+    .tab{padding:6px 10px;font-size:12px;}
+    .cal-cell{min-height:74px;padding:3px 4px;}
+    .cal-ev,.cal-stream,.cal-bday{font-size:9.5px;padding:1px 4px;}
+    .cal-daynum{font-size:10px;}
+  }
+  /* PWA / notch safe areas (installed on iPhone/iPad) */
+  #rail{padding-left:calc(20px + env(safe-area-inset-left,0px));padding-right:calc(20px + env(safe-area-inset-right,0px));}
+  #addStickyBtn{bottom:calc(16px + env(safe-area-inset-bottom,0px));}
+  #restBtn{bottom:calc(16px + env(safe-area-inset-bottom,0px));}
+  #snowWindBtn{bottom:calc(16px + env(safe-area-inset-bottom,0px));}
   #stickyLayer{position:fixed;inset:0;z-index:80;pointer-events:none;}
   .sticky{position:absolute;width:200px;height:150px;min-width:140px;min-height:110px;border-radius:12px;box-shadow:0 8px 22px rgba(110,100,150,.24);pointer-events:auto;display:flex;flex-direction:column;transform:rotate(-1deg);overflow:hidden;}
-  .sticky-head{height:26px;display:flex;align-items:center;gap:2px;padding:0 4px 0 8px;cursor:grab;border-radius:12px 12px 0 0;}
+  .sticky-head{height:26px;display:flex;align-items:center;gap:2px;padding:0 4px 0 8px;cursor:grab;border-radius:12px 12px 0 0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
   .sticky-head:active{cursor:grabbing;}
   .sticky-tools{display:flex;gap:1px;flex:1;flex-wrap:nowrap;overflow:hidden;}
   .sticky-tools button{border:none;background:rgba(255,255,255,.45);border-radius:5px;width:18px;height:18px;font-size:11px;line-height:1;color:#4a3a55;cursor:pointer;padding:0;}
@@ -192,7 +204,7 @@
   .sticky-x{border:none;background:none;font-size:15px;line-height:1;color:rgba(58,53,80,.5);cursor:pointer;flex:0 0 auto;}
   .sticky-body{flex:1;border:none;background:transparent;outline:none;font-family:var(--sans);font-size:12.5px;color:#3a3550;padding:2px 10px 10px;overflow:auto;}
   .sticky-body:empty:before{content:attr(data-ph);color:rgba(58,53,80,.35);}
-  .sticky-resize{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,rgba(58,53,80,.28) 50%);border-radius:0 0 12px 0;}
+  .sticky-resize{position:absolute;right:0;bottom:0;width:22px;height:22px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,rgba(58,53,80,.28) 50%);border-radius:0 0 12px 0;touch-action:none;-webkit-touch-callout:none;}
   .sticky-color{border:none;background:rgba(255,255,255,.45);border-radius:5px;width:18px;height:18px;font-size:10px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
   .sticky-color:hover{background:#fff;}
   .sticky-swatches{position:absolute;top:27px;right:6px;display:flex;gap:5px;padding:6px 7px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(80,60,110,.22);z-index:6;}
@@ -264,7 +276,7 @@
   .tr-range button{border:none;background:#fff;color:var(--ink-soft);font-size:12px;padding:5px 12px;cursor:pointer;}
   .tr-range button.on{background:#fde2f2;color:var(--sakura-deep);font-weight:700;}
   /* kiko AI pet */
-  #kiko{position:fixed;bottom:14px;left:90px;z-index:81;cursor:grab;touch-action:none;user-select:none;filter:drop-shadow(0 5px 7px rgba(120,110,160,.4));}
+  #kiko{position:fixed;bottom:14px;left:90px;z-index:81;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;filter:drop-shadow(0 5px 7px rgba(120,110,160,.4));}
   #kiko:active{cursor:grabbing;}
   #kiko .kiko-sprite{image-rendering:pixelated;pointer-events:none;}
   #kikoBubble{position:fixed;left:90px;bottom:92px;z-index:81;max-width:200px;background:#fff;border:1px solid var(--line);border-radius:14px;border-bottom-left-radius:4px;padding:8px 12px;font-size:12.5px;color:var(--ink);box-shadow:var(--shadow);cursor:pointer;}
@@ -525,7 +537,7 @@ function modularGrid(tab, items, addable){
   items.forEach(it=>{ byKey[it.key]=it; MODULAR_LABELS[tab][it.key]=it.label||it.key; });
   let order=L.order.filter(k=>byKey[k]); items.forEach(it=>{ if(!order.includes(it.key)) order.push(it.key); });
   const cells=order.filter(k=>!L.hidden[k]).map(k=>{ const it=byKey[k]; const s=L.size[k]||{}; const cols=Math.max(3,s.c||it.cols||4); const min=!!L.min[k];
-    return `<div class="home-widget ${min?'min':''}" data-w="${k}" data-tab="${tab}" data-h="${s.h||''}" style="grid-column:span ${cols}">
+    return `<div class="home-widget ${min?'min':''}" data-w="${k}" data-tab="${tab}" data-h="${s.h||''}" data-c="${cols}" style="grid-column:span ${cols}">
       <div class="home-tools"><button class="home-grip" title="drag to move">⠿</button><button data-act="homeMin" data-w="${k}" data-tab="${tab}" title="${min?'expand':'minimize'}">${min?'＋':'–'}</button><button data-act="homeHide" data-w="${k}" data-tab="${tab}" title="remove">✕</button></div>
       <span class="home-resize" title="drag to resize">⤡</span>
       ${it.html}</div>`; }).join("");
@@ -535,6 +547,10 @@ function modularGrid(tab, items, addable){
 }
 function layoutHome(){
   const grid=document.querySelector(".grid-modular"); if(!grid)return; const rowH=8, gap=16;
+  /* portrait/landscape: clamp each card's saved span (data-c) to the tracks that actually fit right now,
+     WITHOUT persisting — rotate back to landscape and the saved width comes back */
+  const maxC=Math.max(3,Math.min(24,Math.floor((grid.clientWidth+gap)/(72+gap))));
+  grid.querySelectorAll(".home-widget").forEach(w=>{ const want=parseInt(w.dataset.c||"4",10)||4; w.style.gridColumn="span "+Math.min(want,maxC); });
   grid.querySelectorAll(".home-widget").forEach(w=>{ const panel=w.querySelector(".panel,section")||w.lastElementChild; if(!panel)return;
     let h; if(w.classList.contains("min")){ h=54; } else { const sh=parseFloat(w.dataset.h||"0")||0; panel.style.minHeight=sh?sh+"px":""; h=panel.getBoundingClientRect().height; }
     if(h>0) w.style.gridRowEnd="span "+Math.max(1,Math.ceil((h+gap)/(rowH+gap))); });
@@ -653,6 +669,51 @@ function cardJournal(){
     <div style="margin-top:8px"><button class="btn btn-grad" data-act="saveJournal">💾 save</button></div>
   </section>`;
 }
+
+/* ===== Daily habits + gacha dailies (Mifu's request 💜) ===== */
+const HABITS_DEFAULT=[
+  {id:"h_meds",   text:"Take meds AM & PM",        energy:"low"},
+  {id:"h_floss",  text:"Floss teeth & skincare",   energy:"low"},
+  {id:"h_dishes", text:"1 round of dishes",        energy:"med"},
+  {id:"h_twitter",text:"Twitter time (1 pomo)",    energy:"med"},
+  {id:"h_comments",text:"Reply to comments (1 pomo)",energy:"med"},
+  {id:"h_steps",  text:"5k+ steps",                energy:"high"},
+  {id:"h_laundry",text:"1 wash of clothes",        energy:"high"},
+];
+const GACHA_DEFAULT=["Nikki","R1999","Arknights","ZZZ","NTE","WUWA","GENSHIN","HSR"].map(n=>({id:"g_"+n.toLowerCase().replace(/\W+/g,""),name:n}));
+function habitsList(){ const l=state.sentinel.habitsList; return (Array.isArray(l)&&l.length)?l:HABITS_DEFAULT; }
+function gachaList(){ const l=state.sentinel.gachaList; return (Array.isArray(l)&&l.length)?l:GACHA_DEFAULT; }
+function weekStrip(field,total){
+  const byDate={}; (state.range||[]).forEach(r=>byDate[r.date]=r.notes); byDate[TODAY]=state.today;
+  let bars=""; for(let i=6;i>=0;i--){ const d=dayAgo(-i); const checks=(byDate[d]&&byDate[d][field])||{}; const n=Object.values(checks).filter(Boolean).length;
+    const pct=total?Math.min(1,n/total):0;
+    bars+=`<div title="${fmtDate(d)} — ${n}/${total}" style="flex:1;border-radius:4px;height:${Math.max(10,Math.round(pct*100))}%;background:${pct>=1?'#9fdcc0':'var(--sakura)'};opacity:${(0.3+pct*0.7).toFixed(2)}"></div>`; }
+  return `<div style="display:flex;gap:4px;align-items:flex-end;height:30px;margin-top:10px">${bars}</div>
+    <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);margin-top:2px"><span>${fmtDate(dayAgo(-6))}</span><span>this week 🌱</span><span>today</span></div>`;
+}
+function cardHabits(){
+  const list=habitsList(), checks=state.today.habits||{}, ed=!!state.habitEdit;
+  const done=list.filter(h=>checks[h.id]).length;
+  const groups=[["low","🌙 Low energy"],["med","🌤 Medium energy"],["high","🌞 High energy"]];
+  const row=h=>`<div class="listrow"><button class="x" data-act="habitToggle" data-v="${h.id}" style="font-size:16px;color:${checks[h.id]?'var(--mint,#2f9d79)':'var(--muted)'}">${checks[h.id]?'●':'○'}</button><span class="grow ${checks[h.id]?'soft':''}" style="font-size:12.5px;${checks[h.id]?'text-decoration:line-through':''}">${esc(h.text)}</span>${ed?`<button class="x" data-act="delHabit" data-v="${h.id}">✕</button>`:''}</div>`;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">Daily habits ✅</span><span style="display:flex;gap:6px;align-items:center"><span class="pill ${done&&done===list.length?'pill-mint':'pill-gray'}">${done}/${list.length}${done&&done===list.length?' ♡':''}</span><button class="btn" data-act="habitEdit">${ed?'done':'edit'}</button></span></div>
+    ${groups.map(([g,label])=>{ const its=list.filter(h=>(h.energy||"med")===g); return its.length?`<div class="label" style="margin:6px 0 2px;color:var(--peri-deep)">${label}</div>${its.map(row).join("")}`:""; }).join("")}
+    ${ed?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><input class="inp" id="habitInput" placeholder="new habit…" style="flex:1;min-width:130px"><select class="inp" id="habitEnergy" style="max-width:92px;flex:0 0 auto"><option value="low">🌙 low</option><option value="med" selected>🌤 med</option><option value="high">🌞 high</option></select><button class="btn btn-grad" data-act="addHabitUI">add</button></div>`:''}
+    ${weekStrip("habits",list.length)}
+  </section>`;
+}
+function cardGacha(){
+  const list=gachaList(), checks=state.today.gacha||{}, ed=!!state.gachaEdit;
+  const done=list.filter(g=>checks[g.id]).length;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">Gacha dailies 🎮</span><span style="display:flex;gap:6px;align-items:center"><span class="pill ${done&&done===list.length?'pill-mint':'pill-gray'}">${done}/${list.length}${done&&done===list.length?' ✦':''}</span><button class="btn" data-act="gachaEdit">${ed?'done':'edit'}</button></span></div>
+    <div class="chiprow" style="margin-top:4px">${list.map(g=>`<button class="chiptog ${checks[g.id]?'on':''}" data-act="gachaToggle" data-v="${g.id}"><span>${checks[g.id]?'✓':'•'}</span>${esc(g.name)}${ed?`<span class="x" data-act="delGacha" data-v="${g.id}" style="margin-left:2px">✕</span>`:''}</button>`).join("")}</div>
+    ${ed?`<div style="display:flex;gap:6px;margin-top:8px"><input class="inp" id="gachaInput" placeholder="add a game…"><button class="btn btn-grad" data-act="addGachaUI">add</button></div>`:''}
+    ${weekStrip("gacha",list.length)}
+    <p class="soft" style="font-size:10.5px;margin:6px 0 0;text-align:center">checks reset each day — past days live in the little bars 💜</p>
+  </section>`;
+}
 function cardBrainDump(){
   const caps=(state.sentinel.captures||[]).slice().reverse();
   return `<section class="panel">
@@ -734,6 +795,8 @@ function viewHome(){
   const items=[
     {key:"snowfox",label:"Snowfox",cols:4,html:cardSnowfox()},
     {key:"checkin",label:"Daily check-in",cols:4,html:cardCheckin()},
+    {key:"habits",label:"Daily habits",cols:4,html:cardHabits()},
+    {key:"gacha",label:"Gacha dailies",cols:4,html:cardGacha()},
     {key:"glance",label:"At a glance",cols:4,html:cardGlance()},
     {key:"schedule",label:"Stream schedule",cols:4,html:cardSchedule()},
     {key:"braindump",label:"Brain-dump",cols:4,html:cardBrainDump()},
@@ -1279,6 +1342,8 @@ function viewKiko(){
     ["🧾","Tax prep","act","startTaxPrep"],
     ["💶","Log money","seed","log €"],
     ["⏰","Remind me","seed","remind me to "],
+    ["✅","Tick a habit","seed","I did "],
+    ["🎰","Gacha dailies","seed","did my dailies for "],
     ["🧠","Remember this","seed","remember that "],
     ["🎮","Refresh games","send","refresh my game calendar now"],
     ["🎯","Title ideas","seed","give me stream title ideas for "],
@@ -1322,7 +1387,7 @@ function viewKiko(){
       <div class="label">💶 Money</div>
       <p style="margin:2px 0 8px">Log business income &amp; expenses ("log €240 Twitch payout", "I spent €89 on a mic"). At tax time, say "start tax prep" and he walks you through exactly what to gather for your accountant, step by step.</p>
       <div class="label">📓 Reflect &amp; remember</div>
-      <p style="margin:2px 0 8px">Say "let's journal" for the gentle <b>daily journal</b> he walks you through and writes up in your voice. Quick-set today's one-line journal note. Park thoughts in the <b>brain-dump</b>, make <b>stickies</b>, add joys to the <b>joy jar</b>, and manage <b>tasks &amp; goals</b> — add, complete ("done with the clinic call"), rename, delete. Tell him <b>"remember that…"</b> and he keeps it forever (see Kiko's memory above).</p>
+      <p style="margin:2px 0 8px">Say "let's journal" for the gentle <b>daily journal</b> he walks you through and writes up in your voice. Quick-set today's one-line journal note. Park thoughts in the <b>brain-dump</b>, make <b>stickies</b>, add joys to the <b>joy jar</b>, and manage <b>tasks &amp; goals</b> — add, complete ("done with the clinic call"), rename, delete. Tell him <b>"remember that…"</b> and he keeps it forever (see Kiko's memory above). Tick off <b>daily habits</b> ("I did my steps and the dishes") and <b>gacha dailies</b> ("did my WUWA and HSR dailies") — he can also add or remove habits and games from the lists, and tell you what's still left today.</p>
       <div class="label">✨ And the clever stuff</div>
       <p style="margin:2px 0 8px">He <b>searches the web</b> when useful (game dates, facts, nutrition, prices). He knows your <b>real numbers</b> — ask "how's my protein today?" or "what's my weight trend?". He remembers the <b>conversation</b>, so "actually make it 8pm" just works. Say <b>"undo that"</b> to roll back his last change (Ctrl+Z works too). He picks a fast brain for quick commands and a deeper one for hard questions — say <b>"use your smart brain"</b> or <b>"quick:"</b> to choose yourself. Talk instead of type with <b>🎙️</b>, hear him with <b>🔊 Speak replies</b>, and he'll greet you with a <b>morning briefing</b> and a soft evening journal nudge (toggleable above). He can also hop you to any tab — "take me to the calendar".</p>
       <p class="soft" style="font-size:11.5px;margin-top:6px">Every single thing he does is undoable — Ctrl+Z, or just tell him. 💗❄️</p>
@@ -1687,6 +1752,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v2.1 · June 2026 — Habits, gacha &amp; phone pings</b> ✅ Daily habits checklist (grouped by 🌙/🌤/🌞 energy) and 🎮 gacha dailies on Home, both editable, with a little week-strip showing past days · Kiko ticks them by chat ("did my WUWA dailies") and knows what's left · ⏰ custom reminders everywhere — Kiko, Calendar, Planner — as browser pop-ups, 📱 phone push and email · reminders card on the Planner · smoother iPad: portrait &amp; landscape layouts adapt on rotate, Apple Pencil drags everything.</p>
       <p><b>v2.0 · June 2026 — Kiko, personal assistant</b> 🧠 long-term memory ("remember that…") · real conversation context · 🎙️ voice in &amp; 🔊 voice out · morning briefings &amp; evening journal nudges · answers from your real numbers · edit &amp; "undo that" by chat · Kiko's weekly email letter · on-demand game refresh · adaptive fast/smart brains · full coverage of every single thing the app can do · the complete in-app guide + this About page.</p>
       <p><b>v1.9 — Mifuyu OS</b> ✨ renamed from Health OS · Stream tab (was Optimize) with Sponsors &amp; deals · 💶 Money tab built for a Dutch eenmanszaak: books, NL tax guide, Kiko's tax-prep walkthrough, accountant exports · calendar toggles for events &amp; birthdays · game updates as single days + event start/end days + livestream days in purple · "games I track" list · birthdays remind a month ahead.</p>
       <p><b>v1.8 — Your space, your rules</b> 🧩 every dashboard card draggable, resizable, minimizable, hideable (Home, Care, Food) · tab reordering · 🔒 layout lock · tuned for iPad + Apple Pencil · 🦊 Ask Kiko home-base tab with quick skills · Ctrl+Z undo for everything, surviving reloads.</p>
@@ -2226,6 +2292,27 @@ const H={
     await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[f]=v; const ex={}; if(f==="flow")ex.flow=raw; return {...n,pcos,...ex}; }); toast("saved 💗"); render(); },
   async pcosToggle(el){ const f=el.dataset.f;
     await setToday(n=>{ const pcos={...(n.pcos||{})}; pcos[f]=!pcos[f]; return {...n,pcos}; }); render(); },
+
+  /* --- daily habits + gacha dailies --- */
+  async habitToggle(el){ const id=el.dataset.v;
+    await setToday(n=>{ const habits={...(n.habits||{})}; habits[id]=!habits[id]; return {...n,habits}; }); render(); },
+  habitEdit(){ state.habitEdit=!state.habitEdit; render(); },
+  async addHabitUI(){ const inp=$("#habitInput"); const t=((inp&&inp.value)||"").trim(); if(!t)return;
+    const en=($("#habitEnergy")&&$("#habitEnergy").value)||"med";
+    await setSent(n=>{ const l=(Array.isArray(n.habitsList)&&n.habitsList.length)?n.habitsList.slice():HABITS_DEFAULT.slice();
+      l.push({id:"h"+Date.now(),text:t,energy:en}); return {...n,habitsList:l}; }); toast("habit added 🌱"); render(); },
+  async delHabit(el){ const id=el.dataset.v;
+    await setSent(n=>{ let l=(Array.isArray(n.habitsList)&&n.habitsList.length)?n.habitsList.slice():HABITS_DEFAULT.slice();
+      l=l.filter(h=>h.id!==id); return {...n,habitsList:l}; }); render(); },
+  async gachaToggle(el){ const id=el.dataset.v;
+    await setToday(n=>{ const gacha={...(n.gacha||{})}; gacha[id]=!gacha[id]; return {...n,gacha}; }); render(); },
+  gachaEdit(){ state.gachaEdit=!state.gachaEdit; render(); },
+  async addGachaUI(){ const inp=$("#gachaInput"); const t=((inp&&inp.value)||"").trim(); if(!t)return;
+    await setSent(n=>{ const l=(Array.isArray(n.gachaList)&&n.gachaList.length)?n.gachaList.slice():GACHA_DEFAULT.slice();
+      l.push({id:"g"+Date.now(),name:t}); return {...n,gachaList:l}; }); toast("game added 🎮"); render(); },
+  async delGacha(el){ const id=el.dataset.v;
+    await setSent(n=>{ let l=(Array.isArray(n.gachaList)&&n.gachaList.length)?n.gachaList.slice():GACHA_DEFAULT.slice();
+      l=l.filter(g=>g.id!==id); return {...n,gachaList:l}; }); render(); },
 
   async mjSet(el){ const f=el.dataset.f,v=Number(el.dataset.v);
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=v; return {...n,mounjaro}; }); toast("saved 💗"); render(); },
@@ -2953,6 +3040,10 @@ function kikoDataSummary(){
     if(tx.length){ const inc=tx.filter(t=>t.dir==="in").reduce((a,t)=>a+(+t.amount||0),0), exp=tx.filter(t=>t.dir==="out").reduce((a,t)=>a+(+t.amount||0),0); parts.push(`money ${y}: in €${Math.round(inc)} · out €${Math.round(exp)}`); }
     if((s.journalEntries||[]).some(e=>e.date===TODAY)) parts.push("journaled today ✓");
     const m=(state.today&&state.today.mind)||{}; if(m.mood!=null||m.anxiety!=null) parts.push(`today's check-in: mood ${m.mood??"–"}/5, anxiety ${m.anxiety??"–"}/5`);
+    const hl=habitsList(), hc=(state.today&&state.today.habits)||{}; const hLeft=hl.filter(h=>!hc[h.id]).map(h=>h.text);
+    parts.push(`habits ${hl.length-hLeft.length}/${hl.length}${hLeft.length?` (left: ${hLeft.join(", ")})`:" — all done ✓"}`);
+    const gl=gachaList(), gc=(state.today&&state.today.gacha)||{}; const gLeft=gl.filter(g=>!gc[g.id]).map(g=>g.name);
+    parts.push(`gacha dailies ${gl.length-gLeft.length}/${gl.length}${gLeft.length?` (left: ${gLeft.join(", ")})`:" — all done ✓"}`);
     return parts.join(" · ");
   }catch(e){ return ""; }
 }
@@ -3019,6 +3110,26 @@ async function execAgentAction(a){
     if(T==="removeReminder"){ let hit=null; await setSent(n=>{ const c=(n.customReminders||[]).slice(); const i=findByText(c,a.text,"text"); if(i<0)return n; hit=c[i].text; c.splice(i,1); return {...n,customReminders:c}; }); return hit?"🗑️ removed reminder: "+hit:null; }
     if(T==="rememberFact"){ if(!a.text)return null; await setSent(n=>({...n,kikoMemory:[...(n.kikoMemory||[]),{id:"km"+Date.now(),text:a.text,date:TODAY}]})); return "🧠 I'll remember: "+a.text; }
     if(T==="forgetFact"){ let hit=null; await setSent(n=>{ const m=(n.kikoMemory||[]).slice(); const i=findByText(m,a.text,"text"); if(i<0)return n; hit=m[i].text; m.splice(i,1); return {...n,kikoMemory:m}; }); return hit?"🧠 forgot: "+hit:null; }
+    if(T==="checkHabit"){ const l=habitsList(); const i=findByText(l,a.text,"text"); if(i<0)return null; const on=a.on!=null?!!a.on:true;
+      await setToday(n=>({...n,habits:{...(n.habits||{}),[l[i].id]:on}})); return (on?"✅ ":"↩️ unchecked: ")+l[i].text; }
+    if(T==="checkGacha"){ const l=gachaList(); const i=findByText(l,a.name,"name"); if(i<0)return null; const on=a.on!=null?!!a.on:true;
+      await setToday(n=>({...n,gacha:{...(n.gacha||{}),[l[i].id]:on}})); return (on?"🎮 dailies done: ":"↩️ unchecked: ")+l[i].name; }
+    if(T==="addHabit"){ if(!a.text)return null;
+      await setSent(n=>{ const l=(Array.isArray(n.habitsList)&&n.habitsList.length)?n.habitsList.slice():HABITS_DEFAULT.slice();
+        l.push({id:"h"+Date.now(),text:a.text,energy:["low","med","high"].includes(a.energy)?a.energy:"med"}); return {...n,habitsList:l}; });
+      return "🌱 new habit: "+a.text; }
+    if(T==="removeHabit"){ let hit=null;
+      await setSent(n=>{ const l=(Array.isArray(n.habitsList)&&n.habitsList.length)?n.habitsList.slice():HABITS_DEFAULT.slice();
+        const i=findByText(l,a.text,"text"); if(i<0)return n; hit=l[i].text; const c=l.slice(); c.splice(i,1); return {...n,habitsList:c}; });
+      return hit?"🗑️ habit removed: "+hit:null; }
+    if(T==="addGachaGame"){ if(!a.name)return null;
+      await setSent(n=>{ const l=(Array.isArray(n.gachaList)&&n.gachaList.length)?n.gachaList.slice():GACHA_DEFAULT.slice();
+        l.push({id:"g"+Date.now(),name:a.name}); return {...n,gachaList:l}; });
+      return "🎮 added to gacha dailies: "+a.name; }
+    if(T==="removeGachaGame"){ let hit=null;
+      await setSent(n=>{ const l=(Array.isArray(n.gachaList)&&n.gachaList.length)?n.gachaList.slice():GACHA_DEFAULT.slice();
+        const i=findByText(l,a.name,"name"); if(i<0)return n; hit=l[i].name; const c=l.slice(); c.splice(i,1); return {...n,gachaList:c}; });
+      return hit?"🗑️ removed from gacha dailies: "+hit:null; }
     if(T==="updateEvent"){ let hit=null;
       await setSent(n=>{ const evs=(n.calendarEvents||[]).slice(); let i=-1;
         if(a.date) i=evs.findIndex(e=>e.date===a.date&&String(e.title||"").toLowerCase().includes(String(a.title||"").toLowerCase()));
@@ -3178,7 +3289,7 @@ start();
       else { const r=d.item.getBoundingClientRect(); d.gx=d.sx-r.left; d.gy=d.sy-r.top; const g=d.item.cloneNode(true); g.classList.add("drag-clone"); g.classList.remove("reordering","dragsrc"); g.style.width=r.width+"px"; g.style.height=r.height+"px"; g.querySelectorAll(".home-tools,.home-resize").forEach(x=>x.remove()); document.body.appendChild(g); d.ghost=g; d.item.classList.add("dragsrc"); moveGhost(d.sx,d.sy); }
     }
     e.preventDefault();
-    if(d.mode==="resize"){ const unit=d.startW/d.startCols||d.startW; let nc=Math.round((d.startW+(e.clientX-d.sx))/unit); nc=Math.max(3,Math.min(maxCols(),nc)); if(nc!==d.cols){ d.cols=nc; d.item.style.gridColumn="span "+nc; } const nh=Math.max(120,Math.round(d.startH+(e.clientY-d.sy))); d.h=nh; if(d.panel)d.panel.style.minHeight=nh+"px"; d.item.dataset.h=nh; relayoutSoon(); return; }
+    if(d.mode==="resize"){ const unit=d.startW/d.startCols||d.startW; let nc=Math.round((d.startW+(e.clientX-d.sx))/unit); nc=Math.max(3,Math.min(maxCols(),nc)); if(nc!==d.cols){ d.cols=nc; d.item.style.gridColumn="span "+nc; d.item.dataset.c=nc; } const nh=Math.max(120,Math.round(d.startH+(e.clientY-d.sy))); d.h=nh; if(d.panel)d.panel.style.minHeight=nh+"px"; d.item.dataset.h=nh; relayoutSoon(); return; }
     moveGhost(e.clientX,e.clientY);
     const el=document.elementFromPoint(e.clientX,e.clientY), over=el&&el.closest(d.itemSel);
     if(over&&over!==d.item&&over.parentElement===d.c){ const r=over.getBoundingClientRect(), before=d.horiz?(e.clientX<r.left+r.width/2):(e.clientY<r.top+r.height/2); const ref=before?over:over.nextSibling; if(ref!==d.item){ flipReorder(d.c, ()=>d.c.insertBefore(d.item, ref)); } }
@@ -3198,7 +3309,12 @@ start();
   document.addEventListener("pointercancel",()=>{ if(!d)return; if(d.ghost)d.ghost.remove(); if(d.item){d.item.classList.remove("dragsrc","resizing","reordering");} d=null; },true);
   document.addEventListener("click",e=>{ if(sc){ e.stopPropagation(); e.preventDefault(); sc=false; } },true);
   document.addEventListener("toggle",()=>{ if(MODULAR_TABS.includes(state.tab)){ try{layoutHome();}catch(_){} } },true);
-  window.addEventListener("resize",()=>{ if(MODULAR_TABS.includes(state.tab)){ clearTimeout(window._lhT); window._lhT=setTimeout(()=>{try{layoutHome();}catch(e){}},150); } });
+  window.addEventListener("resize",()=>{ clearTimeout(window._lhT); window._lhT=setTimeout(()=>{
+    if(MODULAR_TABS.includes(state.tab)){ try{layoutHome();}catch(e){} }
+    try{renderStickies();}catch(e){}        /* stickies keep their fractional spot on rotate */
+    try{positionKikoUI();}catch(e){}        /* pet + chat bubble stay on-screen on rotate */
+  },150); });
+  window.addEventListener("orientationchange",()=>{ setTimeout(()=>{ try{window.dispatchEvent(new Event("resize"));}catch(e){} },350); });
 })();
 
 /* ===== PWA + phone push plumbing ===== */
