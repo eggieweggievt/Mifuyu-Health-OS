@@ -31,6 +31,15 @@
     --r:18px; --sans:"Quicksand",ui-rounded,"SF Pro Rounded",system-ui,sans-serif; --display:"Fredoka",var(--sans);
   }
   *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  /* page-width clamp: one stray wide element otherwise makes the whole page scroll sideways
+     and "everything sits slightly left" on iPad portrait — wide things scroll INSIDE their panels */
+  html,body{width:100%;max-width:100%;overflow-x:hidden;}
+  main{overflow-x:clip;}
+  /* native-app feel */
+  html{-webkit-text-size-adjust:100%;}
+  *{-webkit-tap-highlight-color:transparent;}            /* no gray iOS tap flash */
+  body{overscroll-behavior-y:none;}                      /* no whole-page rubber-band */
+  nav{overscroll-behavior-x:contain;}                    /* tab-strip swipes don't yank the page */
   body{background:var(--bg);background-image:radial-gradient(80% 50% at 100% 0%,#f7e0f3 0%,transparent 60%),radial-gradient(70% 50% at 0% 0%,#e2e9fb 0%,transparent 55%);background-attachment:fixed;color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;font-weight:500;-webkit-font-smoothing:antialiased;min-height:100vh;}
   h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;}
   .muted{color:var(--muted);} .soft{color:var(--ink-soft);} .peri{color:var(--peri-deep);} .sak{color:var(--sakura-deep);} .lav{color:var(--lav-deep);} .mint{color:#3a9d83;}
@@ -164,7 +173,7 @@
   .joy-pick.pop{animation:joypop .5s ease;} @keyframes joypop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.13)}100%{transform:scale(1);opacity:1}}
   /* sticky notes */
   /* modular layout — drag-reorder · resize · minimize/remove · masonry */
-  .grid-modular{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));grid-auto-rows:8px;grid-auto-flow:row dense;gap:16px;}
+  .grid-modular{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));grid-auto-rows:8px;grid-auto-flow:row dense;gap:0 16px;}   /* row-gap 0: the 16px lives inside the span math → uniform spacing */
   .home-widget{position:relative;transition:transform .24s cubic-bezier(.2,.8,.25,1);min-width:0;}
   .home-widget.resizing{transition:none;outline:2px dashed var(--sakura);outline-offset:3px;border-radius:18px;}
   .home-widget.reordering{outline:2px dashed var(--lav);outline-offset:3px;border-radius:18px;}
@@ -195,11 +204,19 @@
   #restBtn{bottom:calc(16px + env(safe-area-inset-bottom,0px));}
   #snowWindBtn{bottom:calc(16px + env(safe-area-inset-bottom,0px));}
   .sticky{max-width:calc(100vw - 16px);}   /* a sticky can never poke off-screen on a small device */
+  /* instant, native-feeling taps — drag handles (grips, sticky head/corner, Kiko, tabs) keep their own touch-action */
+  .btn,.chip,.chiptog,.sitebtn,.kiko-skill,.x,.pill,.scale button,.seg>button,.tog,.cal-swatch{touch-action:manipulation;}
+  .btn:active,.sitebtn:active,.kiko-skill:active,.seg>button:active{transform:scale(.96);transition:transform .06s ease;}
+  .btn,.chiptog,.kiko-skill{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+  @media (display-mode:standalone){ #rail{padding-top:calc(8px + env(safe-area-inset-top,0px));} }   /* installed app clears the notch/status bar */
+  @media (pointer:coarse){ .btn{padding:9px 15px;} #rail{backdrop-filter:blur(8px);} }   /* fatter targets; lighter blur scrolls smoother */
   /* ===== phones (and the installed Home-Screen app) ≤640px ===== */
   @media (max-width:640px){
     #rail{padding:8px calc(10px + env(safe-area-inset-right,0px)) 6px calc(10px + env(safe-area-inset-left,0px));}
-    .brand-logo{height:24px;} .brand-name{font-size:14px;}
+    .brand-logo{height:24px;} .brand-name{display:none;}   /* logo only on phones */
     .chip{font-size:10px;padding:3px 8px;} .avatar{width:28px;height:28px;}
+    main{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px)) !important;}   /* content clears the floating buttons + pet */
+    .toast{bottom:calc(78px + env(safe-area-inset-bottom,0px));}
     /* tab bar becomes one swipeable strip instead of wrapping into 3 rows */
     nav{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;width:100%;order:3;scrollbar-width:none;}
     nav::-webkit-scrollbar{display:none;}
@@ -332,7 +349,12 @@
   .kiko-tabchat .kiko-input{border-top:1px solid var(--line);border-radius:0 0 12px 12px;}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(70,66,100,.30);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto;}
-  .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(90,80,140,.3);width:100%;max-width:560px;padding:20px;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(90,80,140,.3);width:100%;max-width:min(92vw,560px);padding:20px;}
+  /* modal safety net: no input row can ever poke past the panel edge (iOS date/time inputs refuse to shrink) */
+  .modal div[style*="display:flex"]{flex-wrap:wrap;}
+  input[type="date"],input[type="time"]{min-width:0;max-width:100%;}
+  select.inp{max-width:100%;}
+  .modal .inp{min-width:0;}
 </style>
 </head>
 <body>
@@ -582,16 +604,22 @@ function layoutHome(){
   const grid=document.querySelector(".grid-modular"); if(!grid)return; const rowH=8, gap=16;
   /* portrait/landscape: clamp each card's saved span (data-c) to the tracks that actually fit right now,
      WITHOUT persisting — rotate back to landscape and the saved width comes back.
-     Ask the browser for the REAL resolved track count (auto-fill expands in the computed value);
-     fall back to the math if that ever fails. */
-  let maxC=0;
-  try{ const tc=getComputedStyle(grid).gridTemplateColumns.split(" ").filter(s=>s&&s!=="0px").length; if(tc>1) maxC=tc; }catch(e){}
-  if(!maxC) maxC=Math.max(3,Math.min(24,Math.floor((grid.clientWidth+gap)/(72+gap))));
-  grid.querySelectorAll(".home-widget").forEach(w=>{ const want=parseInt(w.dataset.c||"4",10)||4;
-    w.style.gridColumn="span "+(maxC<5?maxC:Math.min(want,maxC)); });   /* phone-narrow → tidy single column */
+     The browser tells us the REAL resolved track count (auto-fill expands in the computed value). */
+  let colCount=0;
+  try{ colCount=(((getComputedStyle(grid).gridTemplateColumns)||"").match(/\S+/g)||[]).length; }catch(e){}
+  if(!colCount) colCount=Math.max(3,Math.min(24,Math.floor((grid.clientWidth+gap)/(72+gap))));
+  grid.querySelectorAll(".home-widget").forEach(w=>{
+    if(w.classList.contains("resizing"))return;             // never fight a live resize drag
+    const want=parseInt(w.dataset.c||"0",10)||colCount;
+    let span=Math.max(1,Math.min(want,colCount));
+    if(colCount<=4) span=colCount;                          // phone-narrow → tidy single column
+    else if(colCount<=9&&span>colCount/2) span=colCount;    // iPad portrait: a >half card can't pair up → full row, no dead strip
+    const cur=/span (\d+)/.exec(w.style.gridColumn||"");
+    if(!cur||+cur[1]!==span) w.style.gridColumn="span "+span;
+  });
   grid.querySelectorAll(".home-widget").forEach(w=>{ const panel=w.querySelector(".panel,section")||w.lastElementChild; if(!panel)return;
     let h; if(w.classList.contains("min")){ h=54; } else { const sh=parseFloat(w.dataset.h||"0")||0; panel.style.minHeight=sh?sh+"px":""; h=panel.getBoundingClientRect().height; }
-    if(h>0) w.style.gridRowEnd="span "+Math.max(1,Math.ceil((h+gap)/(rowH+gap))); });
+    if(h>0) w.style.gridRowEnd="span "+Math.max(2,Math.ceil((h+gap)/rowH)); });   /* row-gap 0 → gap baked into the span = uniform spacing */
 }
 function manageCardsModal(tab){
   const L=modLayout(tab); const labels=MODULAR_LABELS[tab]||{}; const keys=Object.keys(labels);
@@ -2890,7 +2918,7 @@ function fmtCmd(cmd){
 let dragInfo=null;
 function startDrag(ev,id){ ev.preventDefault(); const el=ev.target.closest('.sticky');
   dragInfo={ id, el, dx:ev.clientX-el.offsetLeft, dy:ev.clientY-el.offsetTop };
-  window.addEventListener('pointermove',onDrag); window.addEventListener('pointerup',endDrag,{once:true}); }
+  window.addEventListener('pointermove',onDrag); window.addEventListener('pointerup',endDrag,{once:true}); window.addEventListener('pointercancel',endDrag,{once:true}); }   /* palm rejection cancels constantly with the Pencil */
 function onDrag(ev){ if(!dragInfo)return; const el=dragInfo.el;
   let x=Math.max(0,Math.min(ev.clientX-dragInfo.dx,window.innerWidth-el.offsetWidth));
   let y=Math.max(0,Math.min(ev.clientY-dragInfo.dy,window.innerHeight-el.offsetHeight));
@@ -2901,7 +2929,7 @@ async function endDrag(){ window.removeEventListener('pointermove',onDrag); if(!
 let resizeInfo=null;
 function startResize(ev,id){ ev.preventDefault(); ev.stopPropagation(); const el=ev.target.closest('.sticky');
   resizeInfo={ id, el, sx:ev.clientX, sy:ev.clientY, sw:el.offsetWidth, sh:el.offsetHeight };
-  window.addEventListener('pointermove',onResize); window.addEventListener('pointerup',endResize,{once:true}); }
+  window.addEventListener('pointermove',onResize); window.addEventListener('pointerup',endResize,{once:true}); window.addEventListener('pointercancel',endResize,{once:true}); }
 function onResize(ev){ if(!resizeInfo)return; const el=resizeInfo.el;
   el.style.width=Math.max(140,resizeInfo.sw+(ev.clientX-resizeInfo.sx))+"px";
   el.style.height=Math.max(110,resizeInfo.sh+(ev.clientY-resizeInfo.sy))+"px"; }
@@ -3471,7 +3499,7 @@ setInterval(kikoProactive, 20*60*1000);
     document.body.appendChild(p); count++;
     p.addEventListener("animationend",()=>{ p.remove(); count--; });
   }
-  window.addEventListener("pointermove",e=>{ if(e.pointerType==="touch")return; const now=performance.now(); if(now-last<55)return; last=now; spawn(e.clientX,e.clientY); },{passive:true});
+  window.addEventListener("pointermove",e=>{ if(e.pointerType!=="mouse")return; const now=performance.now(); if(now-last<55)return; last=now; spawn(e.clientX,e.clientY); },{passive:true});   /* mouse only — Apple Pencil hover must not spray petals */
 })();
 
 /* ===== plentiful snow: falls, pushed by the cursor, gathers at the bottom; 💨 blows the drift away ===== */
@@ -3493,7 +3521,8 @@ setInterval(kikoProactive, 20*60*1000);
   }
   resize(); window.addEventListener("resize",resize);
 
-  const N=Math.max(130,Math.min(280,Math.round(W*H/7600)));   // plentiful
+  const N=W<641 ? Math.max(45,Math.min(90,Math.round(W*H/16000)))            // phones: gentler on the battery
+                : Math.max(130,Math.min(280,Math.round(W*H/7600)));          // plentiful elsewhere
   const MAXPILE=130, GROW=3.4;
   const flakes=[];
   for(let i=0;i<N;i++) flakes.push({ x:Math.random()*W, y:Math.random()*H, r:1.3+Math.random()*2.7,
@@ -3502,7 +3531,7 @@ setInterval(kikoProactive, 20*60*1000);
   let spray=[];
 
   let mx=-9999,my=-9999;
-  window.addEventListener("pointermove",e=>{ if(e.pointerType==="touch")return; mx=e.clientX; my=e.clientY; },{passive:true});
+  window.addEventListener("pointermove",e=>{ if(e.pointerType!=="mouse")return; mx=e.clientX; my=e.clientY; },{passive:true});   /* mouse only — pencil/finger shouldn't shove the snow while tapping */
   window.addEventListener("pointerout",()=>{ mx=-9999; my=-9999; });
 
   let gust=0, windDir=1;
