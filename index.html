@@ -194,6 +194,39 @@
   #addStickyBtn{bottom:calc(16px + env(safe-area-inset-bottom,0px));}
   #restBtn{bottom:calc(16px + env(safe-area-inset-bottom,0px));}
   #snowWindBtn{bottom:calc(16px + env(safe-area-inset-bottom,0px));}
+  .sticky{max-width:calc(100vw - 16px);}   /* a sticky can never poke off-screen on a small device */
+  /* ===== phones (and the installed Home-Screen app) ≤640px ===== */
+  @media (max-width:640px){
+    #rail{padding:8px calc(10px + env(safe-area-inset-right,0px)) 6px calc(10px + env(safe-area-inset-left,0px));}
+    .brand-logo{height:24px;} .brand-name{font-size:14px;}
+    .chip{font-size:10px;padding:3px 8px;} .avatar{width:28px;height:28px;}
+    /* tab bar becomes one swipeable strip instead of wrapping into 3 rows */
+    nav{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;width:100%;order:3;scrollbar-width:none;}
+    nav::-webkit-scrollbar{display:none;}
+    #nav .tab{flex:0 0 auto;touch-action:pan-x pan-y;font-size:12.5px;padding:8px 12px;}
+    main{padding:10px 8px;}
+    .panel{padding:13px;border-radius:14px;}
+    .bignum{font-size:22px;}
+    h2{font-size:16px !important;}
+    /* iOS zooms the page when a focused field's font is under 16px — keep fields at 16 */
+    .inp,select.inp,textarea.inp,.sticky-body{font-size:16px;}
+    /* calendar: a real month view that fits a phone */
+    .cal-grid{gap:3px;}
+    .cal-cell{min-height:52px;padding:2px 3px;border-radius:8px;gap:2px;}
+    .cal-dow{font-size:9.5px;}
+    .cal-daynum{font-size:9.5px;}
+    .cal-ev,.cal-stream,.cal-bday{font-size:8px;padding:1px 3px;border-radius:5px;border-left-width:2px;}
+    .modal-bg{padding:12px 8px;}
+    .modal{padding:14px;border-radius:16px;}
+    /* Kiko chat becomes a bottom sheet */
+    #kikoChat{left:8px;right:8px;width:auto;max-width:none;bottom:calc(8px + env(safe-area-inset-bottom,0px));height:62vh;max-height:calc(100vh - 84px);}
+    #addStickyBtn,#restBtn,#snowWindBtn{width:40px;height:40px;font-size:16px;}
+    #snowWindBtn{right:62px;}
+    .kiko-skill{font-size:12px;}
+    .care-cols{grid-template-columns:1fr;}
+    /* five-across input rows wrap to three on a phone */
+    [style*="grid-template-columns:repeat(5,1fr)"]{grid-template-columns:repeat(3,1fr) !important;}
+  }
   #stickyLayer{position:fixed;inset:0;z-index:80;pointer-events:none;}
   .sticky{position:absolute;width:200px;height:150px;min-width:140px;min-height:110px;border-radius:12px;box-shadow:0 8px 22px rgba(110,100,150,.24);pointer-events:auto;display:flex;flex-direction:column;transform:rotate(-1deg);overflow:hidden;}
   .sticky-head{height:26px;display:flex;align-items:center;gap:2px;padding:0 4px 0 8px;cursor:grab;border-radius:12px 12px 0 0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
@@ -554,7 +587,8 @@ function layoutHome(){
   let maxC=0;
   try{ const tc=getComputedStyle(grid).gridTemplateColumns.split(" ").filter(s=>s&&s!=="0px").length; if(tc>1) maxC=tc; }catch(e){}
   if(!maxC) maxC=Math.max(3,Math.min(24,Math.floor((grid.clientWidth+gap)/(72+gap))));
-  grid.querySelectorAll(".home-widget").forEach(w=>{ const want=parseInt(w.dataset.c||"4",10)||4; w.style.gridColumn="span "+Math.min(want,maxC); });
+  grid.querySelectorAll(".home-widget").forEach(w=>{ const want=parseInt(w.dataset.c||"4",10)||4;
+    w.style.gridColumn="span "+(maxC<5?maxC:Math.min(want,maxC)); });   /* phone-narrow → tidy single column */
   grid.querySelectorAll(".home-widget").forEach(w=>{ const panel=w.querySelector(".panel,section")||w.lastElementChild; if(!panel)return;
     let h; if(w.classList.contains("min")){ h=54; } else { const sh=parseFloat(w.dataset.h||"0")||0; panel.style.minHeight=sh?sh+"px":""; h=panel.getBoundingClientRect().height; }
     if(h>0) w.style.gridRowEnd="span "+Math.max(1,Math.ceil((h+gap)/(rowH+gap))); });
