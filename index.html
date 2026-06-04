@@ -2587,6 +2587,25 @@ const H={
     const t=(state.sentinel.tasks||[]).find(x=>x.id===id); if(!t)return;
     const i=TASK_STATUSES.findIndex(s=>s[0]===taskStatus(t)); const ni=Math.max(0,Math.min(TASK_STATUSES.length-1,i+d));
     if(ni!==i) await setTaskStatusById(id,TASK_STATUSES[ni][0]); },
+  taskEdit(el){ const id=el.dataset.v; const t=(state.sentinel.tasks||[]).find(x=>x.id===id); if(!t)return;
+    $("#modal").innerHTML=`<div class="modal-bg" data-act="closeModal"><div class="modal" data-act="noop" style="max-width:380px">
+      <div class="card-head"><h3 style="font-size:16px">✏️ Edit task</h3><button class="btn" data-act="closeModal">✕</button></div>
+      <div class="field"><div class="label">Task</div><input class="inp" id="teText" value="${esc(t.text)}"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <select class="inp" id="teBucket" style="max-width:175px">${TASK_BUCKETS.map(([v,e,l])=>`<option value="${v}" ${t.bucket===v?'selected':''}>${e} ${l}</option>`).join("")}</select>
+        <select class="inp" id="teSpoon" style="max-width:130px">${TASK_SPOONS.map(([v,e,l])=>`<option value="${v}" ${(t.spoon||'some')===v?'selected':''}>${e} ${l}</option>`).join("")}</select>
+        <input class="inp" id="teDue" type="date" value="${t.due||""}" title="due · optional" style="max-width:150px">
+      </div>
+      <p class="soft" style="font-size:11px;margin:8px 0 12px">renaming also renames its linked reminder, so they stay one thing 💗</p>
+      <button class="btn btn-grad" data-act="taskEditSave" data-v="${id}">💾 save</button>
+    </div></div>`; },
+  async taskEditSave(el){ const id=el.dataset.v; const g=i=>{const e2=$("#"+i);return e2?e2.value:"";};
+    const text=(g("teText")||"").trim(); if(!text){ toast("the task needs some words 🌱"); return; }
+    const bucket=g("teBucket")||"personal", spoon=g("teSpoon")||"some", due=g("teDue")||"";
+    await setSent(n=>{ const ts=(n.tasks||[]).map(t=>t.id===id?{...t,text,bucket,spoon,due:due||undefined}:t);
+      const c=(n.customReminders||[]).map(r=>r.taskId===id&&!r.done?{...r,text}:r);   // linked ping keeps the new wording
+      return {...n,tasks:ts,customReminders:c}; });
+    $("#modal").innerHTML=""; toast("saved ✏️"); render(); },
   taskRem(el){ const id=el.dataset.v; const t=(state.sentinel.tasks||[]).find(x=>x.id===id); if(!t)return;
     const R=remByTask()[id];
     $("#modal").innerHTML=`<div class="modal-bg" data-act="closeModal"><div class="modal" data-act="noop" style="max-width:380px">
@@ -3333,7 +3352,9 @@ async function execAgentAction(a){
         if(a.newTime!=null)e.time=a.newTime;
         hit=e.title+" → "+fmtDate(e.date)+(e.time?" "+fmt12(e.time):""); evs[i]=e; return {...n,calendarEvents:evs}; });
       return hit?"✏️ "+hit:null; }
-    if(T==="editTask"){ let hit=null; await setSent(n=>{ const ts=(n.tasks||[]).slice(); const i=findByText(ts,a.text,"text"); if(i<0||!a.newText)return n; hit=a.newText; ts[i]={...ts[i],text:a.newText}; return {...n,tasks:ts}; }); return hit?"✏️ task → "+hit:null; }
+    if(T==="editTask"){ let hit=null; await setSent(n=>{ const ts=(n.tasks||[]).slice(); const i=findByText(ts,a.text,"text"); if(i<0||!a.newText)return n; hit=a.newText; ts[i]={...ts[i],text:a.newText};
+      const c=(n.customReminders||[]).map(r=>r.taskId===ts[i].id&&!r.done?{...r,text:a.newText}:r);   // linked ping keeps the new wording
+      return {...n,tasks:ts,customReminders:c}; }); return hit?"✏️ task → "+hit:null; }
     if(T==="undoLast"){ setTimeout(()=>{ try{ undoLast(); }catch(e){} },350); return "↩️ undoing your last change"; }
     if(T==="addTask"){ const due=(a.due&&/^\d{4}-\d{2}-\d{2}$/.test(a.due))?a.due:null;
       await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text:a.text,bucket:a.bucket||"personal",spoon:a.spoon||"some",done:false,sub:[],status:"todo",...(due?{due}:{})}]}));
