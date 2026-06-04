@@ -310,7 +310,8 @@ Allowed action objects (use ONLY these shapes; include just the fields you need)
 - {"type":"removeStreamDay","day":"Mon|Tue|Wed|Thu|Fri|Sat|Sun"}   (she no longer streams that weekday)
 - {"type":"clearStreamSchedule"}   (wipe the whole weekly schedule)
 - {"type":"addEvent","title":"...","date":"YYYY-MM-DD","endDate":"YYYY-MM-DD or null","time":"HH:MM or empty","tz":"IANA zone (default Europe/Amsterdam)","note":"","url":"","src":"OMIT normally; only game|gameevent|gamestream for game-calendar markers (always single-day, real url)"}
-- {"type":"addTask","text":"...","bucket":"personal|health|content|hobbies|someday","spoon":"low|some|full"}
+- {"type":"addTask","text":"...","bucket":"personal|health|content|hobbies|someday","spoon":"low|some|full","due":"YYYY-MM-DD optional"}   (include due when she gives a deadline — "I need to email the accountant by Friday")
+- {"type":"setTaskDue","text":"<existing task words>","due":"YYYY-MM-DD, or empty string to clear","remindTime":"HH:MM optional"}   (set/change a task's due date; add remindTime to also attach a linked reminder that pings her on the due day — "remind me about the PT exercises tomorrow at 9" on an existing task goes here, NOT addReminder)
 - {"type":"addGoal","period":"week|month","text":"..."}
 - {"type":"logMind","mood":0-5,"anxiety":0-5,"energy":0-5,"weather":0-5,"kind":true}   (include only what she gave; 0-5 scales)
 - {"type":"logWeight","value":<number, kg>}
@@ -351,7 +352,7 @@ Allowed action objects (use ONLY these shapes; include just the fields you need)
 - {"type":"removeSticky","text":"<words on the sticky>"}  ·  {"type":"removeCapture","text":"<brain-dump words>"}
 - {"type":"startJournal"}   (begin the guided daily feelings journal)  ·  {"type":"startTaxPrep"}   (begin the tax-prep walkthrough)
 - {"type":"addReminder","text":"...","date":"YYYY-MM-DD","time":"HH:MM or empty","repeat":"none|daily|weekly|monthly"}   ("remind me to take meds at 9pm every day" → text:"take meds", time:"21:00", repeat:"daily". Reminders reach her as browser pop-ups, phone push, and the daily email. This is for to-do style nudges; real appointments belong in addEvent.)
-- {"type":"completeReminder","text":"<reminder wording>"}   (done for now — repeating ones roll to their next occurrence)
+- {"type":"completeReminder","text":"<reminder wording>"}   (done for now — repeating ones roll to their next occurrence. Linked task-reminder pairs complete TOGETHER automatically — when she finishes one thing, emit ONE action (completeTask OR completeReminder), never both.)
 - {"type":"removeReminder","text":"<reminder wording>"}
 - {"type":"rememberFact","text":"<a lasting fact or preference about her, her people, or how she likes things>"}   (save to YOUR long-term memory — use when she says "remember…", or shares something durably useful like a friend's name, a preference, an allergy, her mods, what she mains)
 - {"type":"forgetFact","text":"<words from the fact to forget>"}
