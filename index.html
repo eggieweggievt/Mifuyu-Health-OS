@@ -1878,7 +1878,7 @@ function taskRow(t){
   return `<div style="border-top:1px solid var(--line);padding:9px 0">
     <div style="display:flex;align-items:flex-start;gap:9px">
       <button class="x" data-act="toggleTask" data-v="${t.id}" title="mark done" style="color:var(--mint);font-size:17px">○</button>
-      <div class="grow"><span style="font-size:13px">${esc(t.text)}</span> <span class="pill pill-gray" title="spoons">${sm[1]}</span> ${duePill(t)} ${remBellBtn(t,R)}
+      <div class="grow"><span style="font-size:13px">${esc(t.text)}</span> <span class="pill pill-gray" title="spoons">${sm[1]}</span> ${duePill(t)} ${remBellBtn(t,R)} <button class="x" data-act="taskEdit" data-v="${t.id}" title="edit task" style="font-size:12px">✏️</button>
         ${subs.length?`<div style="margin-top:6px">${subs.map(s=>`<div style="display:flex;align-items:center;gap:7px;padding:2px 0"><button class="x" data-act="toggleSub" data-v="${t.id}" data-s="${s.id}" style="font-size:14px;color:${s.done?'var(--mint)':'var(--muted)'}">${s.done?'●':'○'}</button><span class="${s.done?'soft':''}" style="font-size:12px;${s.done?'text-decoration:line-through':''}">${esc(s.text)}</span></div>`).join("")}</div>`:''}
         <div style="margin-top:4px"><input class="inp" data-subfor="${t.id}" placeholder="+ subtask (Enter)" style="font-size:11.5px;padding:5px 9px;max-width:240px;display:inline-block;width:auto"></div>
       </div>
@@ -1893,7 +1893,7 @@ function taskCard(t){
       <span class="grow" style="font-size:12.5px;${t.done?'text-decoration:line-through;opacity:.6':''}">${esc(t.text)}</span>
       <button class="x" data-act="delTask" data-v="${t.id}">✕</button></div>
     <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:5px">
-      <span class="pill pill-gray" title="${bm[2]}">${bm[1]}</span><span class="pill pill-gray" title="spoons">${sm[1]}</span>${duePill(t)}${remBellBtn(t,R)}
+      <span class="pill pill-gray" title="${bm[2]}">${bm[1]}</span><span class="pill pill-gray" title="spoons">${sm[1]}</span>${duePill(t)}${remBellBtn(t,R)}<button class="x" data-act="taskEdit" data-v="${t.id}" title="edit task" style="font-size:11px">✏️</button>
       <span style="margin-left:auto;display:inline-flex;gap:2px">
         <button class="x" data-act="taskMove" data-v="${t.id}" data-d="-1" title="move left" style="font-size:12px">◀</button>
         <button class="x" data-act="taskMove" data-v="${t.id}" data-d="1" title="move right" style="font-size:12px">▶</button></span>
