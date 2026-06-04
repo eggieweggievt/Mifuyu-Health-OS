@@ -548,8 +548,12 @@ function modularGrid(tab, items, addable){
 function layoutHome(){
   const grid=document.querySelector(".grid-modular"); if(!grid)return; const rowH=8, gap=16;
   /* portrait/landscape: clamp each card's saved span (data-c) to the tracks that actually fit right now,
-     WITHOUT persisting — rotate back to landscape and the saved width comes back */
-  const maxC=Math.max(3,Math.min(24,Math.floor((grid.clientWidth+gap)/(72+gap))));
+     WITHOUT persisting — rotate back to landscape and the saved width comes back.
+     Ask the browser for the REAL resolved track count (auto-fill expands in the computed value);
+     fall back to the math if that ever fails. */
+  let maxC=0;
+  try{ const tc=getComputedStyle(grid).gridTemplateColumns.split(" ").filter(s=>s&&s!=="0px").length; if(tc>1) maxC=tc; }catch(e){}
+  if(!maxC) maxC=Math.max(3,Math.min(24,Math.floor((grid.clientWidth+gap)/(72+gap))));
   grid.querySelectorAll(".home-widget").forEach(w=>{ const want=parseInt(w.dataset.c||"4",10)||4; w.style.gridColumn="span "+Math.min(want,maxC); });
   grid.querySelectorAll(".home-widget").forEach(w=>{ const panel=w.querySelector(".panel,section")||w.lastElementChild; if(!panel)return;
     let h; if(w.classList.contains("min")){ h=54; } else { const sh=parseFloat(w.dataset.h||"0")||0; panel.style.minHeight=sh?sh+"px":""; h=panel.getBoundingClientRect().height; }
@@ -626,7 +630,7 @@ async function render(){
     if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
     if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } } else { stopTrendsLoop(); }
-    if(MODULAR_TABS.includes(state.tab)){ requestAnimationFrame(()=>{try{layoutHome();}catch(e){}}); setTimeout(()=>{try{layoutHome();}catch(e){}},150); }
+    if(MODULAR_TABS.includes(state.tab)){ requestAnimationFrame(()=>{try{layoutHome();}catch(e){}}); setTimeout(()=>{try{layoutHome();}catch(e){}},150); setTimeout(()=>{try{layoutHome();}catch(e){}},520); }
     if(state.tab==='kiko'){ KIKO.open=false; const cc=$("#kikoChat"); if(cc)cc.classList.add("hidden"); try{ paintKiko(); }catch(e){} }   // fill the Ask-Kiko chat panel
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
 }
@@ -3315,6 +3319,8 @@ start();
     try{positionKikoUI();}catch(e){}        /* pet + chat bubble stay on-screen on rotate */
   },150); });
   window.addEventListener("orientationchange",()=>{ setTimeout(()=>{ try{window.dispatchEvent(new Event("resize"));}catch(e){} },350); });
+  /* iPadOS (especially installed as an app) sometimes settles its size only via visualViewport */
+  if(window.visualViewport){ let vw=visualViewport.width; visualViewport.addEventListener("resize",()=>{ if(Math.abs(visualViewport.width-vw)<2)return; vw=visualViewport.width; try{window.dispatchEvent(new Event("resize"));}catch(e){} }); }
 })();
 
 /* ===== PWA + phone push plumbing ===== */
