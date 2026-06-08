@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-08.7";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-08.8";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -649,7 +649,7 @@ function manageCardsModal(tab){
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true, wtMetrics:["w"], wtType:"area", wtRange:"all" };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["health","❄️ Health"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["health","❄️ Health"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -696,7 +696,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewWeight,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -716,32 +716,36 @@ async function render(){
 }
 
 /* ===================== HOME cards ===================== */
-/* ===== per-week stream schedule (a recurring "usual week" + optional per-week overrides) ===== */
+/* ===== per-week stream schedule — every week is its own independent plan (blank until you fill it) ===== */
 const DOW_ORDER=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const STREAM_TIME_DEFAULT="3PM";
+const CUPS_PER_40OZ=5;   // water stored internally in 8oz cups; shown to Mifu as 40oz cups (≈5 cups each)
 function mondayOf(d){ const x=new Date(d); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); x.setHours(0,0,0,0); return x; }
 function weekStartISO(off){ const d=mondayOf(new Date(TODAY+"T00:00")); d.setDate(d.getDate()+(off||0)*7); return d.toLocaleDateString("en-CA"); }
-function weekSlots(wkISO){ const o=(state.sentinel.schedWeeks||{})[wkISO]; return o?{slots:o,custom:true}:{slots:(state.sentinel.schedule||[]),custom:false}; }
-/* the slots that actually apply on a given calendar date (per-week override wins over the usual week) */
-function slotsForDate(d){ const wk=mondayOf(d).toLocaleDateString("en-CA"); const sw=(state.sentinel.schedWeeks||{})[wk]; return sw||(state.sentinel.schedule||[]); }
+/* each week's slots are stored under its Monday in schedWeeks. No repeating template — a week with no
+   entry is blank. The current week falls back to her legacy `schedule` once, so she keeps existing streams. */
+function weekSlots(wkISO){ const sw=(state.sentinel.schedWeeks||{}); if(sw[wkISO]) return sw[wkISO];
+  if(wkISO===weekStartISO(0)) return (state.sentinel.schedule||[]); return []; }
+function slotsForDate(d){ return weekSlots(mondayOf(d).toLocaleDateString("en-CA")); }
 async function setWeekSlots(wkISO,fn){
-  if((state.sentinel.schedWeeks||{})[wkISO]) await setSent(n=>{ const sw={...(n.schedWeeks||{})}; sw[wkISO]=fn((sw[wkISO]||[]).slice()); return {...n,schedWeeks:sw}; });
-  else await setSent(n=>({...n,schedule:fn((n.schedule||[]).slice())}));
+  await setSent(n=>{ const sw={...(n.schedWeeks||{})};
+    const base = sw[wkISO] ? sw[wkISO].slice() : (wkISO===weekStartISO(0) ? (n.schedule||[]).slice() : []);
+    sw[wkISO]=fn(base); return {...n,schedWeeks:sw}; });
 }
-/* per-day stream ideas. REAL dated items (updates/events/streams) come ONLY from her game calendar,
-   so they land on the correct day. Filler days get date-agnostic activity ideas that never claim a release date. */
+/* per-day stream ideas, recomputed per week. REAL dated items (updates/events/streams) come ONLY from her
+   game calendar so they land on the correct day; filler days get date-agnostic activity ideas. */
 function streamSuggestions(wkISO){
   const sent=state.sentinel||{}; const games=(sent.gameTopics&&sent.gameTopics.length)?sent.gameTopics:DEFAULT_GAMES;
   const start=new Date(wkISO+"T00:00"); const byDay={};
   (sent.calendarEvents||[]).filter(gameSrc).forEach(ev=>{ const d=new Date(ev.date+"T00:00"); const diff=Math.round((d-start)/86400000);
     if(diff>=0&&diff<7){ const wd=DOW_ORDER[(d.getDay()+6)%7]; if(!byDay[wd]) byDay[wd]=ev.title; } });
-  // generic ideas — activities, NOT dated releases (a real update only shows if it's in her calendar that day)
   const ideas=(g,i)=>[`Cozy ${g} stream`,`${g} grind session`,`Just chatting + ${g}`,`Variety stream`][i%4];
   return DOW_ORDER.map((wd,i)=>({day:wd, text:byDay[wd]||ideas(games[i%games.length],i), real:!!byDay[wd]}));
 }
 function cardSchedule(){
   if(state.schedWeekOff===undefined)state.schedWeekOff=0;
   const off=state.schedWeekOff, wkISO=weekStartISO(off), ed=state.schedEdit;
-  const {slots,custom}=weekSlots(wkISO);
+  const slots=weekSlots(wkISO);
   const wkEnd=(()=>{ const d=new Date(wkISO+"T00:00"); d.setDate(d.getDate()+6); return d.toLocaleDateString("en-CA"); })();
   const label= off===0?"This week":off===1?"Next week":off===-1?"Last week":(off>0?`In ${off} wks`:`${-off} wks ago`);
   const sorted=slots.slice().sort((a,b)=>DOW_ORDER.indexOf(a.day)-DOW_ORDER.indexOf(b.day));
@@ -750,30 +754,27 @@ function cardSchedule(){
       <button class="btn" data-act="schedWeekToday" title="jump to this week">${label}</button>
       <button class="btn" data-act="schedWeek" data-d="1" title="later week">›</button>
       <button class="btn" data-act="schedEdit">${ed?'done':'edit'}</button></div>`;
-  const tag = custom?`<span class="pill pill-lav" style="font-size:9px">custom ✨</span>`:`<span class="pill pill-gray" style="font-size:9px">usual week</span>`;
   const daySel=(id,cur)=>`<select class="inp" data-sched="${id}" data-k="day" style="max-width:72px">${DOW_ORDER.map(dd=>`<option value="${dd}" ${cur===dd?'selected':''}>${dd}</option>`).join("")}</select>`;
   let body;
   if(ed){
     const sug=streamSuggestions(wkISO);
-    body=`<div class="soft" style="font-size:10.5px;margin:2px 0 6px">${custom?`Editing just <b>${label.toLowerCase()}</b> (${fmtDate(wkISO)}–${fmtDate(wkEnd)}). `:`Editing your <b>usual week</b> — applies to every week without its own plan. `}</div>
+    body=`<div class="soft" style="font-size:10.5px;margin:2px 0 6px">Planning <b>${label.toLowerCase()}</b> (${fmtDate(wkISO)}–${fmtDate(wkEnd)}) — each week stands on its own, so flipping ‹ › gives you a fresh blank week with new ideas. ❄️</div>
       <div class="label" style="margin:6px 0 4px">💡 Ideas for this week — tap to add</div>
       <p class="soft" style="font-size:10px;margin:0 0 6px">🎮 = a real dated item from your game calendar · the rest are just cozy ideas (no set date)</p>
       <div class="chiprow" style="margin-bottom:10px">${sug.map(s=>`<button class="chiptog ${s.real?'on':''}" data-act="addSchedSug" data-day="${s.day}" data-show="${esc(s.text)}"><span>＋</span>${s.day} · ${s.real?'🎮 ':''}${esc(s.text)}</button>`).join("")}</div>
       ${sorted.map(r=>`<div style="display:flex;gap:6px;margin-bottom:6px">
           ${daySel(r.id,r.day)}
           <input class="inp" data-sched="${r.id}" data-k="show" value="${esc(r.show||'')}" placeholder="what you're streaming">
-          <input class="inp" data-sched="${r.id}" data-k="time" value="${esc(r.time||'')}" style="max-width:72px" placeholder="5PM">
+          <input class="inp" data-sched="${r.id}" data-k="time" value="${esc(r.time||'')}" style="max-width:72px" placeholder="${STREAM_TIME_DEFAULT}">
           <button class="x" data-act="delSched" data-v="${r.id}">✕</button></div>`).join("")}
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-        <button class="btn btn-grad" data-act="addSched">+ add a day</button>
-        ${custom?`<button class="btn" data-act="resetWeek" title="use the usual week again">↺ reset to usual</button>`:`<button class="btn" data-act="customizeWeek" title="plan this week separately">✨ customize just this week</button>`}</div>`;
+      <div style="margin-top:6px"><button class="btn btn-grad" data-act="addSched">+ add a day</button></div>`;
   } else {
     body = sorted.length
       ? sorted.map(r=>`<div class="listrow"><span class="pill pill-lav" style="min-width:40px;text-align:center">${esc(r.day)}</span><span class="grow" style="font-size:13px">${esc(r.show||'Stream')}</span><span class="soft" style="font-size:12px">${esc(r.time||'')}</span></div>`).join("")
-      : `<p class="soft" style="font-size:12.5px">No streams ${off===0?'this week':'planned for '+label.toLowerCase()} yet — tap edit. 🗓️</p>`;
+      : `<p class="soft" style="font-size:12.5px">No streams planned for ${label.toLowerCase()} yet — tap edit to fill it in. 🗓️</p>`;
   }
   return `<section class="panel">
-    <div class="card-head"><span class="label">Stream schedule 🗓️ ${tag}</span>${nav}</div>
+    <div class="card-head"><span class="label">Stream schedule 🗓️</span>${nav}</div>
     ${body}
   </section>`;
 }
@@ -926,7 +927,7 @@ function cardWeightTrend(){ const wl=(state.sentinel.weightLog||[]).slice().sort
   }
   const insight=healthInsight();
   return `<section class="panel">
-    <div class="card-head"><span class="label">Weight trend</span><button class="btn" data-act="tab" data-tab="weight">open →</button></div>
+    <div class="card-head"><span class="label">Weight trend</span><button class="btn" data-act="tab" data-tab="trends">open →</button></div>
     ${body}
     ${insight?`<p class="soft" style="font-size:11.5px;margin-top:8px;line-height:1.5;background:rgba(201,184,240,.14);border-radius:10px;padding:8px 10px">🦊 ${insight}</p>`:'<p class="soft" style="font-size:11.5px;margin-top:6px;text-align:center">The trend is the story, not any single day.</p>'}
   </section>`; }
@@ -987,49 +988,41 @@ function viewHealth(){
     <div class="health-col">${mj}</div>
   </div>${DISCLAIMER}`;
 }
+function waterCups(){ return (state.today&&state.today.mounjaro&&state.today.mounjaro.water)||0; }
+function water40(){ return waterCups()/CUPS_PER_40OZ; }            // her unit: full 40oz cups
 function viewPcos(){
-  const p=state.today.pcos||{}, m=state.today.mind||{}, cyc=state.sentinel.cycle||{};
+  const p=state.today.pcos||{}, m=state.today.mind||{}, mj=state.today.mounjaro||{}, cyc=state.sentinel.cycle||{};
   const st=cycleStats(cyc);
   const dx=cyc.lastStart?daysBetween(cyc.lastStart,TODAY):null;
   const months=dx!=null?dx/30.44:null;
   const longGap=dx!=null&&dx>=45;
+  const w40=water40();
   return `
   <section class="panel">
     <div class="card-head"><h2 style="font-size:18px">❄️ PCOS — your patterns</h2><span class="pill pill-gray">tap what fits</span></div>
-    <div class="soft-card">
-      <div class="label" style="margin-bottom:6px">🌙 Cycle <span class="soft" style="text-transform:none;letter-spacing:0;font-weight:500">· built for irregular cycles</span></div>
-      ${cyc.lastStart
-        ? `<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="bignum">Day ${dx}</span><span class="soft" style="font-size:12px">since your last period started (${fmtDate(cyc.lastStart)})${months>=1.5?` · ~${months.toFixed(1)} months`:''}</span></div>`
-        : `<p class="soft" style="font-size:12.5px;margin:0">No period logged yet — log your next start whenever it comes. ❄️</p>`}
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn btn-grad" data-act="cycleStart">Log period start</button>
-        <button class="btn" data-act="cycleEnd">Log period end</button>
-      </div>
-      <div class="field"><div class="label">Flow today (optional)</div><div class="chiprow">
-        ${["light","med","heavy"].map(f=>`<button class="sitebtn ${state.today.flow===f?'on':''}" data-act="pcosSet" data-f="flow" data-v="${f}">${f}</button>`).join("")}</div></div>
-      ${st.count?`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
-          <div><div class="label">Logged</div><div style="font-weight:700">${st.count} period${st.count===1?'':'s'}</div></div>
-          ${st.avgGap?`<div><div class="label">Avg cycle</div><div style="font-weight:700">~${st.avgGap}d</div></div>`:''}
-          ${st.gaps.length>1?`<div><div class="label">Range</div><div style="font-weight:700">${st.minGap}–${st.maxGap}d</div></div>`:''}
-          ${st.avgLen?`<div><div class="label">Avg length</div><div style="font-weight:700">~${st.avgLen}d</div></div>`:''}
-        </div>`:''}
-      <p class="soft" style="font-size:11px;margin-top:8px">Cycles vary a lot with PCOS — long or skipped months are common, and that's okay. This just helps you and your doctor see the bigger pattern. 🦊</p>
-      ${longGap?`<div class="disc" style="margin-top:8px">${CONFIG.creator.snow}<span>It's been ${months>=2?`about ${Math.round(months)} months`:'a longer stretch'} since your last period. With PCOS that happens — but a long gap is worth a gentle mention to your doctor whenever you next chat. No alarm, just a note. 🦊</span></div>`:''}
-      ${st.count?`<details style="margin-top:8px;border:none;background:transparent;padding:0;box-shadow:none"><summary style="font-size:12px">📜 Period history (${st.count}) · tap ✕ to remove a mistaken log</summary>
-        <div style="margin-top:6px">${st.h.slice().reverse().map(x=>`<div class="listrow"><span class="grow" style="font-size:12px">${fmtDate(x.start)}${x.end?` – ${fmtDate(x.end)}`:''} ${x.flow?`<span class="soft">· ${esc(x.flow)}</span>`:''}</span>${x.gap!=null?`<span class="soft" style="font-size:11px" title="days since previous">+${x.gap}d</span>`:''}<button class="x" data-act="delPeriod" data-start="${esc(x.start)}" data-end="${esc(x.end||'')}" title="remove this log">✕</button></div>`).join("")}</div></details>`:''}
-    </div>
+    <p class="soft" style="font-size:12px;margin:0 0 4px">Your daily check-in lives right here. ❄️</p>
   </section>
 
   <section class="panel">
     <div class="label" style="margin-bottom:4px">📊 How's today feeling?</div>
+    <p class="soft" style="font-size:11px;margin:0 0 8px">A daily tap on each — these feed your Trends. 💗</p>
+    ${scaleRow("Energy","mindSet","energy",m.energy,"low","high")}
+    ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","stressed")}
+    ${scaleRow("Mood","mindSet","mood",m.mood,"low","bright")}
+    ${scaleRow("Nausea","mjSet","nausea",mj.nausea,"ok","rough")}
+    ${scaleRow("Cravings","pcosSet","cravings",p.cravings,"quiet","loud")}
+    <div class="field"><div class="label">Water today <span class="soft" style="text-transform:none;letter-spacing:0;font-weight:500">· goal 2–3 × 40oz</span></div>
+      <div class="hcount"><button class="step" data-act="waterCup" data-v="-1">−</button><span>${w40%1?w40.toFixed(1):w40}</span><button class="step" data-act="waterCup" data-v="1">＋</button><span class="soft" style="font-size:12px;font-family:var(--sans)">× 40oz 🥤</span></div></div>
+    <div class="field"><div class="label">Sleep last night</div>
+      <div class="hcount"><button class="step" data-act="sleepStep" data-v="-1">−</button><span>${(state.today.sleep!=null?state.today.sleep:0)}</span><button class="step" data-act="sleepStep" data-v="1">＋</button><span class="soft" style="font-size:12px;font-family:var(--sans)">hrs 🌙</span></div></div>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:4px">🌸 PCOS symptoms</div>
     ${scaleRow("Energy / fatigue","pcosSet","fatigue",p.fatigue,"none","heavy")}
     ${scaleRow("Bloating","pcosSet","bloating",p.bloating)}
-    ${scaleRow("Sugar / carb cravings","pcosSet","cravings",p.cravings,"quiet","loud")}
     ${scaleRow("Acne flare","pcosSet","acne",p.acne)}
     ${scaleRow("Scalp hair shedding","pcosSet","shedding",p.shedding)}
-    <div class="label" style="margin:14px 0 4px">🌷 Mood &amp; anxiety</div>
-    ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
-    ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
     <div class="label" style="margin:14px 0 6px">🌱 Gentle, supportive habits</div>
     <p class="soft" style="font-size:11.5px;margin:0 0 8px">No targets to fail — just a soft tally on the days they happen.</p>
     <div class="chiprow">
@@ -1046,6 +1039,30 @@ function viewPcos(){
   <details class="acc"><summary>💗 What helps me</summary><div class="acc-body">
     <textarea class="inp" id="helpsNote" placeholder="things that make a PCOS day softer…">${esc(state.sentinel.helps||"")}</textarea>
     <div style="margin-top:8px"><button class="btn btn-grad" data-act="saveHelps">Save</button></div>
+  </div></details>
+
+  <details class="acc"><summary>🌙 Cycle <span class="soft" style="font-weight:500">· tucked away — open if you ever need it</span></summary><div class="acc-body">
+    <div class="soft-card">
+      ${cyc.lastStart
+        ? `<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="bignum">Day ${dx}</span><span class="soft" style="font-size:12px">since your last period started (${fmtDate(cyc.lastStart)})${months>=1.5?` · ~${months.toFixed(1)} months`:''}</span></div>`
+        : `<p class="soft" style="font-size:12.5px;margin:0">No period logged yet — log a start whenever you need to. ❄️</p>`}
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-grad" data-act="cycleStart">Log period start</button>
+        <button class="btn" data-act="cycleEnd">Log period end</button>
+      </div>
+      <div class="field"><div class="label">Flow today (optional)</div><div class="chiprow">
+        ${["light","med","heavy"].map(f=>`<button class="sitebtn ${state.today.flow===f?'on':''}" data-act="pcosSet" data-f="flow" data-v="${f}">${f}</button>`).join("")}</div></div>
+      ${st.count?`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+          <div><div class="label">Logged</div><div style="font-weight:700">${st.count} period${st.count===1?'':'s'}</div></div>
+          ${st.avgGap?`<div><div class="label">Avg cycle</div><div style="font-weight:700">~${st.avgGap}d</div></div>`:''}
+          ${st.gaps.length>1?`<div><div class="label">Range</div><div style="font-weight:700">${st.minGap}–${st.maxGap}d</div></div>`:''}
+          ${st.avgLen?`<div><div class="label">Avg length</div><div style="font-weight:700">~${st.avgLen}d</div></div>`:''}
+        </div>`:''}
+      <p class="soft" style="font-size:11px;margin-top:8px">Cycles vary a lot with PCOS — long or skipped months are common, and that's okay. 🦊</p>
+      ${longGap?`<div class="disc" style="margin-top:8px">${CONFIG.creator.snow}<span>It's been ${months>=2?`about ${Math.round(months)} months`:'a longer stretch'} since your last period — worth a gentle mention to your doctor whenever you next chat. No alarm, just a note. 🦊</span></div>`:''}
+      ${st.count?`<details style="margin-top:8px;border:none;background:transparent;padding:0;box-shadow:none"><summary style="font-size:12px">📜 Period history (${st.count}) · tap ✕ to remove a mistaken log</summary>
+        <div style="margin-top:6px">${st.h.slice().reverse().map(x=>`<div class="listrow"><span class="grow" style="font-size:12px">${fmtDate(x.start)}${x.end?` – ${fmtDate(x.end)}`:''} ${x.flow?`<span class="soft">· ${esc(x.flow)}</span>`:''}</span>${x.gap!=null?`<span class="soft" style="font-size:11px" title="days since previous">+${x.gap}d</span>`:''}<button class="x" data-act="delPeriod" data-start="${esc(x.start)}" data-end="${esc(x.end||'')}" title="remove this log">✕</button></div>`).join("")}</div></details>`:''}
+    </div>
   </div></details>
   ${DISCLAIMER}`;
 }
@@ -1080,13 +1097,46 @@ function viewMj(){
   return `
   <section class="panel">
     <div class="card-head"><h2 style="font-size:18px">💉 Mounjaro journey</h2><span class="pill pill-ice">once weekly</span></div>
-    <p class="soft" style="font-size:12px;margin:0 0 10px">Tracking and reflecting only — never advice. Dose changes are always your doctor's call. 🦊</p>
+    <p class="soft" style="font-size:12px;margin:0 0 4px">Tracking and reflecting only — never advice. Dose changes are always your doctor's call. 🦊</p>
+  </section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:4px">🩹 Daily side-effect check</div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">A daily tap, just like your feelings check — usually loudest at the start and after a dose step, then it eases. Feeds the pattern-spotter.</p>
+    ${scaleRow("Nausea","mjSet","nausea",mj.nausea)}
+    ${scaleRow("Constipation","mjSet","constipation",mj.constipation)}
+    ${scaleRow("Diarrhea","mjSet","diarrhea",mj.diarrhea)}
+    ${scaleRow("Reflux / heartburn","mjSet","reflux",mj.reflux)}
+    ${scaleRow("Bloating / stomach pain","mjSet","belly",mj.belly)}
+    ${scaleRow("Fatigue","mjSet","fatigue",mj.fatigue)}
+    ${scaleRow("Appetite / 'food noise'","mjSet","foodnoise",mj.foodnoise,"quiet","loud")}
+    <div class="label" style="margin:14px 0 6px">🌿 Supportive habits</div>
+    <div class="chiprow">
+      ${chiptog("Protein with meals","mjToggle","proteinMeals",mj.proteinMeals)}
+      ${chiptog("Smaller meals","mjToggle","smallerMeals",mj.smallerMeals)}
+      ${chiptog("Fiber / veggies","mjToggle","fiber",mj.fiber)}
+      ${chiptog("Gentle movement","mjToggle","gentleMove",mj.gentleMove)}
+    </div>
+  </section>
+
+  <section class="panel">
     <div class="soft-card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
       <div><div class="label">Current dose</div><div class="bignum">${cur?cur.dose:'—'} mg</div></div>
       <div><div class="label">Weight so far</div><div class="bignum" style="color:${lostColor}">${lostStr}</div></div>
       <div class="grow" style="min-width:160px"><p class="soft" style="font-size:11.5px;margin:0">${trendNote}</p></div>
     </div>
   </section>
+
+  <details class="acc"><summary>🩺 When to check in with your doctor</summary><div class="acc-body">
+    <p class="soft" style="font-size:12px">Most tummy stuff is normal and settles. Still, you know your body — these are gentle reasons to give your care team a call (a reminder, never a diagnosis):</p>
+    <ul style="font-size:12px;color:var(--ink-soft);padding-left:18px">
+      <li>Severe stomach pain that won't ease — especially if it radiates to your back (can be a sign of something urgent like pancreatitis, worth prompt medical attention)</li>
+      <li>Relentless vomiting, or signs of dehydration (very dry mouth, dizziness, barely peeing)</li>
+      <li>Gallbladder-type pain (upper-right belly), fever, or yellowing skin/eyes</li>
+      <li>Anything that simply feels wrong or frightening to you</li>
+    </ul>
+    <p class="peri" style="font-size:12px;font-weight:700">You know your body — this is a reminder, not a diagnosis. ❄️</p>
+  </div></details>
 
   <section class="panel">
     <div class="label" style="margin-bottom:6px">💉 Log this week's shot</div>
@@ -1105,38 +1155,6 @@ function viewMj(){
     <div class="field"><div class="label">Note (optional)</div><input class="inp" type="text" id="shotNote" placeholder="how it went…"></div>
     <button class="btn btn-grad" data-act="logShot">Log shot ❄️</button>
   </section>
-
-  <section class="panel">
-    <div class="label" style="margin-bottom:4px">🩹 Side-effect check (optional)</div>
-    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Usually loudest at the start and just after a dose step, then it eases. Logging helps the pattern-spotter.</p>
-    ${scaleRow("Nausea","mjSet","nausea",mj.nausea)}
-    ${scaleRow("Constipation","mjSet","constipation",mj.constipation)}
-    ${scaleRow("Diarrhea","mjSet","diarrhea",mj.diarrhea)}
-    ${scaleRow("Reflux / heartburn","mjSet","reflux",mj.reflux)}
-    ${scaleRow("Bloating / stomach pain","mjSet","belly",mj.belly)}
-    ${scaleRow("Fatigue","mjSet","fatigue",mj.fatigue)}
-    ${scaleRow("Appetite / 'food noise'","mjSet","foodnoise",mj.foodnoise,"quiet","loud")}
-    <div class="label" style="margin:14px 0 6px">🌿 Supportive habits</div>
-    <div class="chiprow">
-      ${chiptog("Protein with meals","mjToggle","proteinMeals",mj.proteinMeals)}
-      ${chiptog("Smaller meals","mjToggle","smallerMeals",mj.smallerMeals)}
-      ${chiptog("Fiber / veggies","mjToggle","fiber",mj.fiber)}
-      ${chiptog("Gentle movement","mjToggle","gentleMove",mj.gentleMove)}
-    </div>
-    <div class="field"><div class="label">Water today</div>
-      <div class="hcount"><button class="step" data-act="mjWater" data-v="-1">−</button><span>${mj.water||0}</span><button class="step" data-act="mjWater" data-v="1">＋</button><span class="soft" style="font-size:12px;font-family:var(--sans)">cups 🥤</span></div></div>
-  </section>
-
-  <details class="acc"><summary>🩺 When to check in with your doctor</summary><div class="acc-body">
-    <p class="soft" style="font-size:12px">Most tummy stuff is normal and settles. Still, you know your body — these are gentle reasons to give your care team a call (a reminder, never a diagnosis):</p>
-    <ul style="font-size:12px;color:var(--ink-soft);padding-left:18px">
-      <li>Severe stomach pain that won't ease — especially if it radiates to your back (can be a sign of something urgent like pancreatitis, worth prompt medical attention)</li>
-      <li>Relentless vomiting, or signs of dehydration (very dry mouth, dizziness, barely peeing)</li>
-      <li>Gallbladder-type pain (upper-right belly), fever, or yellowing skin/eyes</li>
-      <li>Anything that simply feels wrong or frightening to you</li>
-    </ul>
-    <p class="peri" style="font-size:12px;font-weight:700">You know your body — this is a reminder, not a diagnosis. ❄️</p>
-  </div></details>
 
   <section class="panel">
     <div class="label" style="margin-bottom:6px">📜 Injection history</div>
@@ -1300,6 +1318,42 @@ function foodEstCard(e){
     <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-grad" data-act="foodLog">🍽️ Log it</button><button class="btn" data-act="foodClear">discard</button></div>
   </div>`;
 }
+function foodHistory(days){
+  const byDate={}; (state.range||[]).forEach(r=>byDate[r.date]=r.notes); byDate[TODAY]=state.today;
+  const out=[]; for(let i=days-1;i>=0;i--){ const dd=dayAgo(-i); const f=(byDate[dd]&&byDate[dd].food)||[];
+    const tot=f.reduce((a,x)=>({protein:a.protein+(+x.protein||0),fiber:a.fiber+(+x.fiber||0),kcal:a.kcal+(+x.kcal||0)}),{protein:0,fiber:0,kcal:0});
+    out.push({date:dd, meals:f, ...tot}); } return out;
+}
+function cardFoodCheckoffs(){
+  const meds=(state.today&&state.today.meds)||{}; const w40=water40();
+  const medBtn=(part,lbl)=>`<button class="chiptog ${meds[part]?'on':''}" data-act="medToggle" data-v="${part}"><span>${meds[part]?'✓':'＋'}</span>${lbl}</button>`;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">✅ Daily check-offs</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Meds links with your Home daily habits — both AM &amp; PM ticked marks meds done there too. 💗</p>
+    <div class="label" style="margin-bottom:4px">💊 Meds</div>
+    <div class="chiprow" style="margin-bottom:10px">${medBtn("am","Meds AM")}${medBtn("pm","Meds PM")}</div>
+    <div class="field" style="margin:0"><div class="label">💧 Water today <span class="soft" style="text-transform:none;letter-spacing:0;font-weight:500">· goal 2–3 × 40oz</span></div>
+      <div class="hcount"><button class="step" data-act="waterCup" data-v="-1">−</button><span>${w40%1?w40.toFixed(1):w40}</span><button class="step" data-act="waterCup" data-v="1">＋</button><span class="soft" style="font-size:12px;font-family:var(--sans)">× 40oz 🥤</span></div></div>
+  </section>`;
+}
+function cardFoodWeek(){
+  const hist=foodHistory(7), T=foodTargets();
+  const maxP=Math.max(T.protein,...hist.map(h=>h.protein),1), maxF=Math.max(T.fiber,...hist.map(h=>h.fiber),1);
+  const dayName=iso=>new Date(iso+"T00:00").toLocaleDateString(undefined,{weekday:"short"});
+  const rows=hist.map(h=>{ const isToday=h.date===TODAY;
+    return `<div style="margin:7px 0">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span class="${isToday?'':'soft'}">${dayName(h.date)}${isToday?' · today':''}</span><span class="soft">P ${Math.round(h.protein)}g · Fb ${Math.round(h.fiber)}g${h.meals.length?` · ${h.meals.length} meal${h.meals.length>1?'s':''}`:''}</span></div>
+      <div style="display:flex;gap:4px;align-items:center"><div class="bar" style="flex:1"><span style="width:${Math.round(h.protein/maxP*100)}%;background:linear-gradient(90deg,var(--peri),var(--sakura))"></span></div></div>
+      <div style="display:flex;gap:4px;align-items:center;margin-top:2px"><div class="bar" style="flex:1"><span style="width:${Math.round(h.fiber/maxF*100)}%;background:linear-gradient(90deg,#7fc8a9,#9fc7f0)"></span></div></div>
+      ${h.meals.length?`<details style="border:none;background:transparent;padding:0;box-shadow:none;margin-top:3px"><summary style="font-size:10.5px;color:var(--muted)">see meals</summary><div style="margin-top:3px">${h.meals.map(x=>`<div class="soft" style="font-size:11px;padding:1px 0">${esc(x.name)}${x.serving?` · ${esc(x.serving)}`:''} <span style="opacity:.7">(${Math.round(x.kcal)}kcal · P${x.protein} · Fb${x.fiber})</span></div>`).join("")}</div></details>`:''}
+    </div>`; }).join("");
+  const wkP=hist.reduce((a,h)=>a+h.protein,0), wkF=hist.reduce((a,h)=>a+h.fiber,0), nd=hist.filter(h=>h.meals.length).length||1;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">📅 This week's meals &amp; nutrition</span></div>
+    <p class="soft" style="font-size:11px;margin:0 0 6px"><span style="color:var(--sakura-deep)">▮</span> protein · <span style="color:#7fc8a9">▮</span> fibre — daily, vs your targets (P ${T.protein}g · Fb ${T.fiber}g). Avg/logged-day: <b>${Math.round(wkP/nd)}g</b> protein · <b>${Math.round(wkF/nd)}g</b> fibre.</p>
+    ${rows}
+  </section>`;
+}
 function viewFood(){
   if(!state.foodDraft) state.foodDraft={image:null,desc:"",est:null};
   const d=state.foodDraft, T=foodTargets(), tot=foodTotals(), list=foodToday();
@@ -1331,6 +1385,8 @@ function viewFood(){
       <div class="card-head"><span class="label">🍽️ Logged today</span></div>
       ${list.length?list.slice().reverse().map(x=>`<div class="listrow"><span class="grow"><b style="font-size:13px">${esc(x.name)}</b> <span class="soft" style="font-size:11px">${x.serving?'· '+esc(x.serving):''}</span><div class="soft" style="font-size:11px">${Math.round(x.kcal)} kcal · P ${x.protein}g · Fb ${x.fiber}g · C ${x.carbs}g · F ${x.fat}g</div></span><button class="x" data-act="foodDel" data-id="${x.id}">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">Nothing logged yet today. ❄️</p>`}
     </section>`},
+    {key:"checkoffs",label:"Daily check-offs",cols:5,html:cardFoodCheckoffs()},
+    {key:"foodweek",label:"This week",cols:10,html:cardFoodWeek()},
   ];
   return `${modularGrid("food",items)}
   <details class="acc"><summary>🎯 Daily targets</summary><div class="acc-body">
@@ -1711,7 +1767,7 @@ const TREND_METRICS=[
   ["energy","⚡","Energy",5,"up",["💤","⚡"]],
   ["nausea","🤢","Nausea",5,"down",["ok","rough"]],
   ["cravings","🍩","Cravings",5,"down",["quiet","loud"]],
-  ["water","🥤","Water",10,"up",["low","lots"]],
+  ["water","🥤","Water",15,"up",["low","lots"]],
   ["sleep","🌙","Sleep",12,"up",["short","long"]],
 ];
 const TREND_TYPES=["area","bars","dots"];
@@ -1834,6 +1890,8 @@ function viewTrends(){
     <div class="label" style="margin-bottom:6px">🔎 Gentle pattern-spotter</div>
     ${patternSpotter(byDate)}
   </section>
+  <div style="text-align:center;margin:18px 0 4px"><span class="label" style="letter-spacing:.08em">⚖️ &nbsp;weight &amp; body&nbsp;⚖️</span></div>
+  ${viewWeight().split(DISCLAIMER)[0]}
   ${DISCLAIMER}`;
 }
 
@@ -1937,6 +1995,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v2.6 · June 2026 — Tidier Health, Trends + Food</b> 📈 Weight now lives under Trends (all your graphs in one place) · ❄️ Health reflows: your daily feelings check (Energy, Anxiety, Mood, Nausea, Cravings, Water, Sleep — all trackable here now) sits up top with the Mounjaro side-effect check beside it, dose &amp; weight tuck under it, and the cycle section is folded into a quiet dropdown at the bottom · 💧 water now lives on Food &amp; Health, counted in full 40oz cups (goal 2–3) · 🍱 Food gains Meds AM/PM check-offs (linked to your Home habits) and a This-Week view of meals + protein/fibre over time.</p>
       <p><b>v2.5 · June 2026 — Weight line + week-by-week streams</b> 📈 the home weight trend is now a clean up-and-down line with your oldest &amp; newest weigh-in dates and clear low/now/high numbers · 🦊 a little health note links your hydration, muscle &amp; fat to how you feel and cheers you on · 🗓️ the stream schedule is now per-week — flip ‹ › to any week and plan it separately from your usual week, with fun per-day stream ideas (game updates, events, live streams) you can tap to add.</p>
       <p><b>v2.4 · June 2026 — Kiko learns your voice</b> 🎓 a "teach my voice" button on the Script writer: paste your own real writing and Kiko studies your style, so the scripts it shapes sound like you instead of generic AI · longer, fuller answers from Kiko (bigger response budget, no more cut-off replies).</p>
       <p><b>v2.3 · June 2026 — One Health tab</b> ❄️ PCOS and Mounjaro now live side by side under a single Health tab — cycle &amp; symptoms on the left, shots &amp; doses on the right (they stack on phones).</p>
@@ -2580,7 +2639,9 @@ const H={
 
   /* --- daily habits + gacha dailies --- */
   async habitToggle(el){ const id=el.dataset.v;
-    await setToday(n=>{ const habits={...(n.habits||{})}; habits[id]=!habits[id]; return {...n,habits}; }); render(); },
+    await setToday(n=>{ const habits={...(n.habits||{})}; const nv=!habits[id]; habits[id]=nv;
+      const ex={}; if(id==="h_meds") ex.meds={am:nv,pm:nv};   // keep the Food AM/PM meds boxes in sync
+      return {...n,habits,...ex}; }); render(); },
   habitEdit(){ state.habitEdit=!state.habitEdit; render(); },
   async addHabitUI(){ const inp=$("#habitInput"); const t=((inp&&inp.value)||"").trim(); if(!t)return;
     const en=($("#habitEnergy")&&$("#habitEnergy").value)||"med";
@@ -2605,6 +2666,12 @@ const H={
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=!mounjaro[f]; return {...n,mounjaro}; }); render(); },
   async mjWater(el){ const d=Number(el.dataset.v);
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro.water=Math.max(0,(mounjaro.water||0)+d); return {...n,mounjaro}; }); render(); },
+  async waterCup(el){ const d=Number(el.dataset.v)*CUPS_PER_40OZ;   // ±1 full 40oz cup = ±5 internal cups
+    await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro.water=Math.max(0,(mounjaro.water||0)+d); return {...n,mounjaro}; }); render(); },
+  async sleepStep(el){ const d=Number(el.dataset.v);
+    await setToday(n=>({...n,sleep:Math.max(0,Math.min(14,(n.sleep||0)+d))})); render(); },
+  async medToggle(el){ const part=el.dataset.v;   // 'am' | 'pm' — both done ⇒ home "meds" habit ticks too
+    await setToday(n=>{ const meds={...(n.meds||{})}; meds[part]=!meds[part]; const habits={...(n.habits||{})}; habits.h_meds=!!(meds.am&&meds.pm); return {...n,meds,habits}; }); render(); },
 
   async saveHelps(){ const t=$("#helpsNote").value; await setSent(n=>({...n,helps:t})); toast("saved 💗"); },
 
@@ -2773,17 +2840,12 @@ const H={
     await setSent(n=>({...n,[key]:(n[key]||[]).filter(g=>g.id!==id)})); render(); },
   async saveJournal(){ const t=$("#journalInput").value; await setToday(n=>({...n,journal:t})); toast("saved 🌙"); },
   schedEdit(){ state.schedEdit=!state.schedEdit; render(); },
-  async addSched(){ const wk=weekStartISO(state.schedWeekOff||0); await setWeekSlots(wk,arr=>[...arr,{id:'sc'+Date.now(),day:'Mon',show:'',time:'5PM'}]); render(); },
+  async addSched(){ const wk=weekStartISO(state.schedWeekOff||0); await setWeekSlots(wk,arr=>[...arr,{id:'sc'+Date.now(),day:'Mon',show:'',time:STREAM_TIME_DEFAULT}]); render(); },
   async delSched(el){ const id=el.dataset.v, wk=weekStartISO(state.schedWeekOff||0); await setWeekSlots(wk,arr=>arr.filter(r=>r.id!==id)); render(); },
   async addSchedSug(el){ const day=el.dataset.day||'Mon', show=el.dataset.show||'', wk=weekStartISO(state.schedWeekOff||0);
-    await setWeekSlots(wk,arr=>[...arr,{id:'sc'+Date.now(),day,show,time:'5PM'}]); toast("added 🗓️"); render(); },
+    await setWeekSlots(wk,arr=>[...arr,{id:'sc'+Date.now(),day,show,time:STREAM_TIME_DEFAULT}]); toast("added 🗓️"); render(); },
   schedWeek(el){ state.schedWeekOff=(state.schedWeekOff||0)+(Number(el.dataset.d)||0); render(); },
   schedWeekToday(){ state.schedWeekOff=0; render(); },
-  async customizeWeek(){ const wk=weekStartISO(state.schedWeekOff||0);
-    await setSent(n=>{ const sw={...(n.schedWeeks||{})}; if(!sw[wk]) sw[wk]=(n.schedule||[]).map(r=>({...r,id:'sc'+Date.now()+Math.random().toString(36).slice(2,6)})); return {...n,schedWeeks:sw}; });
-    toast("this week is yours to tweak ✨"); render(); },
-  async resetWeek(){ const wk=weekStartISO(state.schedWeekOff||0);
-    await setSent(n=>{ const sw={...(n.schedWeeks||{})}; delete sw[wk]; return {...n,schedWeeks:sw}; }); toast("back to your usual week ↺"); render(); },
   async capAdd(){ const inp=$("#capInput"); const t=(inp.value||'').trim(); if(!t)return;
     await setSent(n=>({...n,captures:[...(n.captures||[]),{id:'cap'+Date.now(),text:t,date:TODAY}]})); toast("parked 🧠"); render(); },
   async capDel(el){ const id=el.dataset.v; await setSent(n=>({...n,captures:(n.captures||[]).filter(c=>c.id!==id)})); render(); },
