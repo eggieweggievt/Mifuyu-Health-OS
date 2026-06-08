@@ -32,8 +32,10 @@
   }
   *{box-sizing:border-box;} html,body{margin:0;padding:0;}
   /* page-width clamp: one stray wide element otherwise makes the whole page scroll sideways
-     and "everything sits slightly left" on iPad portrait — wide things scroll INSIDE their panels */
-  html,body{width:100%;max-width:100%;overflow-x:hidden;}
+     and "everything sits slightly left" on iPad portrait — wide things scroll INSIDE their panels.
+     ⚠️ NEVER put overflow-x on html/body: it silently forces overflow-y to auto and KILLS vertical
+     scroll in standalone/PWA + iOS. Clip on the wrapper (main) only — clip doesn't drag the y-axis along. */
+  html,body{width:100%;max-width:100%;}
   main{overflow-x:clip;}
   /* native-app feel */
   html{-webkit-text-size-adjust:100%;}
@@ -172,6 +174,11 @@
   .care-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch;}
   .care-cols>.panel{margin:0;}
   @media(max-width:860px){ .care-cols{grid-template-columns:1fr;} }
+  /* health: PCOS (left) + Mounjaro (right) */
+  .health-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+  .health-col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .health-col>section{margin:0;}
+  @media(max-width:860px){ .health-cols{grid-template-columns:1fr;} }
   /* care: joy jar */
   .jar-stage{display:flex;flex-direction:column;align-items:center;gap:2px;}
   .jar-bub{animation:jarfloat 4.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center;}
@@ -394,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-04.1";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-08.2";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -642,7 +649,7 @@ function manageCardsModal(tab){
 const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true, wtMetrics:["w"], wtType:"area", wtRange:"all" };
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["pcos","❄️ Health"],["mj","💉 Mounjaro"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["health","❄️ Health"],["weight","⚖️ Weight"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 function setTab(t){ state.tab=t; render(); }
 
 /* permission slips */
@@ -689,7 +696,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,pcos:viewPcos,mj:viewMj,weight:viewWeight,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewWeight,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -892,6 +899,15 @@ function cycleStats(cyc){
   const avg=a=>a.length?Math.round(a.reduce((p,c)=>p+c,0)/a.length):null;
   const withGap=h.map((x,i)=>({...x, gap:i>0?daysBetween(h[i-1].start,x.start):null}));
   return { h:withGap, count:h.length, gaps, avgGap:avg(gaps), minGap:gaps.length?Math.min(...gaps):null, maxGap:gaps.length?Math.max(...gaps):null, avgLen:avg(lens) };
+}
+/* combined Health tab — PCOS on the left, Mounjaro on the right (stacks on narrow screens) */
+function viewHealth(){
+  const pc=viewPcos().split(DISCLAIMER)[0];
+  const mj=viewMj().split(DISCLAIMER)[0];
+  return `<div class="health-cols">
+    <div class="health-col">${pc}</div>
+    <div class="health-col">${mj}</div>
+  </div>${DISCLAIMER}`;
 }
 function viewPcos(){
   const p=state.today.pcos||{}, m=state.today.mind||{}, cyc=state.sentinel.cycle||{};
@@ -1829,6 +1845,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v2.3 · June 2026 — One Health tab</b> ❄️ PCOS and Mounjaro now live side by side under a single Health tab — cycle &amp; symptoms on the left, shots &amp; doses on the right (they stack on phones).</p>
       <p><b>v2.2 · June 2026 — Planner, leveled up</b> 🗒️ List/Board toggle (To do · Doing · Done — drag with the mouse, ◀ ▶ on touch) · sort by category, due date or 🥄 spoons (gentle ones first) without ever losing your hand-made order · 📅 due dates with kind pills ("today", "tomorrow", "3d late" — done tasks go calm gray) · ⏰ one tap on a task sets its date &amp; reminder together, and finishing either one finishes both — one thing, one ping.</p>
       <p><b>v2.1 · June 2026 — Habits, gacha &amp; phone pings</b> ✅ Daily habits checklist (grouped by 🌙/🌤/🌞 energy) and 🎮 gacha dailies on Home, both editable, with a little week-strip showing past days · Kiko ticks them by chat ("did my WUWA dailies") and knows what's left · ⏰ custom reminders everywhere — Kiko, Calendar, Planner — as browser pop-ups, 📱 phone push and email · reminders card on the Planner · smoother iPad: portrait &amp; landscape layouts adapt on rotate, Apple Pencil drags everything.</p>
       <p><b>v2.0 · June 2026 — Kiko, personal assistant</b> 🧠 long-term memory ("remember that…") · real conversation context · 🎙️ voice in &amp; 🔊 voice out · morning briefings &amp; evening journal nudges · answers from your real numbers · edit &amp; "undo that" by chat · Kiko's weekly email letter · on-demand game refresh · adaptive fast/smart brains · full coverage of every single thing the app can do · the complete in-app guide + this About page.</p>
