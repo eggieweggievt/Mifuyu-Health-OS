@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-08.2";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-08.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -982,17 +982,31 @@ function siteHint(){
 }
 function viewMj(){
   const mj=state.today.mounjaro||{}, cur=currentDose();
-  const weeksAt=cur?Math.floor(daysBetween(cur.started,TODAY)/7):0;
   const log=(state.sentinel.injectionLog||[]).slice().reverse();
   const doses=CONFIG.mounjaro.doses, sites=CONFIG.mounjaro.sites;
+  const unit=CONFIG.weightUnit||"kg";
+  // journey weight trend: start = first weight on/after the first shot (else earliest weight) → latest
+  const wl=(state.sentinel.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const firstShot=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1)[0];
+  const journeyStart=firstShot?firstShot.date:(wl[0]?wl[0].date:null);
+  const weeksOnMj=journeyStart?Math.floor(daysBetween(journeyStart,TODAY)/7):0;
+  let startW=null; if(wl.length){ const after=wl.find(x=>!journeyStart||x.date>=journeyStart); startW=(after||wl[0]).w; }
+  const nowW=wl.length?wl[wl.length-1].w:null;
+  const change=(startW!=null&&nowW!=null)?(nowW-startW):null;       // negative = loss
+  const lost=change!=null?-change:null;
+  const lostStr=lost==null?"—":(Math.abs(lost)<0.05?"±0":(lost>0?"↓ ":"↑ ")+Math.abs(lost).toFixed(1)+" "+unit);
+  const lostColor=lost==null?"var(--ink)":(lost>0?"#3a9d83":(lost<-0.05?"var(--sakura-deep)":"var(--ink)"));
+  const trendNote = lost==null
+    ? `Log a weight or two and your progress since starting will show here. ⚖️`
+    : `Since starting${journeyStart?` ~${weeksOnMj} week${weeksOnMj===1?'':'s'} ago`:''}: ${startW} → ${nowW} ${unit}. Every direction is data, not a verdict — be kind to yourself. ❄️`;
   return `
   <section class="panel">
     <div class="card-head"><h2 style="font-size:18px">💉 Mounjaro journey</h2><span class="pill pill-ice">once weekly</span></div>
     <p class="soft" style="font-size:12px;margin:0 0 10px">Tracking and reflecting only — never advice. Dose changes are always your doctor's call. 🦊</p>
     <div class="soft-card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
       <div><div class="label">Current dose</div><div class="bignum">${cur?cur.dose:'—'} mg</div></div>
-      <div><div class="label">Weeks at this dose</div><div class="bignum">${weeksAt}</div></div>
-      <div class="grow" style="min-width:160px"><p class="soft" style="font-size:11.5px;margin:0">You've been at this dose ${weeksAt} week${weeksAt===1?'':'s'}. Tirzepatide steps up slowly (≥${CONFIG.mounjaro.minWeeksBetweenIncreases} weeks between increases, max ${CONFIG.mounjaro.maxDose} mg) — but if &amp; when is entirely your doctor's decision. ❄️</p></div>
+      <div><div class="label">Weight so far</div><div class="bignum" style="color:${lostColor}">${lostStr}</div></div>
+      <div class="grow" style="min-width:160px"><p class="soft" style="font-size:11.5px;margin:0">${trendNote}</p></div>
     </div>
   </section>
 
