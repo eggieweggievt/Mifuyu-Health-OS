@@ -403,11 +403,11 @@ async function agent(input: any) {
   const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
   const model = pickAgentModel(input.question || "");
   let text = "";
-  try { text = await claudeWithTools(AGENT_SYSTEM, user, 1500, tools, model); }
-  catch (_e) { try { text = await claudeWithTools(AGENT_SYSTEM, user, 1200, undefined, model); } catch (_e2) { text = ""; } }
+  try { text = await claudeWithTools(AGENT_SYSTEM, user, 4000, tools, model); }   // 4000: 1500 truncated longer replies mid-JSON
+  catch (_e) { try { text = await claudeWithTools(AGENT_SYSTEM, user, 4000, undefined, model); } catch (_e2) { text = ""; } }
   let out = parseJSON(text);
   if (!out && model !== MODEL) {   // fast model fumbled the JSON → one retry on the standard model
-    try { text = await claudeWithTools(AGENT_SYSTEM, user, 1500, tools, MODEL); out = parseJSON(text); } catch (_e3) {}
+    try { text = await claudeWithTools(AGENT_SYSTEM, user, 4000, tools, MODEL); out = parseJSON(text); } catch (_e3) {}
   }
   if (!out) return { reply: "my whiskers twitched — could you say that again? 🦊", actions: [] };
   if (!Array.isArray(out.actions)) out.actions = [];
@@ -542,6 +542,14 @@ async function journalWrite(input: any) {
   return out && out.entry ? { entry: out.entry } : { entry: convo || "" };
 }
 
+// voice examples she's "taught" Kiko — appended to generation prompts so the writing sounds like HER, not generic AI
+function voiceFor(input: any, kind: string): string {
+  const ex = Array.isArray(input && input.voice) ? input.voice : [];
+  const match = ex.filter((e: any) => e && e.text && (!e.kind || e.kind === "any" || e.kind === kind)).slice(-6);
+  if (!match.length) return "";
+  const blocks = match.map((e: any, n: number) => `Example ${n + 1}${e.note ? " (" + String(e.note).slice(0, 120) + ")" : ""}:\n"""${String(e.text).slice(0, 1500)}"""`).join("\n\n");
+  return `\n\nHER OWN WRITING — study these real samples and match her voice, rhythm, vocabulary and quirks (imitate the STYLE, never copy their content):\n${blocks}`;
+}
 // ===================== SCRIPT WRITER (spoken notes + research → formatted script) =====================
 async function scriptMode(input: any) {
   const i = input || {};
@@ -550,7 +558,7 @@ async function scriptMode(input: any) {
   const refs = (i.references || "").toString().slice(0, 4000);
   const raw = (i.raw || "").toString().slice(0, 7000);
   if (!raw && !refs) return { error: "Add some spoken words or references first." };
-  const common = `Her working title: ${title || "(none)"}\n\nResearch / references she pasted (facts, links, source notes — ground the script in these, don't invent facts):\n${refs || "(none)"}\n\nHer own spoken words (raw voice-to-text — may ramble, mis-punctuate, or repeat; clean it up but KEEP her phrasing, jokes, and voice — do not blandify her):\n${raw || "(none)"}`;
+  const common = `Her working title: ${title || "(none)"}\n\nResearch / references she pasted (facts, links, source notes — ground the script in these, don't invent facts):\n${refs || "(none)"}\n\nHer own spoken words (raw voice-to-text — may ramble, mis-punctuate, or repeat; clean it up but KEEP her phrasing, jokes, and voice — do not blandify her):\n${raw || "(none)"}${voiceFor(i, "script")}`;
   const prompt = kind === "short"
     ? `Shape this into a tight SHORT-form video script (YouTube Shorts / TikTok, ~45–55 seconds, roughly 110–150 spoken words). Return ONLY JSON:
 { "title": string, "hooks": string[3], "script": string, "cta": string }
