@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-08.5";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-08.7";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -727,14 +727,16 @@ async function setWeekSlots(wkISO,fn){
   if((state.sentinel.schedWeeks||{})[wkISO]) await setSent(n=>{ const sw={...(n.schedWeeks||{})}; sw[wkISO]=fn((sw[wkISO]||[]).slice()); return {...n,schedWeeks:sw}; });
   else await setSent(n=>({...n,schedule:fn((n.schedule||[]).slice())}));
 }
-/* fun per-day stream ideas — pulls real game-calendar items this week, fills the rest with rotating game ideas */
+/* per-day stream ideas. REAL dated items (updates/events/streams) come ONLY from her game calendar,
+   so they land on the correct day. Filler days get date-agnostic activity ideas that never claim a release date. */
 function streamSuggestions(wkISO){
   const sent=state.sentinel||{}; const games=(sent.gameTopics&&sent.gameTopics.length)?sent.gameTopics:DEFAULT_GAMES;
   const start=new Date(wkISO+"T00:00"); const byDay={};
   (sent.calendarEvents||[]).filter(gameSrc).forEach(ev=>{ const d=new Date(ev.date+"T00:00"); const diff=Math.round((d-start)/86400000);
     if(diff>=0&&diff<7){ const wd=DOW_ORDER[(d.getDay()+6)%7]; if(!byDay[wd]) byDay[wd]=ev.title; } });
-  const tmpl=(g,i)=>[`New ${g} Update`,`${g} Live Stream`,`${g} Event Start`,`Cozy ${g}`][i%4];
-  return DOW_ORDER.map((wd,i)=>({day:wd,text:byDay[wd]||tmpl(games[i%games.length],i)}));
+  // generic ideas — activities, NOT dated releases (a real update only shows if it's in her calendar that day)
+  const ideas=(g,i)=>[`Cozy ${g} stream`,`${g} grind session`,`Just chatting + ${g}`,`Variety stream`][i%4];
+  return DOW_ORDER.map((wd,i)=>({day:wd, text:byDay[wd]||ideas(games[i%games.length],i), real:!!byDay[wd]}));
 }
 function cardSchedule(){
   if(state.schedWeekOff===undefined)state.schedWeekOff=0;
@@ -755,7 +757,8 @@ function cardSchedule(){
     const sug=streamSuggestions(wkISO);
     body=`<div class="soft" style="font-size:10.5px;margin:2px 0 6px">${custom?`Editing just <b>${label.toLowerCase()}</b> (${fmtDate(wkISO)}–${fmtDate(wkEnd)}). `:`Editing your <b>usual week</b> — applies to every week without its own plan. `}</div>
       <div class="label" style="margin:6px 0 4px">💡 Ideas for this week — tap to add</div>
-      <div class="chiprow" style="margin-bottom:10px">${sug.map(s=>`<button class="chiptog" data-act="addSchedSug" data-day="${s.day}" data-show="${esc(s.text)}"><span>＋</span>${s.day} · ${esc(s.text)}</button>`).join("")}</div>
+      <p class="soft" style="font-size:10px;margin:0 0 6px">🎮 = a real dated item from your game calendar · the rest are just cozy ideas (no set date)</p>
+      <div class="chiprow" style="margin-bottom:10px">${sug.map(s=>`<button class="chiptog ${s.real?'on':''}" data-act="addSchedSug" data-day="${s.day}" data-show="${esc(s.text)}"><span>＋</span>${s.day} · ${s.real?'🎮 ':''}${esc(s.text)}</button>`).join("")}</div>
       ${sorted.map(r=>`<div style="display:flex;gap:6px;margin-bottom:6px">
           ${daySel(r.id,r.day)}
           <input class="inp" data-sched="${r.id}" data-k="show" value="${esc(r.show||'')}" placeholder="what you're streaming">
@@ -918,10 +921,8 @@ function cardWeightTrend(){ const wl=(state.sentinel.weightLog||[]).slice().sort
         ${dots}
       </svg>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px"><span>${fmtDate(wl[0].date)}</span><span>${fmtDate(wl[wl.length-1].date)}</span></div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;margin-top:5px">
-        <span class="soft">low ${mn.toFixed(1)}</span>
-        <span><b style="font-size:13px">${cur.toFixed(1)} ${unit}</b> <span class="soft">now · ${chTxt}</span></span>
-        <span class="soft">high ${mx.toFixed(1)}</span></div>`;
+      <div style="text-align:center;font-size:11px;margin-top:6px"><b style="font-size:14px">${cur.toFixed(1)} ${unit}</b> <span class="soft">now · ${chTxt}</span></div>
+      <div style="text-align:center;font-size:10.5px;color:var(--muted);margin-top:2px">lowest ${mn.toFixed(1)} · highest ${mx.toFixed(1)} ${unit} over these weigh-ins</div>`;
   }
   const insight=healthInsight();
   return `<section class="panel">
