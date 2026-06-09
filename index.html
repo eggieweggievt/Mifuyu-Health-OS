@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-08.8";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-08.9";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -1630,7 +1630,7 @@ function viewKiko(){
       <div class="label">📓 Reflect &amp; remember</div>
       <p style="margin:2px 0 8px">Say "let's journal" for the gentle <b>daily journal</b> he walks you through and writes up in your voice. Quick-set today's one-line journal note. Park thoughts in the <b>brain-dump</b>, make <b>stickies</b>, add joys to the <b>joy jar</b>, and manage <b>tasks &amp; goals</b> — add, complete ("done with the clinic call"), rename, delete, give them <b>due dates</b> ("I need to email the accountant by Friday"), and attach a <b>linked reminder</b> ("remind me about the PT exercises tomorrow at 9") — finishing the task finishes its reminder and vice-versa, so one thing only ever pings once. Tell him <b>"remember that…"</b> and he keeps it forever (see Kiko's memory above). Tick off <b>daily habits</b> ("I did my steps and the dishes") and <b>gacha dailies</b> ("did my WUWA and HSR dailies") — he can also add or remove habits and games from the lists, and tell you what's still left today.</p>
       <div class="label">✨ And the clever stuff</div>
-      <p style="margin:2px 0 8px">He <b>searches the web</b> when useful (game dates, facts, nutrition, prices). He knows your <b>real numbers</b> — ask "how's my protein today?" or "what's my weight trend?". He remembers the <b>conversation</b>, so "actually make it 8pm" just works. Say <b>"undo that"</b> to roll back his last change (Ctrl+Z works too). He picks a fast brain for quick commands and a deeper one for hard questions — say <b>"use your smart brain"</b> or <b>"quick:"</b> to choose yourself. Talk instead of type with <b>🎙️</b>, hear him with <b>🔊 Speak replies</b>, and he'll greet you with a <b>morning briefing</b> and a soft evening journal nudge (toggleable above). He can also hop you to any tab — "take me to the calendar".</p>
+      <p style="margin:2px 0 8px">He <b>searches the web</b> when useful (game dates, facts, nutrition, prices). He reads your <b>entire hub</b> — every weigh-in and full Withings body composition (fat, muscle, body water, visceral, BMI, heart rate), your mood/energy/anxiety/nausea/cravings/sleep/water trends, PCOS &amp; Mounjaro symptoms, food, money, tasks, schedule — so ask him anything ("how's my protein today?", "what's my weight trend?", "is my muscle going up?") and even ask him to <b>find links between things</b> ("does my hydration affect my nausea?", "do I feel lower energy on low-water days?", "how's my mood the week after a dose increase?"). He remembers the <b>conversation</b>, so "actually make it 8pm" just works. Say <b>"undo that"</b> to roll back his last change (Ctrl+Z works too). He picks a fast brain for quick commands and a deeper one for hard questions — say <b>"use your smart brain"</b> or <b>"quick:"</b> to choose yourself. Talk instead of type with <b>🎙️</b>, hear him with <b>🔊 Speak replies</b>, and he'll greet you with a <b>morning briefing</b> and a soft evening journal nudge (toggleable above). He can also hop you to any tab — "take me to the calendar".</p>
       <p class="soft" style="font-size:11.5px;margin-top:6px">Every single thing he does is undoable — Ctrl+Z, or just tell him. 💗❄️</p>
     </div></details>
   </div>`;
@@ -1995,6 +1995,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v2.7 · June 2026 — Kiko sees everything</b> 🦊 Kiko now reads your <i>whole</i> hub — full Withings body composition (fat, muscle, body water, visceral, BMI, heart rate, with their changes), every trend over time, PCOS &amp; Mounjaro symptoms, sleep, water, measurements, money, sponsors, goals, schedule and more — so it answers from your real numbers and can spot links between them ("does my hydration affect my nausea?", "how's my muscle trending vs my fat?"). No more "I can't see that". 💗</p>
       <p><b>v2.6 · June 2026 — Tidier Health, Trends + Food</b> 📈 Weight now lives under Trends (all your graphs in one place) · ❄️ Health reflows: your daily feelings check (Energy, Anxiety, Mood, Nausea, Cravings, Water, Sleep — all trackable here now) sits up top with the Mounjaro side-effect check beside it, dose &amp; weight tuck under it, and the cycle section is folded into a quiet dropdown at the bottom · 💧 water now lives on Food &amp; Health, counted in full 40oz cups (goal 2–3) · 🍱 Food gains Meds AM/PM check-offs (linked to your Home habits) and a This-Week view of meals + protein/fibre over time.</p>
       <p><b>v2.5 · June 2026 — Weight line + week-by-week streams</b> 📈 the home weight trend is now a clean up-and-down line with your oldest &amp; newest weigh-in dates and clear low/now/high numbers · 🦊 a little health note links your hydration, muscle &amp; fat to how you feel and cheers you on · 🗓️ the stream schedule is now per-week — flip ‹ › to any week and plan it separately from your usual week, with fun per-day stream ideas (game updates, events, live streams) you can tap to add.</p>
       <p><b>v2.4 · June 2026 — Kiko learns your voice</b> 🎓 a "teach my voice" button on the Script writer: paste your own real writing and Kiko studies your style, so the scripts it shapes sound like you instead of generic AI · longer, fuller answers from Kiko (bigger response budget, no more cut-off replies).</p>
@@ -3030,7 +3031,7 @@ const H={
         const upcoming=(state.sentinel.calendarEvents||[]).filter(e=>(e.endDate||e.date)>=TODAY).sort((a,b)=>(a.date<b.date?-1:1)).slice(0,20).map(e=>({date:e.date,endDate:e.endDate,title:e.title}))
           .concat(activeReminders().map(r=>({date:nextReminderDate(r),title:"⏰ "+r.text+(r.time?" ("+fmt12(r.time)+")":"")+(r.repeat&&r.repeat!=="none"?" · "+r.repeat:"")})).slice(0,10));
         const d=await aiCall("agent",{question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab,
-          schedule:(state.sentinel.schedule||[]), events:upcoming,
+          schedule:weekSlots(weekStartISO(0)), events:upcoming,
           games:(state.sentinel.gameTopics&&state.sentinel.gameTopics.length?state.sentinel.gameTopics:DEFAULT_GAMES),
           memory:(state.sentinel.kikoMemory||[]).slice(-30).map(m=>({text:m.text})),
           history:KIKO.log.slice(0,-1).slice(-8).map(m=>({role:m.role,text:String(m.text||"").slice(0,300)})),
@@ -3444,27 +3445,106 @@ function kikoSetupDrag(){
 }
 function kikoInputEl(){ return document.getElementById("kikoTabInput")||document.getElementById("kikoInput"); }
 // compact, real numbers for the agent's DATA SNAPSHOT — lets Kiko answer "how's my…" accurately
+/* FULL data snapshot for Kiko — every part of the OS, so it can answer about and correlate ANYTHING.
+   Organised into labelled lines; the agent prompt tells Kiko to treat this as the live truth. */
 function kikoDataSummary(){
   try{
-    const s=state.sentinel||{}; const parts=[];
-    const wl=(s.weightLog||[]).filter(x=>x.w!=null).sort((a,b)=>a.date<b.date?-1:1);
-    if(wl.length){ const last=wl[wl.length-1], first=wl[0]; parts.push(`weight ${last.w}${CONFIG.weightUnit} on ${fmtDate(last.date)}${wl.length>1?` (${Math.round((last.w-first.w)*10)/10} since ${fmtDate(first.date)})`:""}`); }
+    const s=state.sentinel||{}, t=state.today||{}; const u=CONFIG.weightUnit||"kg"; const L=[];
+    const num=v=>v==null?"–":v;
+    const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length):null;
+    // ---- day rows for history/correlation (last ~30 cached) ----
+    const byDate={}; (state.range||[]).forEach(r=>byDate[r.date]=r.notes); byDate[TODAY]=t;
+    const span=state.trendDays===30?30:14; const days=[]; for(let i=span-1;i>=0;i--)days.push(dayAgo(-i));
+    const pick=(d,path)=>{ let v=byDate[d]; for(const k of path){ v=v&&v[k]; } return v==null?null:v; };
+
+    // ===== WEIGHT & FULL BODY COMPOSITION (Withings Body Smart + manual) =====
+    const wl=withBMI((s.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1));
+    const bc=k=>{ const e=wl.filter(x=>x[k]!=null); if(!e.length)return null; const last=e[e.length-1],first=e[0],prev=e.length>1?e[e.length-2]:null;
+      return { v:last[k], date:last.date, n:e.length, dPrev:prev?Math.round((last[k]-prev[k])*10)/10:null, dAll:e.length>1?Math.round((last[k]-first[k])*10)/10:null, from:first.date }; };
+    const bcLines=[];
+    BODYCOMP.forEach(([k,l,unit])=>{ const m=bc(k); if(!m)return;
+      bcLines.push(`${l} ${m.v}${unit||''}${m.dPrev!=null&&m.dPrev!==0?` (last Δ${m.dPrev>0?'+':''}${m.dPrev})`:''}${m.dAll!=null&&m.dAll!==0?`, ${m.dAll>0?'+':''}${m.dAll} since ${fmtDate(m.from)}`:''} [${m.n} readings]`); });
+    const wcon=!!(s.withings && s.withings.refresh_token);
+    if(bcLines.length) L.push(`BODY${wcon?" (Withings linked)":""}: ${bcLines.join("; ")}`);
+    else L.push("BODY: no weight/body-comp logged yet"+(wcon?" though Withings is linked":""));
+
+    // ===== MOUNJARO =====
     const inj=(s.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
-    if(inj.length){ const d=new Date(inj[inj.length-1].date+"T00:00"); d.setDate(d.getDate()+7); parts.push(`last shot ${fmtDate(inj[inj.length-1].date)} (${inj[inj.length-1].dose}mg), next ~${fmtDate(d.toLocaleDateString("en-CA"))}`); }
-    if(foodToday().length){ const ft=foodTotals(), tg=foodTargets(); parts.push(`food today ${Math.round(ft.kcal)}kcal · protein ${Math.round(ft.protein)}/${tg.protein}g · fibre ${Math.round(ft.fiber)}/${tg.fiber}g`); }
-    const moods=(state.range||[]).slice(-7).map(r=>r.notes&&r.notes.mind&&r.notes.mind.mood).filter(v=>v!=null);
-    if(moods.length) parts.push(`mood avg recent days ${(moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1)}/5`);
-    const y=String(new Date().getFullYear()); const tx=(s.money||[]).filter(t=>String(t.date||"").slice(0,4)===y);
-    if(tx.length){ const inc=tx.filter(t=>t.dir==="in").reduce((a,t)=>a+(+t.amount||0),0), exp=tx.filter(t=>t.dir==="out").reduce((a,t)=>a+(+t.amount||0),0); parts.push(`money ${y}: in €${Math.round(inc)} · out €${Math.round(exp)}`); }
-    if((s.journalEntries||[]).some(e=>e.date===TODAY)) parts.push("journaled today ✓");
-    const m=(state.today&&state.today.mind)||{}; if(m.mood!=null||m.anxiety!=null) parts.push(`today's check-in: mood ${m.mood??"–"}/5, anxiety ${m.anxiety??"–"}/5`);
-    const dueT=(s.tasks||[]).filter(t=>!t.done&&t.due).sort((a,b)=>a.due<b.due?-1:1).slice(0,6);
-    if(dueT.length) parts.push("tasks with due dates: "+dueT.map(t=>`${t.text} (due ${t.due})`).join(", "));
-    const hl=habitsList(), hc=(state.today&&state.today.habits)||{}; const hLeft=hl.filter(h=>!hc[h.id]).map(h=>h.text);
-    parts.push(`habits ${hl.length-hLeft.length}/${hl.length}${hLeft.length?` (left: ${hLeft.join(", ")})`:" — all done ✓"}`);
-    const gl=gachaList(), gc=(state.today&&state.today.gacha)||{}; const gLeft=gl.filter(g=>!gc[g.id]).map(g=>g.name);
-    parts.push(`gacha dailies ${gl.length-gLeft.length}/${gl.length}${gLeft.length?` (left: ${gLeft.join(", ")})`:" — all done ✓"}`);
-    return parts.join(" · ");
+    const cur=currentDose();
+    const wlw=wl.filter(x=>x.w!=null);
+    if(inj.length){ const li=inj[inj.length-1]; const nd=new Date(li.date+"T00:00"); nd.setDate(nd.getDate()+7);
+      const start=inj[0].date; const weeks=Math.floor(daysBetween(start,TODAY)/7);
+      const loss=wlw.length>1?Math.round((wlw[wlw.length-1].w-wlw[0].w)*10)/10:null;
+      L.push(`MOUNJARO: ${cur?cur.dose+"mg":(li.dose+"mg")} current, ~${weeks}w on the journey, ${inj.length} shots; last ${fmtDate(li.date)} (${li.dose}mg${li.site?", "+li.site:""}), next ~${fmtDate(nd.toLocaleDateString("en-CA"))}${loss!=null?`; total weight change ${loss>0?'+':''}${loss}${u}`:''}`); }
+    else L.push("MOUNJARO: no shots logged yet");
+    const mj=t.mounjaro||{}; const se=["nausea","constipation","diarrhea","reflux","belly","fatigue","foodnoise"].filter(k=>mj[k]!=null).map(k=>`${k} ${mj[k]}/5`);
+    if(se.length) L.push("MOUNJARO side-effects today: "+se.join(", "));
+    const mjh=["proteinMeals","smallerMeals","fiber","gentleMove"].filter(k=>mj[k]); if(mjh.length) L.push("MJ supportive habits today: "+mjh.join(", "));
+
+    // ===== TODAY CHECK-IN + WATER + SLEEP =====
+    const m=t.mind||{}; const ci=[];
+    if(m.mood!=null)ci.push(`mood ${m.mood}/5`); if(m.anxiety!=null)ci.push(`anxiety ${m.anxiety}/5`); if(m.energy!=null)ci.push(`energy ${m.energy}/5`); if(m.weather!=null)ci.push(`weather-inside ${m.weather}/5`);
+    if(ci.length) L.push("TODAY check-in: "+ci.join(", "));
+    const wCups=(mj.water||0); L.push(`WATER today: ${(wCups/CUPS_PER_40OZ).toFixed(1)} × 40oz cups (${wCups} internal cups)`);
+    if(t.sleep!=null) L.push(`SLEEP last night: ${t.sleep}h`);
+
+    // ===== TREND DIRECTIONS (correlate-able) =====
+    const trendDir=TREND_METRICS.map(([k,e,l,max])=>{ const vals=days.map(d=>{
+        if(k==="sleep")return pick(d,["sleep"]); if(k==="water")return pick(d,["mounjaro","water"]);
+        if(k==="nausea")return pick(d,["mounjaro","nausea"]); if(k==="cravings")return pick(d,["pcos","cravings"]);
+        return pick(d,["mind",k]); }).filter(v=>v!=null);
+      if(!vals.length)return null; const a=avg(vals).toFixed(1); const h=Math.floor(vals.length/2)||1;
+      const d=avg(vals.slice(-h))-avg(vals.slice(0,h)); const dir=d>0.4?"↑rising":d<-0.4?"↓falling":"→steady";
+      return `${l} avg ${a} ${dir} (${vals.length}d)`; }).filter(Boolean);
+    if(trendDir.length) L.push(`TRENDS last ${span}d: `+trendDir.join("; "));
+
+    // ===== PCOS =====
+    const p=t.pcos||{}; const sym=["fatigue","bloating","cravings","acne","shedding","hirsutism"].filter(k=>p[k]!=null).map(k=>`${k} ${p[k]}/5`);
+    if(sym.length) L.push("PCOS symptoms today: "+sym.join(", "));
+    const ph=["moved","balanced","protein","lowsugar"].filter(k=>p[k]); if(ph.length) L.push("PCOS helpers today: "+ph.join(", "));
+    const cyc=s.cycle||{}; if(cyc.lastStart){ const dx=daysBetween(cyc.lastStart,TODAY); L.push(`CYCLE: day ${dx} since last period (${fmtDate(cyc.lastStart)})${dx>=45?" — long gap, common with PCOS":""}`); }
+
+    // ===== FOOD =====
+    if(foodToday().length){ const ft=foodTotals(), tg=foodTargets();
+      L.push(`FOOD today: ${Math.round(ft.kcal)}kcal, protein ${Math.round(ft.protein)}/${tg.protein}g, fibre ${Math.round(ft.fiber)}/${tg.fiber}g, carbs ${Math.round(ft.carbs)}g, fat ${Math.round(ft.fat)}g (${foodToday().length} items: ${foodToday().map(x=>x.name).slice(0,8).join(", ")})`); }
+    else L.push("FOOD today: nothing logged yet");
+    const fh=foodHistory(7).filter(h=>h.meals.length); if(fh.length){ const ap=avg(fh.map(h=>h.protein)), af=avg(fh.map(h=>h.fiber)); L.push(`FOOD 7-day avg (logged days): protein ${Math.round(ap)}g, fibre ${Math.round(af)}g`); }
+
+    // ===== MEASUREMENTS & NSV =====
+    const meas=(s.measurements||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    if(meas.length){ const last=meas[meas.length-1]; const mm=["bust","waist","hips","thighs","arms"].filter(k=>last[k]!=null).map(k=>`${k} ${last[k]}cm`); if(mm.length) L.push(`MEASUREMENTS (latest ${fmtDate(last.date)}): ${mm.join(", ")}`); }
+    const nsv=(s.nsv||[]); if(nsv.length) L.push(`NON-SCALE WINS (${nsv.length}): `+nsv.slice(-4).map(v=>v.t).join("; "));
+
+    // ===== MONEY =====
+    const y=String(new Date().getFullYear()); const tx=(s.money||[]).filter(x=>String(x.date||"").slice(0,4)===y);
+    if(tx.length){ const inc=tx.filter(x=>x.dir==="in").reduce((a,x)=>a+(+x.amount||0),0), exp=tx.filter(x=>x.dir==="out").reduce((a,x)=>a+(+x.amount||0),0);
+      const cat={}; tx.forEach(x=>{ cat[x.cat]=(cat[x.cat]||0)+(x.dir==="in"?1:-1)*(+x.amount||0); });
+      const top=Object.entries(cat).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,4).map(([c,v])=>`${c} ${v>=0?'+':''}€${Math.round(v)}`);
+      L.push(`MONEY ${y}: in €${Math.round(inc)}, out €${Math.round(exp)}, net €${Math.round(inc-exp)} (${tx.length} entries; ${top.join(", ")})`); }
+    const sp=(s.sponsors||[]); if(sp.length) L.push(`SPONSORS (${sp.length}): `+sp.map(x=>`${x.name} [${x.status||'pending'}]${x.payout?" "+x.payout:""}`).join("; "));
+
+    // ===== TASKS / GOALS / HABITS / GACHA =====
+    const tasks=(s.tasks||[]); const open=tasks.filter(x=>!x.done);
+    if(tasks.length){ const due=open.filter(x=>x.due).sort((a,b)=>a.due<b.due?-1:1).map(x=>`${x.text} (due ${x.due})`);
+      L.push(`TASKS: ${open.length} open / ${tasks.length} total${due.length?"; due: "+due.slice(0,8).join(", "):""}`); }
+    const gw=(s.goalsWeek||[]).filter(g=>!g.done), gm=(s.goalsMonth||[]).filter(g=>!g.done);
+    if(gw.length||gm.length) L.push(`GOALS open — week: ${gw.map(g=>g.text).join(", ")||"none"}; month: ${gm.map(g=>g.text).join(", ")||"none"}`);
+    const hl=habitsList(), hc=t.habits||{}; const hLeft=hl.filter(h=>!hc[h.id]).map(h=>h.text);
+    L.push(`HABITS today ${hl.length-hLeft.length}/${hl.length}${hLeft.length?` (left: ${hLeft.join(", ")})`:" — all done ✓"}`);
+    const gl=gachaList(), gc=t.gacha||{}; const gLeft=gl.filter(g=>!gc[g.id]).map(g=>g.name);
+    L.push(`GACHA DAILIES today ${gl.length-gLeft.length}/${gl.length}${gLeft.length?` (left: ${gLeft.join(", ")})`:" — all done ✓"}`);
+
+    // ===== STREAM SCHEDULE (this week) / GAMES / MEDS / REMINDERS / JOURNAL =====
+    const thisWk=weekSlots(weekStartISO(0)); if(thisWk.length) L.push("STREAM SCHEDULE this week: "+thisWk.map(r=>`${r.day} ${r.show||'Stream'}${r.time?" @"+r.time:""}`).join(", "));
+    const games=(s.gameTopics&&s.gameTopics.length)?s.gameTopics:DEFAULT_GAMES; L.push("GAMES tracked: "+games.join(", "));
+    const meds=(s.medsList||[]); if(meds.length) L.push("MEDS: "+meds.map(x=>`${x.name}${x.dose?" "+x.dose:""}${x.time?" ("+x.time+")":""}`).join(", "));
+    const med2=t.meds||{}; if(med2.am!=null||med2.pm!=null) L.push(`MEDS today: AM ${med2.am?"✓":"✗"}, PM ${med2.pm?"✓":"✗"}`);
+    const rem=activeReminders(); if(rem.length) L.push(`REMINDERS active (${rem.length}): `+rem.slice(0,8).map(r=>`${r.text}${r.time?" @"+fmt12(r.time):""}${r.repeat&&r.repeat!=="none"?" ("+r.repeat+")":""}`).join("; "));
+    const je=(s.journalEntries||[]); L.push(`JOURNAL: ${je.length} entries${je.some(e=>e.date===TODAY)?", journaled today ✓":", not yet today"}`);
+    const extras=[]; if((s.stickies||[]).length)extras.push(`${s.stickies.length} stickies`); if((s.captures||[]).length)extras.push(`${s.captures.length} brain-dump notes`); if((s.joyJar||[]).length)extras.push(`${s.joyJar.length} joys in the jar`);
+    if(extras.length) L.push("ALSO: "+extras.join(", "));
+
+    return L.join("\n");
   }catch(e){ return ""; }
 }
 // persistent conversation (survives reloads) + spoken replies
