@@ -352,7 +352,7 @@
   .kiko-msg{font-size:12.5px;line-height:1.45;padding:8px 11px;border-radius:14px;max-width:86%;white-space:pre-wrap;word-break:break-word;}
   .kiko-msg.me{align-self:flex-end;background:linear-gradient(135deg,var(--peri),var(--sakura));color:#fff;border-bottom-right-radius:4px;}
   .kiko-msg.pet{align-self:flex-start;background:var(--panel-soft);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:4px;}
-  .kiko-input{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line);}
+  .kiko-input{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line);align-items:flex-end;}
   /* Ask Kiko tab */
   .kiko-skills{display:flex;flex-wrap:wrap;gap:8px;}
   .kiko-skill{border:1.5px solid var(--line-2);border-radius:999px;background:#fff;color:var(--ink-soft);font-size:13px;padding:8px 13px;cursor:pointer;transition:transform .12s,background .15s,border-color .15s,color .15s;}
@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-10.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-10.4";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -3172,13 +3172,15 @@ const H={
 async function addSub(taskId,text){ text=(text||"").trim(); if(!text) return;
   await setSent(n=>({...n,tasks:(n.tasks||[]).map(t=>t.id===taskId?{...t,sub:[...(t.sub||[]),{id:"s"+Date.now(),text,done:false}]}:t)})); render(); }
 document.addEventListener("keydown",async e=>{
-  if(e.key!=="Enter"||e.shiftKey) return; const t=e.target;
+  if(e.key!=="Enter") return; const t=e.target;
+  // Kiko chat: Enter sends, Shift+Enter drops to a new line (so she can write longer messages)
+  if(t.id==="kikoInput"||t.id==="kikoTabInput"){ if(e.shiftKey) return; e.preventDefault(); H.kikoSend(); return; }
+  if(e.shiftKey) return;
   if(t.id==="plnText"){ e.preventDefault(); H.addTask(); }
   else if(t.dataset && t.dataset.subfor){ e.preventDefault(); const id=t.dataset.subfor, v=t.value; t.value=""; await addSub(id,v); }
   else if(t.id==="capInput"){ e.preventDefault(); H.capAdd(); }
   else if(t.id==="goalWeek"){ e.preventDefault(); H.addGoal({dataset:{p:'week'}}); }
   else if(t.id==="goalMonth"){ e.preventDefault(); H.addGoal({dataset:{p:'month'}}); }
-  else if(t.id==="kikoInput"){ e.preventDefault(); H.kikoSend(); }
 });
 document.addEventListener("change",e=>{
   const t=e.target; if(!t) return;
@@ -3611,7 +3613,7 @@ function kikoChatInner(inputId, fileId, logId){
     <div class="kiko-input">
       <button class="btn" data-act="kikoMic" title="talk to Kiko" style="padding:0 9px;font-size:15px;${KIKO.mic?'background:#fde2f2;border-color:var(--sakura);':''}" ${KIKO.busy?"disabled":""}>${KIKO.mic?'⏹':'🎙️'}</button>
       <label class="btn" style="cursor:pointer;padding:0 9px;display:flex;align-items:center;font-size:16px" title="add photos (e.g. your food)">📷<input type="file" id="${fileId}" accept="image/*" multiple style="display:none" ${KIKO.busy?"disabled":""}></label>
-      <input class="inp" id="${inputId}" placeholder="${KIKO.mic?'listening… ❄️':KIKO.pendingImages.length?'what are they? (optional)':'tell Kiko to do something…'}" ${KIKO.busy?"disabled":""}>
+      <textarea class="inp" id="${inputId}" rows="2" style="resize:vertical;min-height:48px;max-height:170px;line-height:1.4" placeholder="${KIKO.mic?'listening… ❄️':KIKO.pendingImages.length?'what are they? (optional)':'tell Kiko to do something…  (Enter sends · Shift+Enter = new line)'}" ${KIKO.busy?"disabled":""}></textarea>
       <button class="btn btn-grad" data-act="kikoSend" ${KIKO.busy?"disabled":""}>send</button>
     </div>`;
 }
