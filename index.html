@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-10.2";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-10.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -1568,6 +1568,7 @@ function viewCare(){
 function viewKiko(){
   const skills=[
     ["🌤️","Log mood","seed","log my mood as "],
+    ["💌","Note for Eggie","seed","note for Eggie: "],
     ["📅","Add event","seed","add an event: "],
     ["🔴","Stream schedule","seed","I stream "],
     ["🗒️","Add task","seed","add a task: "],
@@ -1627,7 +1628,9 @@ function viewKiko(){
       <div class="label">💶 Money</div>
       <p style="margin:2px 0 8px">Log business income &amp; expenses ("log €240 Twitch payout", "I spent €89 on a mic"). At tax time, say "start tax prep" and he walks you through exactly what to gather for your accountant, step by step.</p>
       <div class="label">📓 Reflect &amp; remember</div>
-      <p style="margin:2px 0 8px">Say "let's journal" for the gentle <b>daily journal</b> he walks you through and writes up in your voice. Quick-set today's one-line journal note. Park thoughts in the <b>brain-dump</b>, make <b>stickies</b>, add joys to the <b>joy jar</b>, and manage <b>tasks &amp; goals</b> — add, complete ("done with the clinic call"), rename, delete, give them <b>due dates</b> ("I need to email the accountant by Friday"), and attach a <b>linked reminder</b> ("remind me about the PT exercises tomorrow at 9") — finishing the task finishes its reminder and vice-versa, so one thing only ever pings once. Tell him <b>"remember that…"</b> and he keeps it forever (see Kiko's memory above). Tick off <b>daily habits</b> ("I did my steps and the dishes") and <b>gacha dailies</b> ("did my WUWA and HSR dailies") — he can also add or remove habits and games from the lists, and tell you what's still left today.</p>
+      <p style="margin:2px 0 8px">Say "let's journal" for the gentle <b>daily journal</b> he walks you through and writes up in your voice. Quick-set today's one-line journal note. Park thoughts in the <b>brain-dump</b>, make <b>stickies</b>, add joys to the <b>joy jar</b>, and manage <b>tasks &amp; goals</b> — add, complete ("done with the clinic call"), rename, delete, give them <b>due dates</b> ("I need to email the accountant by Friday"), and attach a <b>linked reminder</b> ("remind me about the PT exercises tomorrow at 9") — finishing the task finishes its reminder and vice-versa, so one thing only ever pings once. Tell him <b>"remember that…"</b> and he keeps it forever (see Kiko's memory above). Tick off <b>daily habits</b> ("I did my steps and the dishes") and <b>gacha dailies</b> ("did my WUWA and HSR dailies") — he can also add or remove habits and games from the lists, and tell you what's still left today. And when you wish your OS <b>itself</b> did something new or different — say <b>"note for Eggie: I'd love a sleep chart"</b> — Kiko files it on the 💌 wishlist (Settings) for Eggie to pick up and build. No screenshots, no forgetting.</p>
+      <div class="label">🧩 Your space</div>
+      <p style="margin:2px 0 8px">Kiko can also drive the hub itself: <b>"turn on calm mode"</b> / focus mode / larger text, <b>"lock my layout"</b>, <b>"hide the goals card"</b> / "show the journal card" (Home, Care or Food), <b>"start a 25/5 focus timer"</b> or a rest timer, change your name/greeting/weight unit, tidy mistaken logs (money entries, non-scale wins, joys, measurements, goals), and <b>"download my backup"</b>.</p>
       <div class="label">✨ And the clever stuff</div>
       <p style="margin:2px 0 8px">He <b>searches the web</b> when useful (game dates, facts, nutrition, prices). He reads your <b>entire hub</b> — every weigh-in and full Withings body composition (fat, muscle, body water, visceral, BMI, heart rate), your mood/energy/anxiety/nausea/cravings/sleep/water trends, PCOS &amp; Mounjaro symptoms, food, money, tasks, schedule — so ask him anything ("how's my protein today?", "what's my weight trend?", "is my muscle going up?") and even ask him to <b>find links between things</b> ("does my hydration affect my nausea?", "do I feel lower energy on low-water days?", "how's my mood the week after a dose increase?"). He remembers the <b>conversation</b>, so "actually make it 8pm" just works. Say <b>"undo that"</b> to roll back his last change (Ctrl+Z works too). He picks a fast brain for quick commands and a deeper one for hard questions — say <b>"use your smart brain"</b> or <b>"quick:"</b> to choose yourself. Talk instead of type with <b>🎙️</b>, hear him with <b>🔊 Speak replies</b>, and he'll greet you with a <b>morning briefing</b> and a soft evening journal nudge (toggleable above). He can also hop you to any tab — "take me to the calendar".</p>
       <p class="soft" style="font-size:11.5px;margin-top:6px">Every single thing he does is undoable — Ctrl+Z, or just tell him. 💗❄️</p>
@@ -1944,6 +1947,13 @@ function viewSettings(){
   </section>
 
   <section class="panel">
+    <div class="card-head"><div class="label">💌 Wishlist for Eggie</div><span class="pill pill-gray">${(state.sentinel.eggieRequests||[]).filter(r=>r.status!=="done").length} open</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 8px">Want something new or different in your OS? Just tell Kiko — <b>"note for Eggie: …"</b> — and it lands here for Eggie to pick up and build. 💗</p>
+    ${(state.sentinel.eggieRequests||[]).slice().reverse().map(r=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(r.text)} <span class="soft" style="font-size:10.5px">· ${fmtDate(r.date)}${r.tab?" · from "+esc(r.tab):""}</span></span><span class="pill ${r.status==="done"?"pill-mint":"pill-lav"}">${r.status==="done"?"done ✓":"noted"}</span><button class="x" data-act="delEggieReq" data-v="${r.id}">✕</button></div>`).join("")||'<p class="soft" style="font-size:12px">Nothing yet — wish away ✨</p>'}
+    ${(state.sentinel.eggieRequests||[]).length?`<button class="btn" data-act="copyEggieReqs" style="margin-top:10px">📋 copy the list for Eggie</button>`:''}
+  </section>
+
+  <section class="panel">
     <div class="label" style="margin-bottom:8px">📅 Calendar</div>
     <p class="soft" style="font-size:12px;margin:0 0 8px">Colour for the auto game-update events (refreshed every Friday).</p>
     <div class="chiprow">${["#f6cba9","#9fc7f0","#c9b8f0","#a9e0cb","#ff9ed8","#b8d4f0","#d8c7a0"].map(c=>`<button class="cal-swatch" data-act="setGameColor" data-v="${c}" style="background:${c};border:2px solid ${(state.sentinel.gameColor||'#f6cba9')===c?'var(--ink)':'transparent'}"></button>`).join("")}</div>
@@ -1989,6 +1999,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v2.8 · June 2026 — Kiko, keeper of the wishlist</b> 💌 say <b>"note for Eggie: …"</b> and your idea lands in Settings → Wishlist for Eggie (Eggie reads it from there — changes without the back-and-forth) · 🧩 Kiko now drives the hub too: calm/focus/larger-text modes, layout lock, hiding &amp; showing dashboard cards, the focus &amp; rest timer, your name/greeting/units, backups — all by chat · 🧹 he can tidy every list now (money entries, non-scale wins, joys, measurements, goals) · 🧠 and he knows even more: birthdays, recent weigh-ins, dose &amp; period history, brain-dump, stickies, joy jar, script drafts, recent money, your latest journal and your app prefs.</p>
       <p><b>v2.7 · June 2026 — Kiko sees everything</b> 🦊 Kiko now reads your <i>whole</i> hub — full Withings body composition (fat, muscle, body water, visceral, BMI, heart rate, with their changes), every trend over time, PCOS &amp; Mounjaro symptoms, sleep, water, measurements, money, sponsors, goals, schedule and more — so it answers from your real numbers and can spot links between them ("does my hydration affect my nausea?", "how's my muscle trending vs my fat?"). No more "I can't see that". 💗</p>
       <p><b>v2.6 · June 2026 — Tidier Health, Trends + Food</b> 📈 Weight now lives under Trends (all your graphs in one place) · ❄️ Health reflows: your daily feelings check (Energy, Anxiety, Mood, Nausea, Cravings, Water, Sleep — all trackable here now) sits up top with the Mounjaro side-effect check beside it, dose &amp; weight tuck under it, and the cycle section is folded into a quiet dropdown at the bottom · 💧 water now lives on Food &amp; Health, counted in full 40oz cups (goal 2–3) · 🍱 Food gains Meds AM/PM check-offs (linked to your Home habits) and a This-Week view of meals + protein/fibre over time.</p>
       <p><b>v2.5 · June 2026 — Weight line + week-by-week streams</b> 📈 the home weight trend is now a clean up-and-down line with your oldest &amp; newest weigh-in dates and clear low/now/high numbers · 🦊 a little health note links your hydration, muscle &amp; fat to how you feel and cheers you on · 🗓️ the stream schedule is now per-week — flip ‹ › to any week and plan it separately from your usual week, with fun per-day stream ideas (game updates, events, live streams) you can tap to add.</p>
@@ -2772,6 +2783,11 @@ const H={
     toast("details saved ✿"); render(); },
   async export(){ const rows=await DB.exportAll(); const blob=new Blob([JSON.stringify(rows,null,2)],{type:"application/json"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="mifuyu-health-backup-"+TODAY+".json"; a.click(); toast("backup downloaded 💾"); },
+  // --- 💌 wishlist for Eggie ---
+  async delEggieReq(el){ await setSent(n=>({...n,eggieRequests:(n.eggieRequests||[]).filter(r=>r.id!==el.dataset.v)})); toast("removed 💌"); render(); },
+  copyEggieReqs(){ const rs=(state.sentinel.eggieRequests||[]); if(!rs.length)return;
+    const t="MIFU'S WISHLIST FOR EGGIE — exported "+TODAY+"\n\n"+rs.map(r=>`• [${r.status||"new"}] ${r.date}${r.tab?" ("+r.tab+")":""}: ${r.text}`).join("\n");
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("copied — paste it to Eggie 💌"); },
 
   async addSticky(){ await addSticky(""); },
   toggleRest(){ toggleTimer(); },
@@ -3559,8 +3575,21 @@ function kikoDataSummary(){
     const med2=t.meds||{}; if(med2.am!=null||med2.pm!=null) L.push(`MEDS today: AM ${med2.am?"✓":"✗"}, PM ${med2.pm?"✓":"✗"}`);
     const rem=activeReminders(); if(rem.length) L.push(`REMINDERS active (${rem.length}): `+rem.slice(0,8).map(r=>`${r.text}${r.time?" @"+fmt12(r.time):""}${r.repeat&&r.repeat!=="none"?" ("+r.repeat+")":""}`).join("; "));
     const je=(s.journalEntries||[]); L.push(`JOURNAL: ${je.length} entries${je.some(e=>e.date===TODAY)?", journaled today ✓":", not yet today"}`);
-    const extras=[]; if((s.stickies||[]).length)extras.push(`${s.stickies.length} stickies`); if((s.captures||[]).length)extras.push(`${s.captures.length} brain-dump notes`); if((s.joyJar||[]).length)extras.push(`${s.joyJar.length} joys in the jar`);
-    if(extras.length) L.push("ALSO: "+extras.join(", "));
+    const je2=je.slice(-1)[0]; if(je2&&je2.text) L.push("LATEST JOURNAL ("+fmtDate(je2.date)+"): "+String(je2.text).replace(/\s+/g," ").slice(0,160)+(String(je2.text).length>160?"…":""));
+
+    // ===== EVERYTHING ELSE — so Kiko truly knows the whole hub =====
+    const bd=(s.birthdays||[]); if(bd.length) L.push("BIRTHDAYS: "+bd.map(b=>`${b.name} (${String(b.month).padStart(2,"0")}-${String(b.day).padStart(2,"0")})`).join(", "));
+    const wl5=wl.filter(x=>x.w!=null).slice(-5); if(wl5.length) L.push("RECENT WEIGH-INS: "+wl5.map(x=>`${fmtDate(x.date)} ${x.w}${u}`).join(" · "));
+    const dh=(s.doseHistory||[]); if(dh.length) L.push("DOSE HISTORY: "+dh.map(d=>`${d.dose}mg from ${fmtDate(d.started)}`).join(" → "));
+    const cyh=((s.cycle||{}).history||[]).slice(-3); if(cyh.length) L.push("PERIODS (last "+cyh.length+"): "+cyh.map(h=>fmtDate(h.start)+(h.end?"–"+fmtDate(h.end):" (open)")).join(", "));
+    const caps=(s.captures||[]); if(caps.length) L.push("BRAIN-DUMP ("+caps.length+"): "+caps.slice(-6).map(c=>c.text).join("; "));
+    const stk=(s.stickies||[]); if(stk.length) L.push("STICKIES ("+stk.length+"): "+stk.slice(-5).map(x=>String(x.html||x.text||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim().slice(0,40)).join("; "));
+    const joys=(s.joyJar||[]); if(joys.length) L.push("JOY JAR ("+joys.length+"): "+joys.slice(-8).join("; "));
+    const scr=(s.scripts||[]); if(scr.length) L.push("SCRIPT DRAFTS ("+scr.length+"): "+scr.slice(-5).map(x=>`${x.kind==="long"?"LF":"SF"} ${x.title||"(untitled)"}`).join("; "));
+    const vx=(s.eqVoice||[]); if(vx.length) L.push("VOICE SAMPLES taught: "+vx.length);
+    const mny5=(s.money||[]).slice(-5); if(mny5.length) L.push("RECENT MONEY ENTRIES: "+mny5.map(t2=>`${t2.dir==="in"?"+":"−"}€${t2.amount} ${t2.cat||""}${t2.desc?" ("+String(t2.desc).slice(0,24)+")":""} ${fmtDate(t2.date)}`).join("; "));
+    const erq=(s.eggieRequests||[]).filter(r=>r.status!=="done"); if(erq.length) L.push("EGGIE WISHLIST open ("+erq.length+"): "+erq.slice(-6).map(r=>r.text).join("; "));
+    L.push("PREFS: calm "+(PREF.calm?"on":"off")+", focus "+(PREF.focus?"on":"off")+", larger-text "+(PREF.text?"on":"off")+", layout "+((function(){try{return localStorage.getItem("layout-locked")==="1"}catch(e){return false}})()?"locked":"unlocked")+", weight unit "+u+", weight display "+(CONFIG.weightDisplay||"soft"));
 
     return L.join("\n");
   }catch(e){ return ""; }
@@ -3783,6 +3812,52 @@ async function execAgentAction(a){
       await setWeekSlots(weekStartISO(0),()=>[]);
       await setSent(n=>({...n,schedule:[]}));
       return "🔴 cleared this week's streams and your usual-week schedule"; }
+    /* ===== 💌 wishlist for Eggie — feature requests / change notes, stored for Eggie to read & build ===== */
+    if(T==="noteForEggie"){ if(!a.text)return null;
+      await setSent(n=>({...n,eggieRequests:[...(n.eggieRequests||[]),{id:"er"+Date.now(),date:TODAY,text:String(a.text).slice(0,500),tab:state.tab,status:"new"}]}));
+      return "💌 noted for Eggie: "+a.text; }
+    /* ===== app & comfort controls — Kiko can drive the whole hub ===== */
+    if(T==="setPref"){ const map={calm:"mifu-calm",text:"mifu-text",focus:"mifu-focus"}; const k=map[a.pref]; if(!k)return null;
+      try{ localStorage.setItem(k,a.on?"1":"0"); }catch(e){} applyPrefs();
+      return ({calm:"❄️ calm mode ",text:"🔠 larger text ",focus:"🌙 focus mode "})[a.pref]+(a.on?"on":"off"); }
+    if(T==="lockLayout"){ try{ localStorage.setItem("layout-locked",a.on?"1":"0"); }catch(e){} applyPrefs(); return a.on?"🔒 layout locked":"🔓 layout unlocked"; }
+    if(T==="hideCard"||T==="showCard"){ const tab=["home","care","food"].includes(a.tab)?a.tab:"home";
+      try{ if(!MODULAR_LABELS[tab]||!Object.keys(MODULAR_LABELS[tab]).length){ ({home:viewHome,care:viewCare,food:viewFood})[tab](); } }catch(e){}
+      const labels=MODULAR_LABELS[tab]||{}; const entries=Object.entries(labels).map(([k,l])=>({k,l})); if(!entries.length)return null;
+      const i=findByText(entries,a.card,"l"); if(i<0)return null; const key=entries[i].k;
+      await setLayout(tab,L=>{ L.hidden={...L.hidden,[key]:T==="hideCard"}; if(T==="showCard"&&!L.order.includes(key))L.order.push(key); });
+      return (T==="hideCard"?"🙈 hid “":"👀 showing “")+entries[i].l+"” on "+tab; }
+    if(T==="startTimer"){ const mode=a.mode==="rest"?"rest":"focus";
+      if(!TIMER.open) toggleTimer();
+      setTimerMode(mode);
+      if(mode==="focus"){ const w=Number(a.work)||25, b2=Number(a.break)||5; TIMER.workMin=w; TIMER.breakMin=b2; TIMER.phase="focus"; TIMER.cycles=0; TIMER.total=w*60; TIMER.secs=TIMER.total; }
+      else { const r=Number(a.minutes)||TIMER.restMin||5; TIMER.restMin=r; TIMER.total=r*60; TIMER.secs=TIMER.total; }
+      if(!TIMER.running) timerToggle(); else paintTimer();
+      return mode==="focus"?("🍅 focus timer on — "+TIMER.workMin+"/"+TIMER.breakMin):("🫧 rest timer on — "+TIMER.restMin+" min"); }
+    if(T==="stopTimer"){ if(TIMER.running) timerToggle(); if(TIMER.open) toggleTimer(); return "⏹ timer closed"; }
+    if(T==="setAppConfig"){ const out={};
+      if(a.name)out.name=String(a.name).slice(0,60); if(a.greeting)out.greeting=String(a.greeting).slice(0,60);
+      if(["kg","lb"].includes(a.weightUnit))out.weightUnit=a.weightUnit;
+      if(["soft","numbers","hidden"].includes(a.weightDisplay))out.weightDisplay=a.weightDisplay;
+      if(!Object.keys(out).length)return null;
+      await setSent(n=>({...n,appConfig:{...(n.appConfig||{}),...out}})); applyAppConfig();
+      return "📝 details updated"; }
+    if(T==="exportBackup"){ setTimeout(()=>{ try{ H.export(); }catch(e){} },300); return "💾 downloading your backup"; }
+    /* ===== tidy-up controls for the remaining lists ===== */
+    if(T==="removeMoney"){ let hit=null; await setSent(n=>{ const m=(n.money||[]).slice(); const i=findByText(m,a.desc,"desc"); if(i<0)return n; hit=m[i]; m.splice(i,1); return {...n,money:m}; });
+      return hit?("🗑️ removed "+(hit.dir==="in"?"+":"−")+"€"+hit.amount+" · "+(hit.desc||hit.cat||"entry")):null; }
+    if(T==="removeNSV"){ let hit=null; await setSent(n=>{ const v=(n.nsv||[]).slice(); const i=findByText(v,a.text,"t"); if(i<0)return n; hit=v[i].t; v.splice(i,1); return {...n,nsv:v}; }); return hit?"🗑️ removed: "+hit:null; }
+    if(T==="removeJoy"){ let hit=null; const q=String(a.text||"").toLowerCase().trim(); if(!q)return null;
+      await setSent(n=>{ const j=(n.joyJar||[]).slice(); const i=j.findIndex(x=>String(x).toLowerCase().includes(q)); if(i<0)return n; hit=j[i]; j.splice(i,1); return {...n,joyJar:j}; });
+      return hit?"🗑️ removed joy: "+hit:null; }
+    if(T==="removeMeasurement"){ let hit=null; await setSent(n=>{ const m=(n.measurements||[]).slice(); let i=(a.date&&a.date!=="last")?m.findIndex(x=>x.date===a.date):m.length-1; if(i<0||!m[i])return n; hit=m[i].date; m.splice(i,1); return {...n,measurements:m}; });
+      return hit?"🗑️ removed measurements from "+fmtDate(hit):null; }
+    if(T==="editGoal"){ let hit=null; if(!a.newText)return null;
+      await setSent(n=>{ const keys=a.period==="month"?["goalsMonth"]:a.period==="week"?["goalsWeek"]:["goalsWeek","goalsMonth"];
+        for(const key of keys){ const g=(n[key]||[]).slice(); const i=findByText(g,a.text,"text");
+          if(i>=0){ hit=a.newText; g[i]={...g[i],text:a.newText}; return {...n,[key]:g}; } }
+        return n; });
+      return hit?"✏️ goal → "+hit:null; }
   }catch(e){ console.error("action failed",T,e); return null; }
   return null;
 }
