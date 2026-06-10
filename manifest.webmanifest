@@ -8,7 +8,6 @@
   "background_color": "#eef2fb",
   "theme_color": "#758ac6",
   "icons": [
-    { "src": "Sakura.png", "sizes": "any", "type": "image/png", "purpose": "any" },
-    { "src": "Logo.png", "sizes": "any", "type": "image/png", "purpose": "any" }
+    { "src": "AYAYA.png", "sizes": "300x300", "type": "image/png", "purpose": "any" }
   ]
 }

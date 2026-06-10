@@ -8,8 +8,8 @@ self.addEventListener("push", e => {
   catch (_) { try { d.body = e.data.text(); } catch (__) {} }
   e.waitUntil(self.registration.showNotification(d.title, {
     body: d.body,
-    icon: "Sakura.png",
-    badge: "Sakura.png",
+    icon: "sakura.png",
+    badge: "sakura.png",
     tag: d.tag || undefined,
     data: { url: d.url || "." }
   }));

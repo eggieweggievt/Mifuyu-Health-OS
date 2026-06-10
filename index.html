@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-08.9";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-10.1";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -427,8 +427,6 @@ const CONFIG = {
             ["X","https://x.com/mifuyuvt"],["TikTok","https://www.tiktok.com/@mifuyuvt"],
             ["Instagram","https://www.instagram.com/mifuyuvt"],["Bluesky","https://bsky.app/profile/mifuyuvt.bsky.social"],
             ["Kick","https://kick.com/mifuyuvt"],["Discord","https://discord.gg/mifuyu"] ],
-  // Kiko pet sprite — one frame cropped from the sheet. If the framing looks off, nudge fx/fy/fw/fh.
-  pet:{ sheet:"fox.png", sheetW:213, sheetH:267, fx:2, fy:2, fw:58, fh:62, scale:1.4 },
 };
 
 /* ===================== SUPABASE / DEMO ===================== */
@@ -524,7 +522,7 @@ function seedDemo(){
     captures:[ {id:"cap1",text:"bit idea: rate chat's comfort games out of 10",date:TODAY},{id:"cap2",text:"ask Dr about the cycle gap at next appt",date:TODAY} ],
     calendarEvents:[
       {id:"ce1",title:"Collab stream with Eggie 🎀",date:dayAgo(-2),endDate:null,color:"#ff9ed8",time:"15:00",tz:"Europe/Amsterdam",note:"co-op horror"},
-      {id:"ce2",title:"Wuthering Waves 2.x update",date:dayAgo(-1),endDate:dayAgo(-22),color:"#f6cba9",time:"04:00",tz:"Asia/Tokyo",note:"new region + limited banners",src:"game"} ],
+      {id:"ce2",title:"Wuthering Waves 2.x update",date:dayAgo(-1),endDate:dayAgo(20),color:"#f6cba9",time:"04:00",tz:"Asia/Tokyo",note:"new region + limited banners",src:"game"} ],
     gameColor:"#f6cba9",
     appConfig:{},
   };
@@ -2665,8 +2663,6 @@ const H={
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=v; return {...n,mounjaro}; }); toast("saved 💗"); render(); },
   async mjToggle(el){ const f=el.dataset.f;
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro[f]=!mounjaro[f]; return {...n,mounjaro}; }); render(); },
-  async mjWater(el){ const d=Number(el.dataset.v);
-    await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro.water=Math.max(0,(mounjaro.water||0)+d); return {...n,mounjaro}; }); render(); },
   async waterCup(el){ const d=Number(el.dataset.v)*CUPS_PER_40OZ;   // ±1 full 40oz cup = ±5 internal cups
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro.water=Math.max(0,(mounjaro.water||0)+d); return {...n,mounjaro}; }); render(); },
   async sleepStep(el){ const d=Number(el.dataset.v);
@@ -2764,7 +2760,6 @@ const H={
   async export(){ const rows=await DB.exportAll(); const blob=new Blob([JSON.stringify(rows,null,2)],{type:"application/json"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="mifuyu-health-backup-"+TODAY+".json"; a.click(); toast("backup downloaded 💾"); },
 
-  async capSticky(){ const inp=$("#capInput"); const t=(inp.value||"").trim(); if(!t)return; await addSticky(t); inp.value=""; toast("on a sticky 🗒️"); },
   async addSticky(){ await addSticky(""); },
   toggleRest(){ toggleTimer(); },
 
@@ -2868,7 +2863,6 @@ const H={
   manageCards(el){ manageCardsModal(el.dataset.tab||state.tab); },
   async cardToggle(el){ const k=el.dataset.w, tab=el.dataset.tab||state.tab; await setLayout(tab,L=>{ L.hidden={...L.hidden,[k]:!L.hidden[k]}; if(!L.hidden[k]&&!L.order.includes(k))L.order.push(k); }); manageCardsModal(tab); render(); },
   async resetLayout(el){ const tab=el.dataset.tab||state.tab; await setSent(n=>{ const layout={...(n.layout||{})}; delete layout[tab]; return {...n,layout}; }); $("#modal").innerHTML=""; toast("layout reset 🌸"); render(); },
-  noop(){},
   editSchedule(){ $("#modal").innerHTML=""; state.tab="home"; state.schedEdit=true; render(); },
   async saveCalEvent(){
     const title=($("#calTitle").value||"").trim(), date=$("#calDate").value, eid=$("#calEid").value;
@@ -3863,7 +3857,7 @@ function checkTimedReminders(){
       if(nextReminderDate(r)!==TODAY)return;
       if((r.time||"09:00")>hm)return;
       const key="mifu-cr-"+r.id+"-"+TODAY; if(localStorage.getItem(key))return;
-      try{ new Notification("⏰ "+r.text,{body:(r.time?"it's time · "+fmt12(r.time):"today")+" ❄️",icon:"Sakura.png"}); localStorage.setItem(key,"1"); }catch(e){}
+      try{ new Notification("⏰ "+r.text,{body:(r.time?"it's time · "+fmt12(r.time):"today")+" ❄️",icon:"sakura.png"}); localStorage.setItem(key,"1"); }catch(e){}
     });
   }catch(e){}
 }
@@ -3885,7 +3879,7 @@ function checkReminders(){
     items.forEach(it=>{ if(!(it.offs||offs).includes(it.days))return; const key="mifu-notif-"+it.id+"-"+it.date+"-"+it.days;
       if(localStorage.getItem(key))return;
       const when=it.days===0?" — today!":it.days===1?" — tomorrow":it.days>=28?" — in about a month":" — in "+it.days+" days";
-      try{ new Notification("❄️ Mifuyu reminder", {body: it.title+when, icon:"Sakura.png"}); localStorage.setItem(key,"1"); }catch(e){}
+      try{ new Notification("❄️ Mifuyu reminder", {body: it.title+when, icon:"sakura.png"}); localStorage.setItem(key,"1"); }catch(e){}
     });
   }catch(e){ console.error(e); }
 }
