@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-10.1";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-10.2";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -644,7 +644,8 @@ function manageCardsModal(tab){
     <button class="btn" data-act="resetLayout" data-tab="${tab}" style="margin-top:12px">↺ reset this page's layout</button>
   </div></div>`;
 }
-const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, trendAuto:true, wtMetrics:["w"], wtType:"area", wtRange:"all" };
+const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plannerSpoon:"all", trendMetrics:["mood"], trendType:"area", trendDays:14, wtMetrics:["w"], wtType:"area", wtRange:"all" };
+try{ state.trendType=localStorage.getItem("mifu-trend-type")||state.trendType; state.wtType=localStorage.getItem("mifu-wt-type")||state.wtType; }catch(e){}   // remember her chart choices
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
 const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["health","❄️ Health"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
@@ -707,7 +708,7 @@ async function render(){
     if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
     if(state.tab==='planner'){ try{ wireTaskDnD(); }catch(e){ console.error(e); } } // board drag (mouse) — touch uses ◀▶
-    if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } } else { stopTrendsLoop(); }
+    if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } }
     if(MODULAR_TABS.includes(state.tab)){ requestAnimationFrame(()=>{try{layoutHome();}catch(e){}}); setTimeout(()=>{try{layoutHome();}catch(e){}},150); setTimeout(()=>{try{layoutHome();}catch(e){}},520); }
     if(state.tab==='kiko'){ KIKO.open=false; const cc=$("#kikoChat"); if(cc)cc.classList.add("hidden"); try{ paintKiko(); }catch(e){} }   // fill the Ask-Kiko chat panel
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
@@ -783,10 +784,10 @@ function cardGoals(){
     <div class="card-head"><span class="label">Goals 🌷</span></div>
     <div class="label" style="color:var(--peri-deep);margin-bottom:2px">This week</div>
     ${list(wk,"week")}
-    <div style="display:flex;gap:6px;margin:4px 0 12px"><input class="inp" id="goalWeek" placeholder="+ add a goal"><button class="btn" data-act="addGoal" data-p="week">add</button></div>
+    <div style="display:flex;gap:6px;margin:4px 0 12px"><input class="inp" id="goalWeek" placeholder="+ add a goal" value="${esc((state.goalDraft||{}).week||'')}"><button class="btn" data-act="addGoal" data-p="week">add</button></div>
     <div class="label" style="color:var(--peri-deep);margin-bottom:2px">This month</div>
     ${list(mo,"month")}
-    <div style="display:flex;gap:6px;margin-top:4px"><input class="inp" id="goalMonth" placeholder="+ add a goal"><button class="btn" data-act="addGoal" data-p="month">add</button></div>
+    <div style="display:flex;gap:6px;margin-top:4px"><input class="inp" id="goalMonth" placeholder="+ add a goal" value="${esc((state.goalDraft||{}).month||'')}"><button class="btn" data-act="addGoal" data-p="month">add</button></div>
   </section>`;
 }
 function cardJournal(){
@@ -827,7 +828,7 @@ function cardHabits(){
   return `<section class="panel">
     <div class="card-head"><span class="label">Daily habits ✅</span><span style="display:flex;gap:6px;align-items:center"><span class="pill ${done&&done===list.length?'pill-mint':'pill-gray'}">${done}/${list.length}${done&&done===list.length?' ♡':''}</span><button class="btn" data-act="habitEdit">${ed?'done':'edit'}</button></span></div>
     ${groups.map(([g,label])=>{ const its=list.filter(h=>(h.energy||"med")===g); return its.length?`<div class="label" style="margin:6px 0 2px;color:var(--peri-deep)">${label}</div>${its.map(row).join("")}`:""; }).join("")}
-    ${ed?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><input class="inp" id="habitInput" placeholder="new habit…" style="flex:1;min-width:130px"><select class="inp" id="habitEnergy" style="max-width:92px;flex:0 0 auto"><option value="low">🌙 low</option><option value="med" selected>🌤 med</option><option value="high">🌞 high</option></select><button class="btn btn-grad" data-act="addHabitUI">add</button></div>`:''}
+    ${ed?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><input class="inp" id="habitInput" placeholder="new habit…" style="flex:1;min-width:130px" value="${esc((state.habitDraft||{}).text||'')}"><select class="inp" id="habitEnergy" style="max-width:92px;flex:0 0 auto">${[["low","🌙 low"],["med","🌤 med"],["high","🌞 high"]].map(([v,l])=>`<option value="${v}" ${(((state.habitDraft||{}).energy)||"med")===v?'selected':''}>${l}</option>`).join("")}</select><button class="btn btn-grad" data-act="addHabitUI">add</button></div>`:''}
     ${weekStrip("habits",list.length)}
   </section>`;
 }
@@ -837,7 +838,7 @@ function cardGacha(){
   return `<section class="panel">
     <div class="card-head"><span class="label">Gacha dailies 🎮</span><span style="display:flex;gap:6px;align-items:center"><span class="pill ${done&&done===list.length?'pill-mint':'pill-gray'}">${done}/${list.length}${done&&done===list.length?' ✦':''}</span><button class="btn" data-act="gachaEdit">${ed?'done':'edit'}</button></span></div>
     <div class="chiprow" style="margin-top:4px">${list.map(g=>`<button class="chiptog ${checks[g.id]?'on':''}" data-act="gachaToggle" data-v="${g.id}"><span>${checks[g.id]?'✓':'•'}</span>${esc(g.name)}${ed?`<span class="x" data-act="delGacha" data-v="${g.id}" style="margin-left:2px">✕</span>`:''}</button>`).join("")}</div>
-    ${ed?`<div style="display:flex;gap:6px;margin-top:8px"><input class="inp" id="gachaInput" placeholder="add a game…"><button class="btn btn-grad" data-act="addGachaUI">add</button></div>`:''}
+    ${ed?`<div style="display:flex;gap:6px;margin-top:8px"><input class="inp" id="gachaInput" placeholder="add a game…" value="${esc(state.gachaDraft||'')}"><button class="btn btn-grad" data-act="addGachaUI">add</button></div>`:''}
     ${weekStrip("gacha",list.length)}
     <p class="soft" style="font-size:10.5px;margin:6px 0 0;text-align:center">checks reset each day — past days live in the little bars 💜</p>
   </section>`;
@@ -891,7 +892,7 @@ function healthInsight(){
   const unit=CONFIG.weightUnit||"kg";
   const pair=k=>{ const a=wl.filter(x=>x[k]!=null); return a.length>=2?[a[a.length-2],a[a.length-1]]:null; };
   const msgs=[];
-  const w=pair("water"); if(w&&w[1].water<w[0].water-0.3) msgs.push("Your hydration dipped since your last reading 💧 — feeling a little lower-energy today would make total sense. A glass of water (and maybe a salty snack) could help you feel steadier. ❄️");
+  const w=pair("water"); if(w&&w[1].water<w[0].water-0.3) msgs.push("Your scale's body-water reading dipped a touch since last time 💧 — day-to-day wobble there is completely normal, and a few extra sips today never hurt. ❄️");
   const f=pair("fat"), mu=pair("muscle");
   if((f&&f[1].fat<f[0].fat-0.2)||(mu&&mu[1].muscle>mu[0].muscle+0.1)) msgs.push("Muscle and fat naturally wobble day to day, but yours are clearly heading the right direction 💪✨ — keep going, keep trying, you're doing it.");
   const ws=wl.filter(x=>x.w!=null);
@@ -1244,7 +1245,7 @@ function viewWeight(){
       ${wtKeys.length>1?'<p class="soft" style="font-size:10.5px;text-align:center;margin-top:8px">Comparing several — each line is scaled to its own range.</p>':''}
     </div>
     <div class="field"><div class="label" style="margin-bottom:6px">${dueWeekly?'🗓️ Time for a gentle weekly weigh-in':'✅ Weighed in recently — no rush'}</div>
-      <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="wInput" placeholder="${CONFIG.weightUnit}" style="max-width:140px"><button class="btn btn-grad" data-act="logWeight">Log it</button></div>
+      <div style="display:flex;gap:8px"><input class="inp" type="number" step="0.1" id="wInput" placeholder="${CONFIG.weightUnit}" style="max-width:140px" value="${esc(state.wDraft||'')}"><button class="btn btn-grad" data-act="logWeight">Log it</button></div>
       <p class="soft" style="font-size:11px;margin-top:6px">Tip: same day &amp; time each week makes the trend cleaner — but a missed week is totally fine.</p></div>
   </section>
 
@@ -1575,7 +1576,7 @@ function viewKiko(){
     ["💉","Log shot","seed","log my shot today: "],
     ["⚖️","Log weight","seed","log my weight "],
     ["🩸","Period start","send","my period started today"],
-    ["🧠","Park a thought","seed","park this: "],
+    ["📥","Park a thought","seed","park this: "],
     ["✍️","Write a script","seed","help me script a short about "],
     ["📓","Daily journal","act","startKikoJournal"],
     ["🧾","Tax prep","act","startTaxPrep"],
@@ -1605,7 +1606,7 @@ function viewKiko(){
       <div class="label" style="margin-bottom:8px">⚙️ Kiko settings</div>
       <div class="chiprow">
         <button class="chiptog ${localStorage.getItem('kiko-voice')==='1'?'on':''}" data-act="kikoVoiceToggle"><span>${localStorage.getItem('kiko-voice')==='1'?'✓':''}</span>🔊 Speak replies</button>
-        <button class="chiptog ${localStorage.getItem('kiko-proactive')!=='0'?'on':''}" data-act="kikoProactiveToggle"><span>${localStorage.getItem('kiko-proactive')!=='0'?'✓':''}</span>🌅 Daily check-ins</button>
+        <button class="chiptog ${localStorage.getItem('kiko-proactive')!=='0'?'on':''}" data-act="kikoProactiveToggle"><span>${localStorage.getItem('kiko-proactive')!=='0'?'✓':''}</span>🌅 Check-ins &amp; greetings</button>
         <button class="chiptog" data-act="kikoClearChat"><span>🧹</span>New conversation</button>
       </div>
       <p class="soft" style="font-size:11px;margin:8px 0 0">Tip: say "use your smart brain" for the big model on hard questions, or "quick:" for snappy ones — Kiko picks automatically otherwise. 🎙️ in the chat bar lets you talk instead of type.</p>
@@ -1689,11 +1690,11 @@ function viewMoney(){
       <div class="label" style="margin-bottom:6px">➕ Add a transaction</div>
       <div class="seg" style="margin-bottom:8px"><button data-act="moneyDir" data-v="in" class="${dir==='in'?'on':''}">＋ Income</button><button data-act="moneyDir" data-v="out" class="${dir==='out'?'on':''}">－ Expense</button></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="field"><div class="label">Date</div><input class="inp" type="date" id="mn_date" value="${TODAY}"></div>
-        <div class="field"><div class="label">Amount (€)</div><input class="inp" type="number" step="0.01" id="mn_amount" placeholder="0.00"></div>
+        <div class="field"><div class="label">Date</div><input class="inp" type="date" id="mn_date" value="${esc((state.moneyDraft||{}).date||TODAY)}"></div>
+        <div class="field"><div class="label">Amount (€)</div><input class="inp" type="number" step="0.01" id="mn_amount" placeholder="0.00" value="${esc((state.moneyDraft||{}).amount||'')}"></div>
       </div>
       <div class="field" style="margin-top:8px"><div class="label">Category</div><select class="inp" id="mn_cat">${(dir==='in'?MONEY_IN:MONEY_OUT).map(c=>`<option>${c}</option>`).join("")}</select></div>
-      <input class="inp" id="mn_desc" placeholder="description (e.g. Twitch payout July · new microphone)" style="margin-top:8px">
+      <input class="inp" id="mn_desc" placeholder="description (e.g. Twitch payout July · new microphone)" style="margin-top:8px" value="${esc((state.moneyDraft||{}).desc||'')}">
       <button class="btn btn-grad" data-act="addMoney" style="margin-top:8px">Add</button>
     </section>
 
@@ -1836,7 +1837,6 @@ function trendWord(metricKey){
   };
   const m=W[metricKey]||W.mood; return rising?m.up:falling?m.down:m.flat;
 }
-let TRENDS_IV=null;
 function paintTrendChart(){
   const host=document.getElementById("trendChartHost"); if(!host)return;
   const keys=(state.trendMetrics&&state.trendMetrics.length)?state.trendMetrics:["mood"];
@@ -1851,10 +1851,6 @@ function paintTrendChart(){
     else { stat.textContent = "each line scaled to its own range, so you can compare shapes"; } }
   const w=document.getElementById("trendWord"); if(w) w.textContent = keys.length===1 ? trendWord(keys[0]) : "";
 }
-function startTrendsLoop(){ stopTrendsLoop(); if(PREF.calm||state.trendAuto===false) return;
-  TRENDS_IV=setInterval(()=>{ const i=TREND_TYPES.indexOf(state.trendType||"area"); state.trendType=TREND_TYPES[(i+1)%TREND_TYPES.length]; paintTrendChart(); },4500); }
-function stopTrendsLoop(){ if(TRENDS_IV){ clearInterval(TRENDS_IV); TRENDS_IV=null; } }
-
 function viewTrends(){
   const {byDate}=buildSeries();
   const sel=(state.trendMetrics&&state.trendMetrics.length)?state.trendMetrics:["mood"];
@@ -1929,7 +1925,7 @@ function viewSettings(){
       <option value="numbers" ${CONFIG.weightDisplay==='numbers'?'selected':''}>Numbers visible</option>
       <option value="hidden" ${CONFIG.weightDisplay==='hidden'?'selected':''}>Hide numbers by default</option></select></div>
     <button class="btn btn-grad" data-act="saveCfg">Save details</button>
-    <p class="soft" style="font-size:11px;margin-top:8px">For permanent changes, edit the <b>CONFIG</b> block at the top of index.html.</p>
+    <p class="soft" style="font-size:11px;margin-top:8px">Saved to your database — these stick across reloads and devices. ❄️</p>
   </section>
 
   <section class="panel">
@@ -2079,6 +2075,10 @@ function taskBoard(list){
       ${col.map(taskCard).join("")||`<div class="label" style="padding:8px 6px;opacity:.55">—</div>`}</div>`;
   }).join("")}</div>`;
 }
+/* keep the add-a-task form alive across filter/sort/view re-renders */
+function capturePlnDraft(){ const g=id=>{const e=document.getElementById(id);return e?e.value:null;};
+  const t=g("plnText"); if(t==null) return;
+  state.plnDraft={text:t,bucket:g("plnBucket"),spoon:g("plnSpoon"),due:g("plnDue")}; }
 function viewPlanner(){
   if(state.plannerView===undefined){ try{state.plannerView=localStorage.getItem("mifu-planner-view")||"list";}catch(e){state.plannerView="list";} }
   if(state.boardSort===undefined){ try{state.boardSort=localStorage.getItem("mifu-board-sort")||"custom";}catch(e){state.boardSort="custom";} }
@@ -2102,11 +2102,11 @@ function viewPlanner(){
       <div class="seg">${SORTS.map(([v,l])=>`<button data-act="plnSort" data-v="${v}" class="${(state.boardSort||'custom')===v?'on':''}">${l}</button>`).join("")}</div>
     </div>
     <div class="soft-card">
-      <input class="inp" id="plnText" placeholder="add a task… (Enter)">
+      <input class="inp" id="plnText" placeholder="add a task… (Enter)" value="${esc((state.plnDraft||{}).text||'')}">
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <select class="inp" id="plnBucket" style="max-width:175px">${TASK_BUCKETS.map(([v,e,l])=>`<option value="${v}">${e} ${l}</option>`).join("")}</select>
-        <select class="inp" id="plnSpoon" style="max-width:130px">${TASK_SPOONS.map(([v,e,l])=>`<option value="${v}" ${v==='some'?'selected':''}>${e} ${l}</option>`).join("")}</select>
-        <span style="display:inline-flex;flex-direction:column;gap:2px;flex:1 1 140px;min-width:0;max-width:170px"><span class="soft" style="font-size:10px">due · optional</span><input class="inp" id="plnDue" type="date"></span>
+        <select class="inp" id="plnBucket" style="max-width:175px">${TASK_BUCKETS.map(([v,e,l])=>`<option value="${v}" ${(state.plnDraft||{}).bucket===v?'selected':''}>${e} ${l}</option>`).join("")}</select>
+        <select class="inp" id="plnSpoon" style="max-width:130px">${TASK_SPOONS.map(([v,e,l])=>`<option value="${v}" ${(((state.plnDraft||{}).spoon)||'some')===v?'selected':''}>${e} ${l}</option>`).join("")}</select>
+        <span style="display:inline-flex;flex-direction:column;gap:2px;flex:1 1 140px;min-width:0;max-width:170px"><span class="soft" style="font-size:10px">due · optional</span><input class="inp" id="plnDue" type="date" value="${esc((state.plnDraft||{}).due||'')}"></span>
         <button class="btn btn-grad" data-act="addTask">Add</button>
       </div>
     </div>
@@ -2114,6 +2114,7 @@ function viewPlanner(){
   ${board?`<section class="panel">${taskBoard(shown)}</section>`:`
   ${TASK_BUCKETS.map(([b,e,l])=>{ const items=byBucket(b); if(!items.length) return "";
     return `<section class="panel"><div class="label" style="margin-bottom:8px">${e} ${l}</div>${items.map(taskRow).join("")}</section>`; }).join("")}
+  ${(function(){ const known=TASK_BUCKETS.map(b=>b[0]); const stray=sortTasks(open.filter(t=>!known.includes(t.bucket))); return stray.length?`<section class="panel"><div class="label" style="margin-bottom:8px">🗂 Other</div>${stray.map(taskRow).join("")}</section>`:""; })()}
   ${open.length?"":`<section class="panel"><p class="soft" style="font-size:12.5px;text-align:center;margin:0">Nothing here right now — rest is allowed. 🌸</p></section>`}
   ${done.length?`<details class="acc"><summary>✅ Done (${done.length})</summary><div class="acc-body">
     ${done.map(t=>`<div class="listrow"><span class="grow soft" style="text-decoration:line-through">${esc(t.text)}</span>${duePill(t)}<button class="x" data-act="delTask" data-v="${t.id}">✕</button></div>`).join("")}
@@ -2343,7 +2344,6 @@ function sponsorBlock(){
 function viewOptimize(){
   const m=OPT.mode;
   return `
-  ${sponsorBlock()}
   <section class="panel">
     <div class="card-head"><h2 style="font-size:18px">🔴 ${m==='video'?'Video':'Stream'} optimization</h2>
       <div class="seg">
@@ -2359,6 +2359,7 @@ function viewOptimize(){
   ${OPT.err?`<div class="disc">⚠️<span>${esc(OPT.err)}</span></div>`:''}
   ${m==='video'?(OPT.video?optVideoResult(OPT.video):''):(OPT.stream?optStreamResult(OPT.stream):'')}
   ${thumbCard()}
+  ${sponsorBlock()}
   <details class="acc" style="margin-top:14px"><summary>📺 Channel snapshot</summary><div class="acc-body">
     <button class="btn btn-grad" data-act="optChannel" ${OPT.busy==='channel'?'disabled':''}>${OPT.busy==='channel'?'…':'Pull '+esc(CONFIG.youtube.handle)}</button>
     ${OPT.channel?channelBlock(OPT.channel):''}
@@ -2389,7 +2390,6 @@ function calShift(iso,delta){ const d=new Date(iso+"T00:00"); d.setDate(d.getDat
 function renderCalendar(){
   const sent=state.sentinel||{};
   const events=sent.calendarEvents||[];
-  const schedule=sent.schedule||[];
   const gameColor=sent.gameColor||GAME_COLOR_DEFAULT;
   const showStreams=state.calShowStreams!==false, showGames=state.calShowGames!==false, showEvents=state.calShowEvents!==false, showBdays=state.calShowBdays!==false;
   if(!state.calRef){ const t=new Date(); state.calRef=new Date(t.getFullYear(),t.getMonth(),1); }
@@ -2398,13 +2398,12 @@ function renderCalendar(){
   const gridStart=new Date(y,m,1-startDow);
   const monthName=ref.toLocaleDateString("en-US",{month:"long",year:"numeric"});
   const dows=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const dayShortFull=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   let cells="";
   for(let i=0;i<42;i++){
     const d=new Date(gridStart); d.setDate(gridStart.getDate()+i);
     const ds=d.toLocaleDateString("en-CA");
     const inMonth=d.getMonth()===m, isToday=ds===TODAY;
-    const dayShort=dayShortFull[d.getDay()];
+    const dayShort=dows[d.getDay()];
     const streamChips=showStreams?slotsForDate(d).filter(s=>s.day===dayShort).map(s=>`<div class="cal-stream" data-act="editSchedule" title="Stream day — tap to edit your schedule">🔴 ${s.time?esc(s.time)+" · ":""}${esc(s.show||s.title||"Stream")}</div>`).join(""):"";
     const bdayChips=showBdays?(sent.birthdays||[]).filter(b=>(d.getMonth()+1)===Number(b.month)&&d.getDate()===Number(b.day)).map(b=>`<div class="cal-bday" data-act="scrollAgenda" title="🎂 ${esc(b.name)}'s birthday">🎂 ${esc(b.name)}</div>`).join(""):"";
     const dow=d.getDay();
@@ -2459,22 +2458,19 @@ function gamesTrackedCard(sent){
 /* ----- Events & Birthdays agenda + reminder settings (under the calendar) ----- */
 function nextBirthdayInfo(b){
   const today=new Date(TODAY+"T00:00"); const y=today.getFullYear();
-  let d=new Date(y, Number(b.month)-1, Number(b.day));
-  if(d<today) d=new Date(y+1, Number(b.month)-1, Number(b.day));
+  // clamp to the month's real length so Feb-29 birthdays land on Feb-28 in non-leap years (not Mar 1)
+  const mk=yy=>{ const M=Number(b.month),D=Number(b.day),last=new Date(yy,M,0).getDate(); return new Date(yy,M-1,Math.min(D,last)); };
+  let d=mk(y); if(d<today) d=mk(y+1);
   return { date:d.toLocaleDateString("en-CA"), days:Math.round((d-today)/86400000) };
 }
 function whenLabel(days){ return days===0?"<b>today</b>":days===1?"<b>tomorrow</b>":("in "+days+" days"); }
 function calAgenda(sent){
-  const rem=sent.reminders||{};
-  const OFFSETS=[[0,"Same day"],[1,"1 day before"],[3,"3 days before"],[7,"1 week before"]];
-  const offs=rem.offsets||[0,1];
   const events=(sent.calendarEvents||[]).filter(e=>(e.endDate||e.date)>=TODAY).sort((a,b)=>(a.date+(a.time||"")<b.date+(b.time||"")?-1:1)).slice(0,12);
   const bdays=(sent.birthdays||[]).map(b=>({...b,...nextBirthdayInfo(b)})).sort((a,b)=>a.days-b.days);
   const evRows=events.length?events.map(ev=>{ const days=Math.round((new Date(ev.date+"T00:00")-new Date(TODAY+"T00:00"))/86400000);
       return `<div class="agenda-row"><span class="agenda-when">${days<0?"now":whenLabel(days)}</span><span class="agenda-dot" style="background:${ev.src==="game"?(sent.gameColor||GAME_COLOR_DEFAULT):(ev.color||CAL_COLORS[0])}"></span><span class="grow" data-act="calEvent" data-eid="${ev.id}" style="cursor:pointer">${esc(ev.title)} <span class="soft" style="font-size:11px">· ${fmtDate(ev.date)}${ev.time?" · "+fmt12(ev.time):""}</span></span></div>`;
     }).join(""):`<p class="soft" style="font-size:12.5px">No upcoming events — tap any day above to add one. ❄️</p>`;
   const bdayRows=bdays.length?bdays.map(b=>`<div class="agenda-row"><span class="agenda-when">${whenLabel(b.days)}</span><span class="agenda-dot" style="background:var(--lav)"></span><span class="grow">🎂 ${esc(b.name)} <span class="soft" style="font-size:11px">· ${fmtDate(b.date)}</span></span><button class="x" data-act="delBirthday" data-v="${b.id}" title="remove">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">No birthdays yet — add the ones you never want to forget. 🎂</p>`;
-  const notif = (typeof Notification!=="undefined") ? Notification.permission : "unsupported";
   return `
   <section class="panel" id="agendaPanel" style="max-width:920px;margin:14px auto 0">
     <div class="card-head"><h2 style="font-size:17px">🎉 Events &amp; birthdays</h2></div>
@@ -2509,7 +2505,7 @@ function remindersCard(){
       ${OFFSETS.map(([v,l])=>`<button class="chiptog ${offs.includes(v)?'on':''}" data-act="remOffset" data-v="${v}"><span>${offs.includes(v)?'✓':''}</span>${l}</button>`).join("")}
     </div>
     <div class="chiprow" style="margin-bottom:10px">
-      <button class="chiptog ${rem.browser?'on':''}" data-act="remBrowser"><span>${rem.browser?'✓':''}</span>💻 Browser pop-ups${notif==="denied"?" (blocked in browser)":""}</button>
+      <button class="chiptog ${rem.browser?'on':''}" data-act="remBrowser"><span>${rem.browser?'✓':''}</span>💻 Browser pop-ups${notif==="denied"?" (blocked in browser)":notif==="unsupported"?" (not in this browser — use 📱)":""}</button>
       <button class="chiptog ${rem.push?'on':''}" data-act="remPush"><span>${rem.push?'✓':''}</span>📱 Phone push</button>
       <button class="chiptog ${rem.email?'on':''}" data-act="remEmail"><span>${rem.email?'✓':''}</span>✉️ Email</button>
     </div>
@@ -2604,8 +2600,13 @@ function wireCalDnD(){
 /* ===================== HANDLERS ===================== */
 // Pull everything from the DB once and cache it in state. Called on boot, and again only
 // when an external write (e.g. Kiko's agent) changes server data we don't already hold locally.
+/* her saved details (Settings → Your details) — stored on the sentinel row, applied at boot */
+function applyAppConfig(){ try{ const a=(state.sentinel&&state.sentinel.appConfig)||{};
+  if(a.name)CONFIG.creator.name=a.name; if(a.greeting)CONFIG.creator.greeting=a.greeting;
+  if(a.weightUnit)CONFIG.weightUnit=a.weightUnit; if(a.weightDisplay)CONFIG.weightDisplay=a.weightDisplay; }catch(e){} }
 async function loadData(){
   state.sentinel = await DB.daily(SENTINEL);
+  applyAppConfig();
   state.today = await DB.daily(TODAY);
   state.range = await DB.range(30);   // 30 days so the Trends 14d/30d toggle both have data
   state._loaded = true;
@@ -2638,24 +2639,30 @@ const H={
 
   /* --- daily habits + gacha dailies --- */
   async habitToggle(el){ const id=el.dataset.v;
+    const hi=$("#habitInput"); if(hi) state.habitDraft={text:hi.value,energy:($("#habitEnergy")||{}).value||"med"};   // keep a half-typed new habit
     await setToday(n=>{ const habits={...(n.habits||{})}; const nv=!habits[id]; habits[id]=nv;
       const ex={}; if(id==="h_meds") ex.meds={am:nv,pm:nv};   // keep the Food AM/PM meds boxes in sync
       return {...n,habits,...ex}; }); render(); },
   habitEdit(){ state.habitEdit=!state.habitEdit; render(); },
   async addHabitUI(){ const inp=$("#habitInput"); const t=((inp&&inp.value)||"").trim(); if(!t)return;
     const en=($("#habitEnergy")&&$("#habitEnergy").value)||"med";
+    state.habitDraft=null;
     await setSent(n=>{ const l=(Array.isArray(n.habitsList)&&n.habitsList.length)?n.habitsList.slice():HABITS_DEFAULT.slice();
       l.push({id:"h"+Date.now(),text:t,energy:en}); return {...n,habitsList:l}; }); toast("habit added 🌱"); render(); },
   async delHabit(el){ const id=el.dataset.v;
+    const hi=$("#habitInput"); if(hi) state.habitDraft={text:hi.value,energy:($("#habitEnergy")||{}).value||"med"};
     await setSent(n=>{ let l=(Array.isArray(n.habitsList)&&n.habitsList.length)?n.habitsList.slice():HABITS_DEFAULT.slice();
       l=l.filter(h=>h.id!==id); return {...n,habitsList:l}; }); render(); },
   async gachaToggle(el){ const id=el.dataset.v;
+    const gi=$("#gachaInput"); if(gi) state.gachaDraft=gi.value;   // keep a half-typed new game
     await setToday(n=>{ const gacha={...(n.gacha||{})}; gacha[id]=!gacha[id]; return {...n,gacha}; }); render(); },
   gachaEdit(){ state.gachaEdit=!state.gachaEdit; render(); },
   async addGachaUI(){ const inp=$("#gachaInput"); const t=((inp&&inp.value)||"").trim(); if(!t)return;
+    state.gachaDraft=null;
     await setSent(n=>{ const l=(Array.isArray(n.gachaList)&&n.gachaList.length)?n.gachaList.slice():GACHA_DEFAULT.slice();
       l.push({id:"g"+Date.now(),name:t}); return {...n,gachaList:l}; }); toast("game added 🎮"); render(); },
   async delGacha(el){ const id=el.dataset.v;
+    const gi=$("#gachaInput"); if(gi) state.gachaDraft=gi.value;
     await setSent(n=>{ let l=(Array.isArray(n.gachaList)&&n.gachaList.length)?n.gachaList.slice():GACHA_DEFAULT.slice();
       l=l.filter(g=>g.id!==id); return {...n,gachaList:l}; }); render(); },
 
@@ -2694,7 +2701,7 @@ const H={
   async delShot(el){ await setSent(n=>({...n,injectionLog:(n.injectionLog||[]).filter(s=>s.id!==el.dataset.v)})); render(); },
 
   async logWeight(){ const v=parseFloat($("#wInput").value); if(isNaN(v)){ toast("enter a number"); return; }
-    await upsertWeightToday({w:v}); toast("logged — trend is the story ❄️"); render(); },
+    state.wDraft=null; await upsertWeightToday({w:v}); toast("logged — trend is the story ❄️"); render(); },
   async setBodyComp(){ const fields={}; let any=false;
     BODYCOMP.forEach(([k])=>{ if(k==="bmi")return; const el=$("#bc_"+k); const v=el?parseFloat(el.value):NaN; if(!isNaN(v)){ fields[k]=v; any=true; } });
     const h=$("#bc_height"); const hv=h?parseFloat(h.value):NaN;
@@ -2715,10 +2722,13 @@ const H={
     try{ const d=await aiCall("withingsSync",{}); if(d&&d.error){ toast(d.error); return; }
       await loadData(); render(); toast(`synced ${d&&d.days||0} day(s) ❄️`); }
     catch(e){ toast("sync hiccup — try again 🌧️"); } },
-  // --- weight chart options ---
-  wtMetric(el){ const k=el.dataset.v; let arr=(state.wtMetrics||["w"]).slice(); if(arr.includes(k)){ if(arr.length>1)arr=arr.filter(x=>x!==k); } else arr.push(k); state.wtMetrics=arr; render(); },
-  wtType(el){ state.wtType=el.dataset.v; render(); },
-  wtRange(el){ state.wtRange=el.dataset.v; render(); },
+  // --- weight chart options (keep a half-typed weigh-in across re-renders) ---
+  wtMetric(el){ const wi=$("#wInput"); if(wi) state.wDraft=wi.value;
+    const k=el.dataset.v; let arr=(state.wtMetrics||["w"]).slice(); if(arr.includes(k)){ if(arr.length>1)arr=arr.filter(x=>x!==k); } else arr.push(k); state.wtMetrics=arr; render(); },
+  wtType(el){ const wi=$("#wInput"); if(wi) state.wDraft=wi.value;
+    state.wtType=el.dataset.v; try{localStorage.setItem("mifu-wt-type",state.wtType);}catch(e){} render(); },
+  wtRange(el){ const wi=$("#wInput"); if(wi) state.wDraft=wi.value;
+    state.wtRange=el.dataset.v; render(); },
   // --- food tracking ---
   async foodAnalyze(){ const d=state.foodDraft||(state.foodDraft={image:null,desc:"",est:null});
     const ta=$("#foodDesc"); if(ta)d.desc=ta.value;
@@ -2755,8 +2765,11 @@ const H={
   async addMed(){ const name=$("#medName").value.trim(); if(!name){ toast("name needed"); return; }
     await setSent(n=>({...n,medsList:[...(n.medsList||[]),{id:"m"+Date.now(),name,dose:$("#medDose").value.trim(),time:$("#medTime").value.trim()}]})); toast("added 💊"); render(); },
   async delMed(el){ await setSent(n=>({...n,medsList:(n.medsList||[]).filter(m=>m.id!==el.dataset.v)})); render(); },
-  saveCfg(){ CONFIG.creator.name=$("#cfgName").value||CONFIG.creator.name; CONFIG.creator.greeting=$("#cfgGreet").value||CONFIG.creator.greeting;
-    CONFIG.weightUnit=$("#cfgUnit").value; CONFIG.weightDisplay=$("#cfgWdisp").value; toast("details saved ✿"); render(); },
+  async saveCfg(){ const name=$("#cfgName").value||CONFIG.creator.name, greeting=$("#cfgGreet").value||CONFIG.creator.greeting,
+      weightUnit=$("#cfgUnit").value, weightDisplay=$("#cfgWdisp").value;
+    CONFIG.creator.name=name; CONFIG.creator.greeting=greeting; CONFIG.weightUnit=weightUnit; CONFIG.weightDisplay=weightDisplay;
+    await setSent(n=>({...n,appConfig:{...(n.appConfig||{}),name,greeting,weightUnit,weightDisplay}}));   // really saved — survives reloads
+    toast("details saved ✿"); render(); },
   async export(){ const rows=await DB.exportAll(); const blob=new Blob([JSON.stringify(rows,null,2)],{type:"application/json"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="mifuyu-health-backup-"+TODAY+".json"; a.click(); toast("backup downloaded 💾"); },
 
@@ -2764,9 +2777,10 @@ const H={
   toggleRest(){ toggleTimer(); },
 
   // --- Planner ---
-  plnFilter(el){ state.plannerSpoon=el.dataset.v; render(); },
+  plnFilter(el){ capturePlnDraft(); state.plannerSpoon=el.dataset.v; render(); },
   async addTask(){ const text=($("#plnText").value||"").trim(); if(!text){ toast("type a task"); return; }
     const bucket=$("#plnBucket").value, spoon=$("#plnSpoon").value; const due=($("#plnDue")&&$("#plnDue").value)||"";
+    state.plnDraft=null;
     await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text,bucket,spoon,done:false,sub:[],status:"todo",...(due?{due}:{})}]})); toast("added 🗒️"); render(); },
   async toggleTask(el){ const id=el.dataset.v;
     await setSent(n=>{ let c=(n.customReminders||[]).slice();
@@ -2775,8 +2789,8 @@ const H={
         return {...t,done,status:done?"done":"todo"}; });
       return {...n,tasks:ts,customReminders:c}; });
     render(); },
-  plnView(el){ state.plannerView=el.dataset.v; try{localStorage.setItem("mifu-planner-view",state.plannerView);}catch(e){} render(); },
-  plnSort(el){ state.boardSort=el.dataset.v; try{localStorage.setItem("mifu-board-sort",state.boardSort);}catch(e){} render(); },
+  plnView(el){ capturePlnDraft(); state.plannerView=el.dataset.v; try{localStorage.setItem("mifu-planner-view",state.plannerView);}catch(e){} render(); },
+  plnSort(el){ capturePlnDraft(); state.boardSort=el.dataset.v; try{localStorage.setItem("mifu-board-sort",state.boardSort);}catch(e){} render(); },
   async taskMove(el){ const id=el.dataset.v, d=Number(el.dataset.d)||0;
     const t=(state.sentinel.tasks||[]).find(x=>x.id===id); if(!t)return;
     const i=TASK_STATUSES.findIndex(s=>s[0]===taskStatus(t)); const ni=Math.max(0,Math.min(TASK_STATUSES.length-1,i+d));
@@ -2829,10 +2843,13 @@ const H={
 
   // --- Home: Goals / Journal / Schedule / Brain-dump ---
   async addGoal(el){ const p=el.dataset.p, key=p==='week'?'goalsWeek':'goalsMonth'; const inp=$(p==='week'?'#goalWeek':'#goalMonth'); const t=(inp.value||'').trim(); if(!t)return;
+    const gw=$("#goalWeek"),gm=$("#goalMonth"); state.goalDraft={week:gw?gw.value:"",month:gm?gm.value:""}; state.goalDraft[p==='week'?'week':'month']="";   // keep the other box's half-typed goal
     await setSent(n=>({...n,[key]:[...(n[key]||[]),{id:'g'+Date.now(),text:t,done:false}]})); render(); },
   async toggleGoal(el){ const key=el.dataset.p==='week'?'goalsWeek':'goalsMonth', id=el.dataset.v;
+    const gw=$("#goalWeek"),gm=$("#goalMonth"); state.goalDraft={week:gw?gw.value:"",month:gm?gm.value:""};
     await setSent(n=>({...n,[key]:(n[key]||[]).map(g=>g.id===id?{...g,done:!g.done}:g)})); render(); },
   async delGoal(el){ const key=el.dataset.p==='week'?'goalsWeek':'goalsMonth', id=el.dataset.v;
+    const gw=$("#goalWeek"),gm=$("#goalMonth"); state.goalDraft={week:gw?gw.value:"",month:gm?gm.value:""};
     await setSent(n=>({...n,[key]:(n[key]||[]).filter(g=>g.id!==id)})); render(); },
   async saveJournal(){ const t=$("#journalInput").value; await setToday(n=>({...n,journal:t})); toast("saved 🌙"); },
   schedEdit(){ state.schedEdit=!state.schedEdit; render(); },
@@ -2908,7 +2925,9 @@ const H={
   async remOffset(el){ const v=Number(el.dataset.v); const rem={...(state.sentinel.reminders||{})}; let offs=(rem.offsets||[0,1]).slice();
     if(offs.includes(v)) offs=offs.filter(x=>x!==v); else offs.push(v); rem.offsets=offs.sort((a,b)=>a-b);
     await setSent(n=>({...n,reminders:rem})); render(); },
-  async remBrowser(){ const rem={...(state.sentinel.reminders||{})};
+  async remBrowser(){
+    if(typeof Notification==="undefined"){ toast("this browser can't do pop-ups — use 📱 Phone push instead (on iPhone/iPad, add the app to your Home Screen first) 🍎"); return; }
+    const rem={...(state.sentinel.reminders||{})};
     if(!rem.browser){ if(typeof Notification!=="undefined" && Notification.permission!=="granted"){ try{ const p=await Notification.requestPermission(); if(p!=="granted") toast("Your browser blocked notifications — allow them in site settings to use this"); }catch(e){} } rem.browser=true; }
     else rem.browser=false;
     await setSent(n=>({...n,reminders:rem})); render(); if(rem.browser) setTimeout(checkReminders,400); },
@@ -2948,9 +2967,8 @@ const H={
     if(arr.includes(k)){ if(arr.length>1) arr=arr.filter(x=>x!==k); }   // keep at least one selected
     else arr.push(k);
     state.trendMetrics=arr; render(); },
-  trendType(el){ state.trendType=el.dataset.v; state.trendAuto=false; render(); },
+  trendType(el){ state.trendType=el.dataset.v; try{localStorage.setItem("mifu-trend-type",state.trendType);}catch(e){} render(); },
   trendDays(el){ state.trendDays=Number(el.dataset.v)||14; render(); },
-  trendAuto(){ state.trendAuto = (state.trendAuto===false); render(); },
   kikoToggle(){ if(state.tab==="kiko"){ const i=kikoInputEl(); if(i)try{i.focus();}catch(_){}; return; }   // already in his home base
     KIKO.open=!KIKO.open;
     if(KIKO.open){ $("#kikoBubble").classList.add("hidden"); kikoState="sit"; kikoStateT=0; $("#kikoChat").classList.remove("hidden"); paintKiko(); positionKikoUI(); }
@@ -3054,7 +3072,7 @@ const H={
     rec.onerror=()=>{ KIKO.mic=false; paintKiko(); };
     KIKO.mic=true; paintKiko(); try{ rec.start(); }catch(e){ KIKO.mic=false; paintKiko(); } },
   kikoVoiceToggle(){ const v=localStorage.getItem("kiko-voice")==="1"?"0":"1"; localStorage.setItem("kiko-voice",v); if(v!=="1"){ try{speechSynthesis.cancel();}catch(e){} } toast(v==="1"?"Kiko will speak 🔊":"quiet mode 🤫"); render(); },
-  kikoProactiveToggle(){ const v=localStorage.getItem("kiko-proactive")==="0"?"1":"0"; localStorage.setItem("kiko-proactive",v); toast(v==="0"?"daily check-ins off":"daily check-ins on 🌅"); render(); },
+  kikoProactiveToggle(){ const v=localStorage.getItem("kiko-proactive")==="0"?"1":"0"; localStorage.setItem("kiko-proactive",v); toast(v==="0"?"check-ins & greetings off 🤫":"check-ins & greetings on 🌅"); render(); },
   kikoClearChat(){ KIKO.log=[]; KIKO._spoken=-1; saveKikoLog(); paintKiko(); toast("fresh page ❄️"); },
   async delMemory(el){ const id=el.dataset.v; await setSent(n=>({...n,kikoMemory:(n.kikoMemory||[]).filter(m=>m.id!==id)})); toast("forgotten 🧠"); render(); },
   kikoMaximize(){ state.kikoReturn=(state.tab==="kiko")?(state.kikoReturn||"home"):state.tab; KIKO.open=false; const c=$("#kikoChat"); if(c)c.classList.add("hidden"); kikoState="walk"; setTab("kiko"); },
@@ -3090,9 +3108,12 @@ const H={
   async delSponsor(el){ const id=el.dataset.v; await setSent(n=>({...n,sponsors:(n.sponsors||[]).filter(s=>s.id!==id)})); render(); },
   async spCycle(el){ const id=el.dataset.v, order=["pending","active","done"]; await setSent(n=>({...n,sponsors:(n.sponsors||[]).map(s=>s.id===id?{...s,status:order[(order.indexOf(s.status||"pending")+1)%3]}:s)})); render(); },
   // --- money ---
-  moneyDir(el){ state.moneyDir=el.dataset.v; render(); },
+  moneyDir(el){ const g=id=>{const e=$("#"+id);return e?e.value:"";};
+    state.moneyDraft={date:g("mn_date")||TODAY,amount:g("mn_amount"),desc:g("mn_desc")};   // the toggle must never eat what she typed
+    state.moneyDir=el.dataset.v; render(); },
   async addMoney(){ const g=id=>{const e=$("#"+id);return e?e.value:"";}; const amt=parseFloat(g("mn_amount")); if(isNaN(amt)||amt<=0){ toast("enter an amount 💶"); return; }
     const item={id:"mny"+Date.now(), date:g("mn_date")||TODAY, dir:(state.moneyDir||"in"), cat:g("mn_cat")||"Other", amount:Math.round(amt*100)/100, desc:g("mn_desc").trim()};
+    state.moneyDraft=null;
     await setSent(n=>({...n,money:[...(n.money||[]),item]})); state.moneyYear=String(item.date).slice(0,4); toast("logged 💶"); render(); },
   async delMoney(el){ const id=el.dataset.v; await setSent(n=>({...n,money:(n.money||[]).filter(t=>t.id!==id)})); render(); },
   exportMoneyCSV(){ const y=moneyYear(); const tx=moneyEntries(y).slice().sort((a,b)=>a.date<b.date?-1:1);
@@ -3170,7 +3191,9 @@ document.addEventListener("change",e=>{
       paintKiko(); const ni=kikoInputEl(); if(ni&&keep){ ni.value=keep; }
     }; img.onerror=()=>{ KIKO.pendingImages.push(r.result); paintKiko(); const ni=kikoInputEl(); if(ni&&keep){ni.value=keep;} }; img.src=r.result; }; r.readAsDataURL(f); });
     t.value="";   // allow re-selecting the same file later
-  } else if(t.id==="moneyYear"){ state.moneyYear=t.value; render();
+  } else if(t.id==="moneyYear"){ const g=id=>{const e=$("#"+id);return e?e.value:"";};
+    state.moneyDraft={date:g("mn_date")||TODAY,amount:g("mn_amount"),desc:g("mn_desc")};
+    state.moneyYear=t.value; render();
   } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value, wk=weekStartISO(state.schedWeekOff||0);
     setWeekSlots(wk,arr=>arr.map(r=>r.id===id?{...r,[k]:v}:r)); // fire-and-forget; writes to the active week (override or usual)
   }
@@ -3530,6 +3553,7 @@ function kikoDataSummary(){
 
     // ===== STREAM SCHEDULE (this week) / GAMES / MEDS / REMINDERS / JOURNAL =====
     const thisWk=weekSlots(weekStartISO(0)); if(thisWk.length) L.push("STREAM SCHEDULE this week: "+thisWk.map(r=>`${r.day} ${r.show||'Stream'}${r.time?" @"+r.time:""}`).join(", "));
+    const nextWk=weekSlots(weekStartISO(1)); if(nextWk.length) L.push("STREAM SCHEDULE next week: "+nextWk.map(r=>`${r.day} ${r.show||'Stream'}${r.time?" @"+r.time:""}`).join(", "));
     const games=(s.gameTopics&&s.gameTopics.length)?s.gameTopics:DEFAULT_GAMES; L.push("GAMES tracked: "+games.join(", "));
     const meds=(s.medsList||[]); if(meds.length) L.push("MEDS: "+meds.map(x=>`${x.name}${x.dose?" "+x.dose:""}${x.time?" ("+x.time+")":""}`).join(", "));
     const med2=t.meds||{}; if(med2.am!=null||med2.pm!=null) L.push(`MEDS today: AM ${med2.am?"✓":"✗"}, PM ${med2.pm?"✓":"✗"}`);
@@ -3572,10 +3596,13 @@ function paintKiko(){
   const tc=$("#kikoTabChat"); if(tc){ tc.innerHTML=kikoChatInner("kikoTabInput","kikoTabFile","kikoTabLog"); }
   const log=$("#kikoLog"); if(log) log.scrollTop=log.scrollHeight;
   const tlog=$("#kikoTabLog"); if(tlog) tlog.scrollTop=tlog.scrollHeight;
-  const inp=kikoInputEl(); if(inp&&!KIKO.busy) try{ inp.focus(); }catch(_){}
+  const inp=kikoInputEl(); if(inp&&!KIKO.busy&&window.matchMedia&&matchMedia("(pointer:fine)").matches) try{ inp.focus(); }catch(_){}   // don't pop the phone keyboard on every repaint
 }
 function kikoGreet(){
-  if(KIKO.open) return; const b=$("#kikoBubble"); if(!b)return;
+  if(KIKO.open) return;
+  if(PREF.calm) return;                                          // calm mode = no chatter
+  if(localStorage.getItem("kiko-proactive")==="0") return;       // same switch as his check-ins
+  const b=$("#kikoBubble"); if(!b)return;
   b.textContent=KIKO_GREETS[Math.floor(Math.random()*KIKO_GREETS.length)];
   b.style.left=Math.max(10,Math.round((kikoX||100)-18))+"px"; b.style.right="auto";
   b.classList.remove("hidden");
@@ -3639,7 +3666,8 @@ async function execAgentAction(a){
       return {...n,tasks:ts,customReminders:c}; }); return hit?"✏️ task → "+hit:null; }
     if(T==="undoLast"){ setTimeout(()=>{ try{ undoLast(); }catch(e){} },350); return "↩️ undoing your last change"; }
     if(T==="addTask"){ const due=(a.due&&/^\d{4}-\d{2}-\d{2}$/.test(a.due))?a.due:null;
-      await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text:a.text,bucket:a.bucket||"personal",spoon:a.spoon||"some",done:false,sub:[],status:"todo",...(due?{due}:{})}]}));
+      const bucket=TASK_BUCKETS.some(b=>b[0]===a.bucket)?a.bucket:"personal";   // unknown buckets would vanish from the list view
+      await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text:a.text,bucket,spoon:a.spoon||"some",done:false,sub:[],status:"todo",...(due?{due}:{})}]}));
       return "🗒️ task: "+a.text+(due?" (due "+fmtDate(due)+")":""); }
     if(T==="setTaskDue"){ let hit=null;
       await setSent(n=>{ const ts=(n.tasks||[]).slice(); const i=findByText(ts,a.text,"text"); if(i<0)return n;
@@ -3652,13 +3680,15 @@ async function execAgentAction(a){
       return hit?"📅 "+hit:null; }
     if(T==="addGoal"){ const key=a.period==="month"?"goalsMonth":"goalsWeek"; await setSent(n=>({...n,[key]:[...(n[key]||[]),{id:"g"+Date.now(),text:a.text,done:false}]})); return "🌷 "+(a.period==="month"?"monthly":"weekly")+" goal: "+a.text; }
     if(T==="logMind"){ await setToday(n=>{ const mind={...(n.mind||{})}; ["mood","anxiety","energy","weather"].forEach(k=>{ if(a[k]!=null) mind[k]=Math.max(0,Math.min(5,Number(a[k]))); }); if(a.kind!=null) mind.kind=!!a.kind; return {...n,mind}; }); return "💗 check-in logged"; }
-    if(T==="logWeight"){ const v=Number(a.value); if(isNaN(v))return null; await setSent(n=>({...n,weightLog:[...(n.weightLog||[]),{date:TODAY,w:v}]})); return "⚖️ "+v+" "+CONFIG.weightUnit+" logged"; }
+    if(T==="logWeight"){ const v=Number(a.value); if(isNaN(v))return null; await upsertWeightToday({w:v}); return "⚖️ "+v+" "+CONFIG.weightUnit+" logged"; }   // merge into today's row — no duplicate same-day entries
     if(T==="addNSV"){ await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t:a.text,date:TODAY}]})); return "🌟 "+a.text; }
     if(T==="addMeasurement"){ const e={date:TODAY}; let any=false; ["bust","waist","hips","thighs","arms"].forEach(k=>{ const v=Number(a[k]); if(a[k]!=null&&!isNaN(v)){ e[k]=v; any=true; } }); if(!any)return null; await setSent(n=>({...n,measurements:[...(n.measurements||[]),e]})); return "📏 measurements saved"; }
-    if(T==="logShot"){ const date=(!a.date||a.date==="today")?TODAY:a.date; const dose=Number(a.dose);
+    if(T==="logShot"){ const date=(!a.date||a.date==="today")?TODAY:a.date; const dose=Number(a.dose); if(isNaN(dose)||dose<=0)return null;
       await setSent(n=>{ const log=[...(n.injectionLog||[]),{id:"i"+Date.now(),date,time:a.time||"",dose,site:a.site||"",after:null,note:a.note||""}].sort((x,y)=>(x.date+(x.time||""))<(y.date+(y.time||""))?-1:1);
         let dh=n.doseHistory||[]; const cur=dh.slice().sort((p,q)=>p.started<q.started?-1:1).slice(-1)[0]; if(!cur||cur.dose!==dose) dh=[...dh,{dose,started:date}]; return {...n,injectionLog:log,doseHistory:dh}; }); return "💉 "+dose+"mg shot logged"; }
-    if(T==="logWater"){ await setToday(n=>{ const mj={...(n.mounjaro||{})}; mj.water=Math.max(0,Number(a.cups)); return {...n,mounjaro:mj}; }); return "🥤 water: "+a.cups+" cups"; }
+    if(T==="logWater"){ const c=Number(a.cups); if(isNaN(c)||c<0)return null;
+      const cups=Math.round(c*CUPS_PER_40OZ*10)/10;   // Kiko speaks in her 40oz cups; storage stays in 8oz cups
+      await setToday(n=>{ const mj={...(n.mounjaro||{})}; mj.water=Math.max(0,cups); return {...n,mounjaro:mj}; }); return "🥤 water: "+c+" × 40oz cup"+(c===1?"":"s"); }
     if(T==="addCapture"){ await setSent(n=>({...n,captures:[...(n.captures||[]),{id:"cap"+Date.now(),text:a.text,date:TODAY}]})); return "🧠 "+a.text; }
     if(T==="addSticky"){ await addSticky(a.text); return "🗒️ sticky added"; }
     if(T==="cycleStart"){ await setSent(n=>{ const cycle={...(n.cycle||{}),lastStart:TODAY}; cycle.history=[...(cycle.history||[]),{start:TODAY,end:null,flow:"med"}]; return {...n,cycle}; }); return "🌙 period start logged"; }
@@ -3735,14 +3765,24 @@ async function execAgentAction(a){
     if(T==="startScript"){ state.script={kind:(a.kind==="long"?"long":"short"),title:a.title||"",references:a.references||"",raw:a.raw||"",out:null}; state.tab="script";
       if(a.format && (state.script.raw||state.script.references)){ setTimeout(()=>{ try{scrFormat();}catch(e){} },150); }
       return "✍️ started a "+(a.kind==="long"?"long-form":"short")+" script"+(a.title?" — “"+a.title+"”":""); }
+    /* stream schedule — the UI shows per-week plans (schedWeeks); the old flat `schedule` only acts as the
+       default for an un-edited current week. Write BOTH so what Kiko says matches what she sees:
+       the week on screen updates now, and the "usual week" default carries it into future weeks. */
     if(T==="addStreamDay"){ const day=normDay(a.day); if(!day)return null;
-      await setSent(n=>{ const sch=(n.schedule||[]).slice(); const i=sch.findIndex(r=>r.day===day);
-        if(i>=0){ sch[i]={...sch[i], show:(a.show!=null?a.show:sch[i].show), time:(a.time!=null?a.time:sch[i].time)}; }
-        else { sch.push({id:"sc"+Date.now(),day,show:a.show||"Stream",time:a.time||""}); }
-        return {...n,schedule:sch}; });
-      return "🔴 "+day+(a.time?" "+a.time:"")+(a.show?" · "+a.show:"")+" — stream schedule updated"; }
-    if(T==="removeStreamDay"){ const day=normDay(a.day); if(!day)return null; await setSent(n=>({...n,schedule:(n.schedule||[]).filter(r=>r.day!==day)})); return "🔴 removed "+day+" from your stream schedule"; }
-    if(T==="clearStreamSchedule"){ await setSent(n=>({...n,schedule:[]})); return "🔴 cleared your weekly stream schedule"; }
+      const upd=arr=>{ const i=arr.findIndex(r=>r.day===day);
+        if(i>=0){ const c=arr.slice(); c[i]={...c[i], show:(a.show!=null?a.show:c[i].show), time:(a.time!=null?a.time:c[i].time)}; return c; }
+        return [...arr,{id:"sc"+Date.now()+Math.floor(Math.random()*99),day,show:a.show||"Stream",time:a.time||STREAM_TIME_DEFAULT}]; };
+      await setWeekSlots(weekStartISO(0),upd);
+      await setSent(n=>({...n,schedule:upd((n.schedule||[]).slice())}));
+      return "🔴 "+day+(a.time?" "+a.time:"")+(a.show?" · "+a.show:"")+" — this week + your usual schedule updated"; }
+    if(T==="removeStreamDay"){ const day=normDay(a.day); if(!day)return null;
+      await setWeekSlots(weekStartISO(0),arr=>arr.filter(r=>r.day!==day));
+      await setSent(n=>({...n,schedule:(n.schedule||[]).filter(r=>r.day!==day)}));
+      return "🔴 removed "+day+" from this week & your usual schedule"; }
+    if(T==="clearStreamSchedule"){
+      await setWeekSlots(weekStartISO(0),()=>[]);
+      await setSent(n=>({...n,schedule:[]}));
+      return "🔴 cleared this week's streams and your usual-week schedule"; }
   }catch(e){ console.error("action failed",T,e); return null; }
   return null;
 }
@@ -3757,7 +3797,7 @@ function normDay(d){ if(!d)return null; const m={sun:"Sun",sunday:"Sun",mon:"Mon
 
 function start(){
   applyPrefs();
-  try{ kikoStart(); setTimeout(kikoGreet,3500); setInterval(kikoGreet,45000); }catch(e){ console.error(e); }
+  try{ kikoStart(); setTimeout(kikoGreet,3500); setInterval(kikoGreet,10*60*1000); }catch(e){ console.error(e); }   // one hello, then at most every 10 min (was 45s — way too chatty)
   if(DEMO){ render(); return; }                 // demo: data is instant — one render
   // live: gentle loader while Supabase connects, then render ONCE (no double-load flash)
   const v=$("#view");
