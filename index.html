@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-10.4";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-10.5";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -1610,7 +1610,7 @@ function viewKiko(){
         <button class="chiptog ${localStorage.getItem('kiko-proactive')!=='0'?'on':''}" data-act="kikoProactiveToggle"><span>${localStorage.getItem('kiko-proactive')!=='0'?'✓':''}</span>🌅 Check-ins &amp; greetings</button>
         <button class="chiptog" data-act="kikoClearChat"><span>🧹</span>New conversation</button>
       </div>
-      <p class="soft" style="font-size:11px;margin:8px 0 0">Tip: say "use your smart brain" for the big model on hard questions, or "quick:" for snappy ones — Kiko picks automatically otherwise. 🎙️ in the chat bar lets you talk instead of type.</p>
+      <p class="soft" style="font-size:11px;margin:8px 0 0">Tip: say "use your smart brain" for the big model on hard questions, or "quick:" for snappy ones — Kiko picks automatically otherwise. He can read your <b>whole history</b> too ("how was my sleep in March?") and shows what he's doing while he works. 🎙️ in the chat bar lets you talk instead of type.</p>
       <details class="acc" style="margin-top:10px"><summary>🧠 Kiko's memory (${(state.sentinel.kikoMemory||[]).length})</summary><div class="acc-body">
         <p class="soft" style="font-size:11.5px;margin:0 0 6px">Say "remember that…" in chat and it lands here — he weaves these into everything he does for you.</p>
         ${(state.sentinel.kikoMemory||[]).length?(state.sentinel.kikoMemory||[]).slice().reverse().map(m=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(m.text)}</span><button class="x" data-act="delMemory" data-v="${m.id}">✕</button></div>`).join(""):'<p class="soft" style="font-size:12px">Nothing yet — tell him something worth keeping. 💗</p>'}
@@ -1999,6 +1999,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v2.9 · June 2026 — Kiko's bigger brain</b> 🧠 Kiko now shows you what he's doing while he works ("🔎 searched the web ✓ · 🗂 reading through your logs…") instead of a frozen "thinking" · 🗂 he can read your <b>entire history</b> on demand — any date range, any metric ("how was my sleep in March?", "compare nausea after each dose change") — not just the recent summary · 📓 he keeps his own organised notebook now (people, preferences, ideas) on top of quick facts · 📖 he can open and read actual web pages, not just search snippets · 💪 "use your smart brain" now genuinely switches him to Anthropic's Opus-class model with deeper reasoning · 🌙 a new optional <b>nightly spotter</b> can send one gentle push if a pattern in your last 3 weeks deserves a soft heads-up (high bar, never alarmist — see the setup doc) · under the hood: guaranteed-valid replies (no more "whiskers twitched" parse fumbles), prompt caching (~90% cheaper repeat context, snappier), and adaptive thinking.</p>
       <p><b>v2.8 · June 2026 — Kiko, keeper of the wishlist</b> 💌 say <b>"note for Eggie: …"</b> and your idea lands in Settings → Wishlist for Eggie (Eggie reads it from there — changes without the back-and-forth) · 🧩 Kiko now drives the hub too: calm/focus/larger-text modes, layout lock, hiding &amp; showing dashboard cards, the focus &amp; rest timer, your name/greeting/units, backups — all by chat · 🧹 he can tidy every list now (money entries, non-scale wins, joys, measurements, goals) · 🧠 and he knows even more: birthdays, recent weigh-ins, dose &amp; period history, brain-dump, stickies, joy jar, script drafts, recent money, your latest journal and your app prefs.</p>
       <p><b>v2.7 · June 2026 — Kiko sees everything</b> 🦊 Kiko now reads your <i>whole</i> hub — full Withings body composition (fat, muscle, body water, visceral, BMI, heart rate, with their changes), every trend over time, PCOS &amp; Mounjaro symptoms, sleep, water, measurements, money, sponsors, goals, schedule and more — so it answers from your real numbers and can spot links between them ("does my hydration affect my nausea?", "how's my muscle trending vs my fat?"). No more "I can't see that". 💗</p>
       <p><b>v2.6 · June 2026 — Tidier Health, Trends + Food</b> 📈 Weight now lives under Trends (all your graphs in one place) · ❄️ Health reflows: your daily feelings check (Energy, Anxiety, Mood, Nausea, Cravings, Water, Sleep — all trackable here now) sits up top with the Mounjaro side-effect check beside it, dose &amp; weight tuck under it, and the cycle section is folded into a quiet dropdown at the bottom · 💧 water now lives on Food &amp; Health, counted in full 40oz cups (goal 2–3) · 🍱 Food gains Meds AM/PM check-offs (linked to your Home habits) and a This-Week view of meals + protein/fibre over time.</p>
@@ -2167,6 +2168,24 @@ async function aiCall(mode,input,vidiq){
   if(error) throw new Error(error.message||"AI helper error");
   if(data && data.error) throw new Error(data.error);
   return data;
+}
+/* streaming agent call — live status events ("🔎 searched the web…") while Kiko works, then the final payload */
+async function aiCallAgentStream(input,onStatus){
+  const res=await fetch(CONFIG.url+"/functions/v1/"+CONFIG.aiFn,{ method:"POST",
+    headers:{ "Content-Type":"application/json", apikey:CONFIG.anonKey, Authorization:"Bearer "+CONFIG.anonKey },
+    body:JSON.stringify({ mode:"agent", input:input||{}, userId:CONFIG.userId, stream:true }) });
+  if(!res.ok||!res.body) throw new Error("stream unavailable");
+  const rd=res.body.getReader(); const dec=new TextDecoder(); let buf="", payload=null;
+  while(true){ const {done,value}=await rd.read(); if(done)break; buf+=dec.decode(value,{stream:true});
+    let i; while((i=buf.indexOf("\n\n"))>=0){ const chunk=buf.slice(0,i); buf=buf.slice(i+2);
+      const m=chunk.match(/^data:\s*(.+)$/m); if(!m)continue;
+      try{ const ev=JSON.parse(m[1]);
+        if(ev.t==="status"&&onStatus){ try{ onStatus(ev.text); }catch(_){} }
+        else if(ev.t==="done") payload=ev.payload;
+      }catch(_){} } }
+  if(!payload) throw new Error("stream ended without a reply");
+  if(payload.error) throw new Error(payload.error);
+  return payload;
 }
 function scoreColor(s){ return s>=75?'#3a9d83':s>=50?'var(--peri-deep)':'var(--sakura-deep)'; }
 /* copy: pull text from OPT result by key (no huge strings in attributes) */
@@ -3058,12 +3077,16 @@ const H={
       else {
         const upcoming=(state.sentinel.calendarEvents||[]).filter(e=>(e.endDate||e.date)>=TODAY).sort((a,b)=>(a.date<b.date?-1:1)).slice(0,20).map(e=>({date:e.date,endDate:e.endDate,title:e.title}))
           .concat(activeReminders().map(r=>({date:nextReminderDate(r),title:"⏰ "+r.text+(r.time?" ("+fmt12(r.time)+")":"")+(r.repeat&&r.repeat!=="none"?" · "+r.repeat:"")})).slice(0,10));
-        const d=await aiCall("agent",{question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab,
+        const agentInput={question:q, today:TODAY, tz:CAL_TZ_TARGET, tab:state.tab,
           schedule:weekSlots(weekStartISO(0)), events:upcoming,
           games:(state.sentinel.gameTopics&&state.sentinel.gameTopics.length?state.sentinel.gameTopics:DEFAULT_GAMES),
           memory:(state.sentinel.kikoMemory||[]).slice(-30).map(m=>({text:m.text})),
           history:KIKO.log.slice(0,-1).slice(-8).map(m=>({role:m.role,text:String(m.text||"").slice(0,300)})),
-          summary:kikoDataSummary()});
+          summary:kikoDataSummary()};
+        let d;
+        try{ d=await aiCallAgentStream(agentInput,t=>{ KIKO.status=t; paintKiko(); }); }   // live "what I'm doing" updates
+        catch(_se){ d=await aiCall("agent",agentInput); }                                  // fallback: plain call
+        KIKO.status=null;
         if(d&&d.error) throw new Error(d.error);
         ans=(d&&(d.reply||d.answer))||"hmm, my whiskers twitched — ask me again? 🦊";
         const acts=(d&&Array.isArray(d.actions))?d.actions:[];
@@ -3072,6 +3095,7 @@ const H={
         if(done.length){ didActions=true; ans+="\n\n"+done.map(x=>"✓ "+x).join("\n"); }
       }
     }catch(e){ ans="aw, I couldn't reach the server — "+(e.message||"try again")+" 🌧️"; }
+    KIKO.status=null;
     KIKO.log.push({role:"pet",text:ans}); KIKO.busy=false;
     if(didActions){ try{ await loadData(); await render(); }catch(_){} }   // re-pull so agent's writes show
     paintKiko(); },
@@ -3402,7 +3426,7 @@ window.addEventListener('error',ev=>{ const v=document.getElementById('view');
   if(v && !v.innerHTML.trim()){ v.innerHTML='<div class="panel" style="margin:18px"><h3>aw, a hiccup ❄️</h3><p class="soft">'+esc(ev.message||'unknown error')+'</p></div>'; } });
 
 /* ===================== KIKO — AI snowfox pet ===================== */
-const KIKO={ open:false, busy:false, log:[], journal:null, tax:null, pendingImages:[], mic:false, _spoken:-1 };
+const KIKO={ open:false, busy:false, status:null, log:[], journal:null, tax:null, pendingImages:[], mic:false, _spoken:-1 };
 try{ loadKikoLog(); }catch(e){}
 const KIKO_GREETS=["Konfuyu~! Need anything? ❄️","Pspsps… ask me something! 🦊","I'm right here if you need me 💗","Hi Mifu~ ✿","Wanna brainstorm? 🌸"];
 /* sprite walk engine + desktop-pet physics — frames measured from fox.png (164x210). Row 2 = 4-frame walk cycle. */
@@ -3608,7 +3632,7 @@ function kikoLogHTML(){
 }
 // shared chat body (log + photo preview + input bar) — used by the floating bubble AND the Ask-Kiko tab
 function kikoChatInner(inputId, fileId, logId){
-  return `<div class="kiko-log" id="${logId}">${kikoLogHTML()}${KIKO.busy?`<div class="kiko-msg pet">…thinking ❄️</div>`:""}</div>
+  return `<div class="kiko-log" id="${logId}">${kikoLogHTML()}${KIKO.busy?`<div class="kiko-msg pet">…${esc(KIKO.status||"thinking")} ❄️</div>`:""}</div>
     ${KIKO.pendingImages.length?`<div style="padding:8px 10px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${KIKO.pendingImages.map((im,i)=>`<span style="position:relative;display:inline-block"><img src="${im}" alt="attached" style="width:50px;height:50px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><button class="x" data-act="kikoClearImg" data-i="${i}" title="remove" style="position:absolute;top:-7px;right:-7px;background:#fff;border:1px solid var(--line);border-radius:50%;width:19px;height:19px;font-size:11px;line-height:1;padding:0">✕</button></span>`).join("")}<span class="soft" style="font-size:11px">${KIKO.pendingImages.length} photo${KIKO.pendingImages.length>1?'s':''} ready — add a note &amp; send to log 🍽️ (📷 adds more)</span></div>`:""}
     <div class="kiko-input">
       <button class="btn" data-act="kikoMic" title="talk to Kiko" style="padding:0 9px;font-size:15px;${KIKO.mic?'background:#fde2f2;border-color:var(--sakura);':''}" ${KIKO.busy?"disabled":""}>${KIKO.mic?'⏹':'🎙️'}</button>
