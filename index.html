@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-10.5";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-10.6";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -3616,6 +3616,8 @@ function kikoDataSummary(){
     const mny5=(s.money||[]).slice(-5); if(mny5.length) L.push("RECENT MONEY ENTRIES: "+mny5.map(t2=>`${t2.dir==="in"?"+":"−"}€${t2.amount} ${t2.cat||""}${t2.desc?" ("+String(t2.desc).slice(0,24)+")":""} ${fmtDate(t2.date)}`).join("; "));
     const erq=(s.eggieRequests||[]).filter(r=>r.status!=="done"); if(erq.length) L.push("EGGIE WISHLIST open ("+erq.length+"): "+erq.slice(-6).map(r=>r.text).join("; "));
     L.push("PREFS: calm "+(PREF.calm?"on":"off")+", focus "+(PREF.focus?"on":"off")+", larger-text "+(PREF.text?"on":"off")+", layout "+((function(){try{return localStorage.getItem("layout-locked")==="1"}catch(e){return false}})()?"locked":"unlocked")+", weight unit "+u+", weight display "+(CONFIG.weightDisplay||"soft"));
+    const nb=s.kikoNotes||{}; const nbk=Object.keys(nb); if(nbk.length) L.push("YOUR NOTEBOOK notes: "+nbk.map(k=>`${k} (${String(nb[k]).length}ch)`).join(", ")+" — read with manage_memory");
+    const tpAll=s.taxPrep||{}; const tpy=Object.keys(tpAll); if(tpy.length) L.push("TAX-PREP saved: "+tpy.map(y2=>`${y2} (${(tpAll[y2].items||[]).length} answers)`).join(", "));
 
     return L.join("\n");
   }catch(e){ return ""; }
