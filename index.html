@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-10.6";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-10.7";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -1607,13 +1607,22 @@ function viewKiko(){
       <div class="label" style="margin-bottom:8px">⚙️ Kiko settings</div>
       <div class="chiprow">
         <button class="chiptog ${localStorage.getItem('kiko-voice')==='1'?'on':''}" data-act="kikoVoiceToggle"><span>${localStorage.getItem('kiko-voice')==='1'?'✓':''}</span>🔊 Speak replies</button>
-        <button class="chiptog ${localStorage.getItem('kiko-proactive')!=='0'?'on':''}" data-act="kikoProactiveToggle"><span>${localStorage.getItem('kiko-proactive')!=='0'?'✓':''}</span>🌅 Check-ins &amp; greetings</button>
         <button class="chiptog" data-act="kikoClearChat"><span>🧹</span>New conversation</button>
       </div>
-      <p class="soft" style="font-size:11px;margin:8px 0 0">Tip: say "use your smart brain" for the big model on hard questions, or "quick:" for snappy ones — Kiko picks automatically otherwise. He can read your <b>whole history</b> too ("how was my sleep in March?") and shows what he's doing while he works. 🎙️ in the chat bar lets you talk instead of type.</p>
+      ${(function(){ const lvl=localStorage.getItem('kiko-prolevel')||(localStorage.getItem('kiko-proactive')==='0'?'quiet':'gentle');
+        return `<div class="label" style="margin:12px 0 4px">🌅 How proactive should Kiko be?</div>
+        <div class="seg">${[["quiet","🤫 Quiet"],["gentle","🌸 Gentle"],["active","✨ Active"]].map(([v,l])=>`<button data-act="kikoProLevel" data-v="${v}" class="${lvl===v?'on':''}">${l}</button>`).join("")}</div>
+        <p class="soft" style="font-size:10.5px;margin:4px 0 0">Quiet = only when you ask · Gentle = a morning greeting + the occasional gentle nudge · Active = also notices things midday (correlations, streaks, dose days). Kiko also <b>learns your preferences as you chat</b> and acts on safe things itself, telling you after — deletes always ask first.</p>`; })()}
+      <p class="soft" style="font-size:11px;margin:8px 0 0">Tip: say "use your smart brain" for the big model on hard questions, or "quick:" for snappy ones — Kiko picks automatically otherwise. He can read your <b>whole history</b> ("how was my sleep in March?") and find links between things ("does my water affect my nausea?"). 🎙️ in the chat bar lets you talk instead of type.</p>
       <details class="acc" style="margin-top:10px"><summary>🧠 Kiko's memory (${(state.sentinel.kikoMemory||[]).length})</summary><div class="acc-body">
-        <p class="soft" style="font-size:11.5px;margin:0 0 6px">Say "remember that…" in chat and it lands here — he weaves these into everything he does for you.</p>
-        ${(state.sentinel.kikoMemory||[]).length?(state.sentinel.kikoMemory||[]).slice().reverse().map(m=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(m.text)}</span><button class="x" data-act="delMemory" data-v="${m.id}">✕</button></div>`).join(""):'<p class="soft" style="font-size:12px">Nothing yet — tell him something worth keeping. 💗</p>'}
+        <p class="soft" style="font-size:11.5px;margin:0 0 6px">Say "remember that…" in chat and it lands here — he weaves these into everything he does for you. ✨ = he picked it up on his own.</p>
+        ${(state.sentinel.kikoMemory||[]).length?(state.sentinel.kikoMemory||[]).slice().reverse().map(m=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${m.auto?'✨ ':''}${esc(m.text)}</span><button class="x" data-act="delMemory" data-v="${m.id}">✕</button></div>`).join(""):'<p class="soft" style="font-size:12px">Nothing yet — tell him something worth keeping. 💗</p>'}
+      </div></details>
+      <details class="acc" style="margin-top:8px"><summary>🦊 What Kiko's learned about you</summary><div class="acc-body">
+        <p class="soft" style="font-size:11.5px;margin:0 0 6px">Kiko quietly builds this picture of your rhythms &amp; preferences from your chats, so you never have to repeat yourself. Edit-free — just have a look, or wipe it to start fresh.</p>
+        ${(state.sentinel.kikoUserModel||"").trim()
+          ? `<div class="soft-card" style="font-size:12px;white-space:pre-wrap;line-height:1.5">${esc(state.sentinel.kikoUserModel)}</div><div style="margin-top:8px"><button class="btn" data-act="clearUserModel">↺ start fresh</button></div>`
+          : '<p class="soft" style="font-size:12px">Nothing yet — chat with him a bit and he\'ll start to get you. 💗</p>'}
       </div></details>
     </section>
     <details class="acc" style="margin-top:14px"><summary>💬 Everything Kiko can do — the full guide</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
@@ -1999,6 +2008,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v3.0 · June 2026 — Kiko learns &amp; anticipates</b> 🦊 Built on deep research into the best AI assistants. Kiko now <b>learns your preferences on its own</b> — it quietly reflects on your chats and remembers how you like things (no more repeating yourself), and you can see &amp; wipe "what Kiko's learned about you" in settings · 🗒️ it keeps an <b>episodic log</b> of what it did for you, so "what did you change?" and undo just work · 🤝 <b>act-then-tell</b>: it does the safe things itself and tells you after, but always asks before deleting anything · 🌅 a new <b>proactivity dial</b> (Quiet / Gentle / Active) and a noticing engine that surfaces <i>one</i> well-timed, data-grounded observation — a correlation ("nausea's higher on low-water days"), a slipping streak, a dose day, a game update worth streaming · ✅ and it's honest now — if an action didn't take, it says so instead of a fake ✓.</p>
       <p><b>v2.9 · June 2026 — Kiko's bigger brain</b> 🧠 Kiko now shows you what he's doing while he works ("🔎 searched the web ✓ · 🗂 reading through your logs…") instead of a frozen "thinking" · 🗂 he can read your <b>entire history</b> on demand — any date range, any metric ("how was my sleep in March?", "compare nausea after each dose change") — not just the recent summary · 📓 he keeps his own organised notebook now (people, preferences, ideas) on top of quick facts · 📖 he can open and read actual web pages, not just search snippets · 💪 "use your smart brain" now genuinely switches him to Anthropic's Opus-class model with deeper reasoning · 🌙 a new optional <b>nightly spotter</b> can send one gentle push if a pattern in your last 3 weeks deserves a soft heads-up (high bar, never alarmist — see the setup doc) · under the hood: guaranteed-valid replies (no more "whiskers twitched" parse fumbles), prompt caching (~90% cheaper repeat context, snappier), and adaptive thinking.</p>
       <p><b>v2.8 · June 2026 — Kiko, keeper of the wishlist</b> 💌 say <b>"note for Eggie: …"</b> and your idea lands in Settings → Wishlist for Eggie (Eggie reads it from there — changes without the back-and-forth) · 🧩 Kiko now drives the hub too: calm/focus/larger-text modes, layout lock, hiding &amp; showing dashboard cards, the focus &amp; rest timer, your name/greeting/units, backups — all by chat · 🧹 he can tidy every list now (money entries, non-scale wins, joys, measurements, goals) · 🧠 and he knows even more: birthdays, recent weigh-ins, dose &amp; period history, brain-dump, stickies, joy jar, script drafts, recent money, your latest journal and your app prefs.</p>
       <p><b>v2.7 · June 2026 — Kiko sees everything</b> 🦊 Kiko now reads your <i>whole</i> hub — full Withings body composition (fat, muscle, body water, visceral, BMI, heart rate, with their changes), every trend over time, PCOS &amp; Mounjaro symptoms, sleep, water, measurements, money, sponsors, goals, schedule and more — so it answers from your real numbers and can spot links between them ("does my hydration affect my nausea?", "how's my muscle trending vs my fat?"). No more "I can't see that". 💗</p>
@@ -3081,6 +3091,8 @@ const H={
           schedule:weekSlots(weekStartISO(0)), events:upcoming,
           games:(state.sentinel.gameTopics&&state.sentinel.gameTopics.length?state.sentinel.gameTopics:DEFAULT_GAMES),
           memory:(state.sentinel.kikoMemory||[]).slice(-30).map(m=>({text:m.text})),
+          userModel:(state.sentinel.kikoUserModel||""),
+          recentActions:(state.sentinel.kikoActions||[]).slice(-12),
           history:KIKO.log.slice(0,-1).slice(-8).map(m=>({role:m.role,text:String(m.text||"").slice(0,300)})),
           summary:kikoDataSummary()};
         let d;
@@ -3090,9 +3102,11 @@ const H={
         if(d&&d.error) throw new Error(d.error);
         ans=(d&&(d.reply||d.answer))||"hmm, my whiskers twitched — ask me again? 🦊";
         const acts=(d&&Array.isArray(d.actions))?d.actions:[];
-        const done=[];
-        for(const a of acts){ const r=await execAgentAction(a); if(r) done.push(r); }
-        if(done.length){ didActions=true; ans+="\n\n"+done.map(x=>"✓ "+x).join("\n"); }
+        const done=[], failed=[];
+        for(const a of acts){ const r=await execAgentAction(a); if(r) done.push(r); else if(a&&a.type) failed.push(a.type); }
+        if(done.length){ didActions=true; ans+="\n\n"+done.map(x=>"✓ "+x).join("\n"); await logKikoActions(done); }
+        if(failed.length){ ans+="\n\n(heads up — I couldn't apply "+failed.length+" thing"+(failed.length>1?"s":"")+": "+failed.join(", ")+". Mind rephrasing, or check the name matches? 🌧️)"; }
+        KIKO.sinceReflect=(KIKO.sinceReflect||0)+1; if(KIKO.sinceReflect>=10){ KIKO.sinceReflect=0; kikoReflect(); }   // learn her preferences periodically
       }
     }catch(e){ ans="aw, I couldn't reach the server — "+(e.message||"try again")+" 🌧️"; }
     KIKO.status=null;
@@ -3113,8 +3127,12 @@ const H={
     KIKO.mic=true; paintKiko(); try{ rec.start(); }catch(e){ KIKO.mic=false; paintKiko(); } },
   kikoVoiceToggle(){ const v=localStorage.getItem("kiko-voice")==="1"?"0":"1"; localStorage.setItem("kiko-voice",v); if(v!=="1"){ try{speechSynthesis.cancel();}catch(e){} } toast(v==="1"?"Kiko will speak 🔊":"quiet mode 🤫"); render(); },
   kikoProactiveToggle(){ const v=localStorage.getItem("kiko-proactive")==="0"?"1":"0"; localStorage.setItem("kiko-proactive",v); toast(v==="0"?"check-ins & greetings off 🤫":"check-ins & greetings on 🌅"); render(); },
-  kikoClearChat(){ KIKO.log=[]; KIKO._spoken=-1; saveKikoLog(); paintKiko(); toast("fresh page ❄️"); },
+  kikoProLevel(el){ const v=el.dataset.v||"gentle"; localStorage.setItem("kiko-prolevel",v); localStorage.setItem("kiko-proactive",v==="quiet"?"0":"1");
+    toast(v==="quiet"?"Kiko will wait to be asked 🤫":v==="active"?"Kiko will keep a closer eye out ✨":"Kiko will check in gently 🌸"); render(); },
+  kikoClearChat(){ try{ kikoReflect(); }catch(_){}   // learn from the chat before clearing it
+    KIKO.log=[]; KIKO._spoken=-1; KIKO.sinceReflect=0; saveKikoLog(); paintKiko(); toast("fresh page ❄️"); },
   async delMemory(el){ const id=el.dataset.v; await setSent(n=>({...n,kikoMemory:(n.kikoMemory||[]).filter(m=>m.id!==id)})); toast("forgotten 🧠"); render(); },
+  async clearUserModel(){ await setSent(n=>({...n,kikoUserModel:""})); toast("Kiko will get to know you fresh 🦊"); render(); },
   kikoMaximize(){ state.kikoReturn=(state.tab==="kiko")?(state.kikoReturn||"home"):state.tab; KIKO.open=false; const c=$("#kikoChat"); if(c)c.classList.add("hidden"); kikoState="walk"; setTab("kiko"); },
   kikoMinimize(){ setTab(state.kikoReturn||"home"); },
   kikoSkill(el){ const inp=kikoInputEl(); if(!inp)return; if(el.dataset.send!=null){ inp.value=el.dataset.send; H.kikoSend(); } else { inp.value=el.dataset.seed||""; try{inp.focus();}catch(_){} } },
@@ -3504,6 +3522,28 @@ function kikoSetupDrag(){
 }
 function kikoInputEl(){ return document.getElementById("kikoTabInput")||document.getElementById("kikoInput"); }
 // compact, real numbers for the agent's DATA SNAPSHOT — lets Kiko answer "how's my…" accurately
+/* episodic memory — a rolling log of what Kiko actually did, so it can answer "what did you change?" and learn */
+async function logKikoActions(summaries){
+  try{ if(!summaries||!summaries.length)return;
+    const stamp=new Date().toLocaleDateString("en-CA");
+    const entries=summaries.map(t=>({date:stamp,text:String(t).replace(/^[^\w]+/,"").slice(0,140)}));
+    await setSent(n=>({...n,kikoActions:[...(n.kikoActions||[]),...entries].slice(-60)}));
+  }catch(e){}
+}
+/* reflection — Kiko quietly learns Mifu's durable preferences from the conversation (no retraining) */
+async function kikoReflect(){
+  try{ if(DEMO||!SB) return; const hist=KIKO.log.slice(-24).map(m=>({role:m.role,text:String(m.text||"").slice(0,400)}));
+    if(hist.filter(h=>h.role==="me").length<2) return;   // need a little to learn from
+    const d=await aiCall("reflect",{history:hist, userModel:(state.sentinel.kikoUserModel||"")});
+    if(!d||d.error) return;
+    await setSent(n=>{ const upd={...n};
+      if(d.changed && typeof d.userModel==="string" && d.userModel.trim()) upd.kikoUserModel=d.userModel.trim();
+      if(Array.isArray(d.remember) && d.remember.length){ const have=(n.kikoMemory||[]).map(m=>String(m.text||"").toLowerCase());
+        const add=d.remember.filter(t=>t&&!have.includes(String(t).toLowerCase())).map(t=>({id:"km"+Date.now()+Math.floor(Math.random()*1000),text:t,date:TODAY,auto:true}));
+        if(add.length) upd.kikoMemory=[...(n.kikoMemory||[]),...add]; }
+      return upd; });
+  }catch(e){}
+}
 /* FULL data snapshot for Kiko — every part of the OS, so it can answer about and correlate ANYTHING.
    Organised into labelled lines; the agent prompt tells Kiko to treat this as the live truth. */
 function kikoDataSummary(){
@@ -3671,6 +3711,7 @@ async function execAgentAction(a){
   if(!a||!a.type) return null; const T=a.type;
   try{
     if(T==="navigate"){ if(TABS.some(t=>t[0]===a.tab)) state.tab=a.tab; return "opened "+a.tab; }
+    if(T==="setProactivity"){ const v=["quiet","gentle","active"].includes(a.level)?a.level:"gentle"; localStorage.setItem("kiko-prolevel",v); localStorage.setItem("kiko-proactive",v==="quiet"?"0":"1"); return "🌅 proactivity set to "+v; }
     if(T==="addEvent"){ const src=["game","gameevent","gamestream"].includes(a.src)?a.src:null;
       const ev={id:uid(),title:a.title||"event",date:a.date||TODAY,endDate:(!src&&a.endDate&&a.endDate>(a.date||TODAY))?a.endDate:null,time:a.time||"",tz:a.tz||"Europe/Amsterdam",note:a.note||"",url:a.url||"",
         ...(src?{src}:{color:(typeof CAL_COLORS!=="undefined"&&CAL_COLORS[1])||"#c9b8f0"})};
@@ -4030,22 +4071,57 @@ setTimeout(checkReminders, 6000);
 setInterval(checkReminders, 30*60*1000);
 
 /* ===== proactive Kiko: a morning briefing + an evening journal nudge (once a day, via his bubble) ===== */
+/* the "noticing" engine — scans her real data for the single most worth-raising thing right now */
+function kikoNotice(){
+  try{
+    const s=state.sentinel||{};
+    const byDate={}; (state.range||[]).forEach(r=>byDate[r.date]=r.notes); byDate[TODAY]=state.today;
+    const lastN=(path,n)=>{ const out=[]; for(let i=0;i<n;i++){ const d=dayAgo(-i); let v=byDate[d]; for(const k of path){ v=v&&v[k]; } if(v!=null)out.push(v); } return out; };
+    const ins=[];
+    const inj=(s.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
+      if(di===0) ins.push({key:"doseday",pri:9,text:"💉 today's your Mounjaro day — want me to set a reminder for tonight?"});
+      else if(di===1) ins.push({key:"dosesoon",pri:6,text:"💉 your shot's tomorrow — rotate to a fresh site, and I can remind you ❄️"}); }
+    if([0,1,2].every(i=>{ const hb=(byDate[dayAgo(-i)]&&byDate[dayAgo(-i)].habits)||{}; return !hb.h_meds; }))
+      ins.push({key:"meds",pri:8,text:"💊 meds haven't been ticked in a few days — want a daily reminder to make it easier?"});
+    const water=lastN(["mounjaro","water"],5), naus=lastN(["mounjaro","nausea"],5);
+    if(water.length>=3&&naus.length>=3){ const aw=water.reduce((a,b)=>a+b,0)/water.length, an=naus.reduce((a,b)=>a+b,0)/naus.length;
+      if(aw<CUPS_PER_40OZ*1.5 && an>=2) ins.push({key:"waternausea",pri:7,text:"🥤 your water's been low and nausea a bit higher lately — they often go together. a couple of 40oz today might help 💗"}); }
+    try{ const {series}=buildSeries(); const en=(series.energy||[]).filter(v=>v!=null);
+      if(en.length>=6){ const h=Math.floor(en.length/2); const d=en.slice(-h).reduce((a,b)=>a+b,0)/h-en.slice(0,h).reduce((a,b)=>a+b,0)/h; if(d<-0.6) ins.push({key:"energy",pri:5,text:"⚡ your energy's trended down this stretch — be gentle today; want me to keep your plan light?"}); } }catch(_){}
+    const wk=weekStartISO(0); const ge=(s.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; });
+    if(ge.length) ins.push({key:"game-"+ge[0].date,pri:4,text:"🎮 "+ge[0].title+" lands this week — could be a fun stream! want it on your schedule?"});
+    const je=(s.journalEntries||[]); const lastJ=je.length?je[je.length-1].date:null;
+    if(!lastJ||daysBetween(lastJ,TODAY)>=5) ins.push({key:"journal",pri:3,text:"📓 it's been a little while since we journaled — want to do a soft one together?"});
+    const wl=(s.weightLog||[]).filter(x=>x.w!=null).sort((a,b)=>a.date<b.date?-1:1);
+    if(wl.length>=4){ const r4=wl.slice(-4).map(x=>x.w); if(Math.max(...r4)-Math.min(...r4)<0.4) ins.push({key:"plateau",pri:2,text:"⚖️ your weight's been steady lately — plateaus are normal, not a failure; your body's adjusting. keep going 🌱"}); }
+    ins.sort((a,b)=>b.pri-a.pri);
+    for(const x of ins){ if(!localStorage.getItem("kiko-noticed-"+x.key+"-"+TODAY)) return x; }
+    return null;
+  }catch(e){ return null; }
+}
 function kikoProactive(){
   try{
-    if(localStorage.getItem("kiko-proactive")==="0") return;            // toggle in Ask Kiko → settings
+    const lvl=localStorage.getItem("kiko-prolevel")|| (localStorage.getItem("kiko-proactive")==="0"?"quiet":"gentle");
+    if(lvl==="quiet") return;
     if(document.body.classList.contains("calm")) return;
     if(!state._loaded || KIKO.open) return;
     const b=$("#kikoBubble"); if(!b) return;
     const show=msg=>{ b.textContent=msg; b.style.left=Math.max(10,Math.round((kikoX||100)-18))+"px"; b.style.right="auto"; b.classList.remove("hidden");
-      clearTimeout(b._h); b._h=setTimeout(()=>b.classList.add("hidden"),12000); };
+      clearTimeout(b._h); b._h=setTimeout(()=>b.classList.add("hidden"),13000); };
     const h=new Date().getHours();
     if(h>=5&&h<12 && !localStorage.getItem("kiko-brief-"+TODAY)){
-      const evs=(state.sentinel.calendarEvents||[]).filter(e=>e.date===TODAY&&!gameSrc(e)).map(e=>e.title)
-        .concat(activeReminders().filter(r=>nextReminderDate(r)===TODAY).map(r=>"⏰ "+r.text)).slice(0,3);
-      const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); let dose="";
-      if(inj.length){ const d=new Date(inj[inj.length-1].date+"T00:00"); d.setDate(d.getDate()+7); if(daysBetween(TODAY,d.toLocaleDateString("en-CA"))<=0) dose=" · 💉 dose day"; }
-      show("🌅 morning! "+(evs.length?("today: "+evs.join(" · ")):"a soft, open day")+dose+" — tap me for more ❄️");
+      const notice=kikoNotice();
+      if(notice){ show("🌅 "+notice.text); localStorage.setItem("kiko-noticed-"+notice.key+"-"+TODAY,"1"); }
+      else{
+        const evs=(state.sentinel.calendarEvents||[]).filter(e=>e.date===TODAY&&!gameSrc(e)).map(e=>e.title)
+          .concat(activeReminders().filter(r=>nextReminderDate(r)===TODAY).map(r=>"⏰ "+r.text)).slice(0,3);
+        show("🌅 morning! "+(evs.length?("today: "+evs.join(" · ")):"a soft, open day")+" — tap me for more ❄️");
+      }
       localStorage.setItem("kiko-brief-"+TODAY,"1");
+    } else if(lvl==="active" && h>=12 && h<18 && !localStorage.getItem("kiko-mid-"+TODAY)){
+      const notice=kikoNotice();   // active mode: one fresh midday observation if something's genuinely up
+      if(notice){ show(notice.text); localStorage.setItem("kiko-noticed-"+notice.key+"-"+TODAY,"1"); localStorage.setItem("kiko-mid-"+TODAY,"1"); }
     } else if(h>=19 && !localStorage.getItem("kiko-nudge-"+TODAY) && !(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY)){
       show("🌙 cozy hour… want to journal today together? tap me 📓");
       localStorage.setItem("kiko-nudge-"+TODAY,"1");
