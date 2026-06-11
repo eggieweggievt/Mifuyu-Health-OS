@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-10.7";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-10.8";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -989,6 +989,76 @@ function viewHealth(){
 }
 function waterCups(){ return (state.today&&state.today.mounjaro&&state.today.mounjaro.water)||0; }
 function water40(){ return waterCups()/CUPS_PER_40OZ; }            // her unit: full 40oz cups
+/* ===== doctor-ready health report (compiled from her own data; tracking, not advice) ===== */
+function buildHealthReport(){
+  const s=state.sentinel||{}, u=CONFIG.weightUnit||"kg"; const R=[];
+  const range=30; const since=dayAgo(-(range-1));
+  const byDate={}; (state.range||[]).forEach(r=>byDate[r.date]=r.notes); byDate[TODAY]=state.today;
+  const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length):null;
+  R.push(`HEALTH SUMMARY — ${esc(CONFIG.creator.name||"Mifu")}`);
+  R.push(`Prepared ${new Date().toLocaleDateString()} · covers the last ${range} days (${fmtDate(since)}–${fmtDate(TODAY)})`);
+  R.push(`This is a self-tracked summary to support a conversation with your clinician — it is not a medical record or advice.`);
+  R.push("");
+  // weight & body composition
+  const wl=withBMI((s.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1));
+  const inRange=wl.filter(x=>x.date>=since);
+  R.push("— WEIGHT & BODY COMPOSITION —");
+  const wlw=wl.filter(x=>x.w!=null);
+  if(wlw.length){ const cur=wlw[wlw.length-1], first=wlw[0];
+    R.push(`Weight: ${cur.w}${u} (latest ${fmtDate(cur.date)})${wlw.length>1?`; ${(cur.w-first.w>=0?"+":"")}${Math.round((cur.w-first.w)*10)/10}${u} since ${fmtDate(first.date)}`:""}`); }
+  BODYCOMP.filter(([k])=>k!=="w").forEach(([k,l,unit])=>{ const e=wl.filter(x=>x[k]!=null); if(!e.length)return; const last=e[e.length-1], f=e[0];
+    R.push(`${l}: ${last[k]}${unit||""}${e.length>1?` (${last[k]-f[k]>=0?"+":""}${Math.round((last[k]-f[k])*10)/10} over ${e.length} readings)`:""}`); });
+  if(!wlw.length) R.push("No weigh-ins logged in this period.");
+  R.push("");
+  // mounjaro
+  R.push("— MOUNJARO (tirzepatide) —");
+  const cur=currentDose(); const inj=(s.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  if(inj.length){ const li=inj[inj.length-1]; const start=inj[0].date; const weeks=Math.floor(daysBetween(start,TODAY)/7);
+    R.push(`Current dose: ${cur?cur.dose:li.dose} mg · on treatment ~${weeks} weeks · ${inj.length} injections logged (last ${fmtDate(li.date)}${li.site?", "+li.site:""}).`); }
+  else R.push("No injections logged.");
+  const seKeys=[["nausea","Nausea"],["constipation","Constipation"],["diarrhea","Diarrhea"],["reflux","Reflux"],["belly","Abdominal discomfort"],["fatigue","Fatigue"],["foodnoise","Appetite/food-noise"]];
+  const seLines=seKeys.map(([k,l])=>{ const vals=[]; for(let i=0;i<range;i++){ const d=dayAgo(-i); const v=byDate[d]&&byDate[d].mounjaro&&byDate[d].mounjaro[k]; if(v!=null)vals.push(v); } const a=avg(vals); return a!=null?`${l} ${a.toFixed(1)}/5`:null; }).filter(Boolean);
+  if(seLines.length) R.push("Avg side-effect levels: "+seLines.join(", ")+".");
+  R.push("");
+  // pcos & cycle
+  R.push("— PCOS & CYCLE —");
+  const st=cycleStats(s.cycle||{});
+  if((s.cycle||{}).lastStart){ const dx=daysBetween(s.cycle.lastStart,TODAY); R.push(`Last period start: ${fmtDate(s.cycle.lastStart)} (${dx} days ago).${st.avgGap?` Avg cycle ~${st.avgGap}d over ${st.count} logged.`:""}${dx>=45?" Note: a longer gap, common with PCOS.":""}`); }
+  else R.push("No periods logged.");
+  const pcKeys=[["fatigue","Fatigue"],["bloating","Bloating"],["cravings","Cravings"],["acne","Acne"],["shedding","Hair shedding"]];
+  const pcLines=pcKeys.map(([k,l])=>{ const vals=[]; for(let i=0;i<range;i++){ const d=dayAgo(-i); const v=byDate[d]&&byDate[d].pcos&&byDate[d].pcos[k]; if(v!=null)vals.push(v); } const a=avg(vals); return a!=null?`${l} ${a.toFixed(1)}/5`:null; }).filter(Boolean);
+  if(pcLines.length) R.push("Avg PCOS symptoms: "+pcLines.join(", ")+".");
+  R.push("");
+  // mood / energy / sleep / water trends
+  R.push("— WELLBEING TRENDS (avg, direction over period) —");
+  try{ const {series}=buildSeries(); const tl=TREND_METRICS.map(([k,e,l])=>{ const vals=(series[k]||[]).filter(v=>v!=null); if(!vals.length)return null; const a=avg(vals); const h=Math.floor(vals.length/2)||1; const d=avg(vals.slice(-h))-avg(vals.slice(0,h)); const dir=d>0.4?"rising":d<-0.4?"falling":"steady"; return `${l} ${a.toFixed(1)} (${dir})`; }).filter(Boolean);
+    if(tl.length) R.push(tl.join(", ")+"."); else R.push("Not enough tracked days yet."); }catch(_){ R.push("—"); }
+  R.push("");
+  // meds + adherence
+  R.push("— MEDICATIONS —");
+  const meds=(s.medsList||[]);
+  if(meds.length){ meds.forEach(m=>R.push(`• ${m.name}${m.dose?" "+m.dose:""}${m.time?" ("+m.time+")":""}${m.refill?` — refill by ${fmtDate(m.refill)}`:""}`));
+    let amY=0,pmY=0,days=0; for(let i=0;i<range;i++){ const d=dayAgo(-i); const md=byDate[d]&&byDate[d].meds; if(md&&(md.am!=null||md.pm!=null)){ days++; if(md.am)amY++; if(md.pm)pmY++; } }
+    if(days) R.push(`Adherence (days both AM+PM tracked): AM ${Math.round(amY/days*100)}%, PM ${Math.round(pmY/days*100)}% over ${days} logged days.`); }
+  else R.push("No medications listed.");
+  R.push("");
+  // nutrition
+  const fh=foodHistory(Math.min(range,30)).filter(h=>h.meals.length);
+  if(fh.length){ R.push("— NUTRITION (logged days) —"); R.push(`Avg protein ${Math.round(avg(fh.map(h=>h.protein)))}g, fibre ${Math.round(avg(fh.map(h=>h.fiber)))}g per logged day.`); R.push(""); }
+  // notable patterns
+  try{ const ps=patternSpotter(byDate).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim(); if(ps && ps.length>10 && !/few more tracked/i.test(ps)){ R.push("— GENTLE PATTERNS NOTICED —"); R.push(ps); R.push(""); } }catch(_){}
+  R.push("Generated by Mifuyu OS · self-tracked data · not a diagnosis.");
+  return R.join("\n");
+}
+function showHealthReport(){
+  const txt=buildHealthReport();
+  $("#modal").innerHTML=`<div class="modal-bg" data-act="closeModal"><div class="modal" data-act="noop" style="max-width:560px">
+    <div class="card-head"><h3 style="font-size:16px">📋 Health report for your doctor</h3><button class="btn" data-act="closeModal">✕</button></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">A tidy summary of your last 30 days — copy it, or print/save as PDF to bring to an appointment. Tracking only, not medical advice. ❄️</p>
+    <pre id="hrText" style="white-space:pre-wrap;font-family:var(--sans);font-size:12px;line-height:1.5;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:50vh;overflow:auto;margin:0">${esc(txt)}</pre>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-grad" data-act="copyHealthReport">📋 copy</button><button class="btn" data-act="printHealthReport">🖨️ print / save PDF</button></div>
+  </div></div>`;
+}
 function viewPcos(){
   const p=state.today.pcos||{}, m=state.today.mind||{}, mj=state.today.mounjaro||{}, cyc=state.sentinel.cycle||{};
   const st=cycleStats(cyc);
@@ -998,7 +1068,7 @@ function viewPcos(){
   const w40=water40();
   return `
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">❄️ PCOS — your patterns</h2><span class="pill pill-gray">tap what fits</span></div>
+    <div class="card-head"><h2 style="font-size:18px">❄️ PCOS — your patterns</h2><button class="btn" data-act="healthReport" title="a tidy 30-day summary for your doctor">📋 Doctor report</button></div>
     <p class="soft" style="font-size:12px;margin:0 0 4px">Your daily check-in lives right here. ❄️</p>
   </section>
 
@@ -1326,11 +1396,15 @@ function foodHistory(days){
 function cardFoodCheckoffs(){
   const meds=(state.today&&state.today.meds)||{}; const w40=water40();
   const medBtn=(part,lbl)=>`<button class="chiptog ${meds[part]?'on':''}" data-act="medToggle" data-v="${part}"><span>${meds[part]?'✓':'＋'}</span>${lbl}</button>`;
+  const list=(state.sentinel.medsList||[]); const taken=(state.today&&state.today.medsTaken)||{};
+  const perMed=list.length?`<details class="acc" style="margin:0 0 10px"><summary style="font-size:12px">by medication (${list.filter(m=>taken[m.id]).length}/${list.length} taken)</summary><div style="margin-top:6px">${list.map(m=>{ const refillSoon=m.refill&&daysBetween(TODAY,m.refill)<=7&&daysBetween(TODAY,m.refill)>=0;
+      return `<div class="listrow"><button class="x" data-act="medTake" data-v="${m.id}" style="font-size:16px;color:${taken[m.id]?'var(--mint,#2f9d79)':'var(--muted)'}">${taken[m.id]?'●':'○'}</button><span class="grow" style="font-size:12.5px;${taken[m.id]?'text-decoration:line-through;opacity:.6':''}">${esc(m.name)} <span class="soft" style="font-size:11px">${esc(m.dose||'')}${m.time?' · '+esc(m.time):''}</span></span>${refillSoon?`<span class="pill" style="background:#fdebd9;color:#b4764a;font-size:9px">refill ${fmtDate(m.refill)}</span>`:''}</div>`; }).join("")}</div></details>`:'';
   return `<section class="panel">
     <div class="card-head"><span class="label">✅ Daily check-offs</span></div>
     <p class="soft" style="font-size:11.5px;margin:0 0 8px">Meds links with your Home daily habits — both AM &amp; PM ticked marks meds done there too. 💗</p>
     <div class="label" style="margin-bottom:4px">💊 Meds</div>
     <div class="chiprow" style="margin-bottom:10px">${medBtn("am","Meds AM")}${medBtn("pm","Meds PM")}</div>
+    ${perMed}
     <div class="field" style="margin:0"><div class="label">💧 Water today <span class="soft" style="text-transform:none;letter-spacing:0;font-weight:500">· goal 2–3 × 40oz</span></div>
       <div class="hcount"><button class="step" data-act="waterCup" data-v="-1">−</button><span>${w40%1?w40.toFixed(1):w40}</span><button class="step" data-act="waterCup" data-v="1">＋</button><span class="soft" style="font-size:12px;font-family:var(--sans)">× 40oz 🥤</span></div></div>
   </section>`;
@@ -1379,10 +1453,11 @@ function viewFood(){
       <textarea class="inp" id="foodDesc" rows="2" placeholder="what is it? (e.g. grilled chicken, rice &amp; kimchi · ~1 bowl)" style="margin-top:10px">${esc(d.desc||"")}</textarea>
       <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-grad" data-act="foodAnalyze" ${state.foodBusy?'disabled':''}>${state.foodBusy?'estimating… ❄️':'✨ Estimate macros'}</button>${(d.image||d.desc)?'<button class="btn" data-act="foodClear">clear</button>':''}</div>
       ${d.est?foodEstCard(d.est):''}
+      ${(state.sentinel.foodFaves||[]).length?`<div class="label" style="margin:12px 0 4px">⭐ Favorites — tap to log the usual</div><div class="chiprow">${(state.sentinel.foodFaves||[]).map(f=>`<button class="chiptog" data-act="favLog" data-id="${f.id}" title="${Math.round(f.kcal)} kcal · P${f.protein} · Fb${f.fiber}"><span>＋</span>${esc(f.name)}<span class="x" data-act="favDel" data-id="${f.id}" style="margin-left:3px">✕</span></button>`).join("")}</div>`:''}
     </section>`},
     {key:"logged",label:"Logged today",cols:5,html:`<section class="panel">
       <div class="card-head"><span class="label">🍽️ Logged today</span></div>
-      ${list.length?list.slice().reverse().map(x=>`<div class="listrow"><span class="grow"><b style="font-size:13px">${esc(x.name)}</b> <span class="soft" style="font-size:11px">${x.serving?'· '+esc(x.serving):''}</span><div class="soft" style="font-size:11px">${Math.round(x.kcal)} kcal · P ${x.protein}g · Fb ${x.fiber}g · C ${x.carbs}g · F ${x.fat}g</div></span><button class="x" data-act="foodDel" data-id="${x.id}">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">Nothing logged yet today. ❄️</p>`}
+      ${list.length?list.slice().reverse().map(x=>`<div class="listrow"><span class="grow"><b style="font-size:13px">${esc(x.name)}</b> <span class="soft" style="font-size:11px">${x.serving?'· '+esc(x.serving):''}</span><div class="soft" style="font-size:11px">${Math.round(x.kcal)} kcal · P ${x.protein}g · Fb ${x.fiber}g · C ${x.carbs}g · F ${x.fat}g</div></span><button class="x" data-act="favSave" data-id="${x.id}" title="save as a favorite">⭐</button><button class="x" data-act="foodDel" data-id="${x.id}">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px">Nothing logged yet today. ❄️</p>`}
     </section>`},
     {key:"checkoffs",label:"Daily check-offs",cols:5,html:cardFoodCheckoffs()},
     {key:"foodweek",label:"This week",cols:10,html:cardFoodWeek()},
@@ -1917,7 +1992,9 @@ function viewSettings(){
 
   <section class="panel">
     <div class="label" style="margin-bottom:8px">💊 Meds &amp; supplements</div>
-    ${meds.length?meds.map(m=>`<div class="listrow"><span class="grow"><b>${esc(m.name)}</b> <span class="soft" style="font-size:11.5px">${esc(m.dose||'')} ${m.time?'· '+esc(m.time):''}</span></span><button class="x" data-act="delMed" data-v="${m.id}">✕</button></div>`).join("")
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Tick these off daily on the Food tab. Add a refill date and Kiko will gently remind you before you run low.</p>
+    ${meds.length?meds.map(m=>{ const days=m.refill?daysBetween(TODAY,m.refill):null;
+      return `<div class="listrow"><span class="grow"><b>${esc(m.name)}</b> <span class="soft" style="font-size:11.5px">${esc(m.dose||'')} ${m.time?'· '+esc(m.time):''}</span>${m.refill?` <span class="pill ${days!=null&&days<=7?'':'pill-gray'}" style="font-size:9px;${days!=null&&days<=7?'background:#fdebd9;color:#b4764a':''}">refill ${fmtDate(m.refill)}</span>`:''}</span><label class="btn" style="padding:3px 8px;cursor:pointer" title="set refill date">📅<input type="date" data-medrefill="${m.id}" value="${m.refill||''}" style="display:none"></label><button class="x" data-act="delMed" data-v="${m.id}">✕</button></div>`; }).join("")
       :`<p class="soft" style="font-size:12.5px">No meds added yet.</p>`}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
       <input class="inp" id="medName" placeholder="name (e.g. Metformin)">
@@ -2008,6 +2085,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v3.1 · June 2026 — Deeper everywhere</b> 📋 a <b>doctor-ready health report</b> (Health → 📋 Doctor report, or ask Kiko) — a tidy 30-day summary of weight/body-comp, Mounjaro, PCOS &amp; cycle, wellbeing trends, meds adherence &amp; nutrition you can copy or print for an appointment · 💊 tick off <b>each medication</b> on the Food tab, with <b>refill dates</b> + gentle low-supply nudges · 🥄 the Planner now reads today's energy and <b>suggests how to pace your list</b> · ⭐ save <b>favorite meals</b> and re-log "the usual" in a tap · 🔴 Stream tab gains a <b>one-tap stream planner</b> (drafts this week's game beats into your schedule), <b>sponsor deadline tracking</b> with reminders, and a quick <b>post-stream debrief</b> Kiko remembers · plus Kiko can drive all of it by chat.</p>
       <p><b>v3.0 · June 2026 — Kiko learns &amp; anticipates</b> 🦊 Built on deep research into the best AI assistants. Kiko now <b>learns your preferences on its own</b> — it quietly reflects on your chats and remembers how you like things (no more repeating yourself), and you can see &amp; wipe "what Kiko's learned about you" in settings · 🗒️ it keeps an <b>episodic log</b> of what it did for you, so "what did you change?" and undo just work · 🤝 <b>act-then-tell</b>: it does the safe things itself and tells you after, but always asks before deleting anything · 🌅 a new <b>proactivity dial</b> (Quiet / Gentle / Active) and a noticing engine that surfaces <i>one</i> well-timed, data-grounded observation — a correlation ("nausea's higher on low-water days"), a slipping streak, a dose day, a game update worth streaming · ✅ and it's honest now — if an action didn't take, it says so instead of a fake ✓.</p>
       <p><b>v2.9 · June 2026 — Kiko's bigger brain</b> 🧠 Kiko now shows you what he's doing while he works ("🔎 searched the web ✓ · 🗂 reading through your logs…") instead of a frozen "thinking" · 🗂 he can read your <b>entire history</b> on demand — any date range, any metric ("how was my sleep in March?", "compare nausea after each dose change") — not just the recent summary · 📓 he keeps his own organised notebook now (people, preferences, ideas) on top of quick facts · 📖 he can open and read actual web pages, not just search snippets · 💪 "use your smart brain" now genuinely switches him to Anthropic's Opus-class model with deeper reasoning · 🌙 a new optional <b>nightly spotter</b> can send one gentle push if a pattern in your last 3 weeks deserves a soft heads-up (high bar, never alarmist — see the setup doc) · under the hood: guaranteed-valid replies (no more "whiskers twitched" parse fumbles), prompt caching (~90% cheaper repeat context, snappier), and adaptive thinking.</p>
       <p><b>v2.8 · June 2026 — Kiko, keeper of the wishlist</b> 💌 say <b>"note for Eggie: …"</b> and your idea lands in Settings → Wishlist for Eggie (Eggie reads it from there — changes without the back-and-forth) · 🧩 Kiko now drives the hub too: calm/focus/larger-text modes, layout lock, hiding &amp; showing dashboard cards, the focus &amp; rest timer, your name/greeting/units, backups — all by chat · 🧹 he can tidy every list now (money entries, non-scale wins, joys, measurements, goals) · 🧠 and he knows even more: birthdays, recent weigh-ins, dose &amp; period history, brain-dump, stickies, joy jar, script drafts, recent money, your latest journal and your app prefs.</p>
@@ -2075,6 +2153,21 @@ function taskRow(t){
       <button class="x" data-act="delTask" data-v="${t.id}">✕</button>
     </div></div>`;
 }
+/* adaptive spoon-budget — reads today's logged energy and gently suggests how to pace the day */
+function spoonBudgetBanner(){
+  const e=(state.today&&state.today.mind&&state.today.mind.energy);
+  if(e==null) return `<div class="soft-card" style="margin-bottom:10px;font-size:11.5px;padding:9px 11px">🥄 Log today's <b>energy</b> on the Health tab and I'll suggest how to pace your list. ❄️</div>`;
+  const open=(state.sentinel.tasks||[]).filter(t=>!t.done);
+  const cnt=s=>open.filter(t=>(t.spoon||"some")===s).length;
+  let tier, msg, sug;
+  if(e<=1){ tier="low"; msg="a low-spoon day — be so gentle with yourself"; sug="Maybe just one 🌙 low task (or none). Rest counts."; }
+  else if(e<=3){ tier="med"; msg="a medium-spoon day"; sug="A couple of 🌙 low + one 🌤 some task is plenty."; }
+  else { tier="full"; msg="a fuller-energy day"; sug="Good day to tackle a 🌞 full task if you want — ride the wave, but still pace it."; }
+  const counts=`${cnt('low')} 🌙 · ${cnt('some')} 🌤 · ${cnt('full')} 🌞 open`;
+  return `<div class="soft-card" style="margin-bottom:10px;font-size:12px;padding:10px 12px;background:rgba(201,184,240,.14)">
+    🥄 Energy today is <b>${e}/5</b> — ${msg}. ${sug} <span class="soft" style="font-size:10.5px">(${counts})</span>
+    ${tier!=='full'?`<button class="btn" data-act="plnFilter" data-v="${tier==='low'?'low':'some'}" style="margin-left:6px;padding:3px 9px;font-size:11px">show gentle ones</button>`:''}</div>`;
+}
 function taskCard(t){
   const sm=spoonMeta(t.spoon); const bm=TASK_BUCKETS.find(b=>b[0]===t.bucket)||TASK_BUCKETS[0]; const R=remByTask()[t.id];
   return `<div class="citem" draggable="true" data-drag-task="${t.id}">
@@ -2116,6 +2209,7 @@ function viewPlanner(){
     <div class="card-head"><h2 style="font-size:18px">🗒️ Planner</h2>
       <div class="seg"><button data-act="plnView" data-v="list" class="${board?'':'on'}">📋 List</button><button data-act="plnView" data-v="board" class="${board?'on':''}">🗂 Board</button></div></div>
     <p class="soft" style="font-size:12px;margin:0 0 10px">One soft list. Tag each task by how many spoons it needs — on low days, filter to just the gentle ones. 🌙</p>
+    ${spoonBudgetBanner()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <div class="seg">
         <button data-act="plnFilter" data-v="all" class="${filt==='all'?'on':''}">All</button>
@@ -2360,9 +2454,13 @@ function teachModal(kind){
 function sponsorBlock(){
   const sp=(state.sentinel.sponsors||[]).slice();
   const badge=s=>({active:'pill-mint',pending:'pill-lav',done:'pill-gray'})[s]||'pill-gray';
+  const due=s=>{ if(!s.due||s.status==="done")return ""; const dd=daysBetween(TODAY,s.due);
+    const col=dd<0?"background:#fde4e4;color:#c0566a":dd<=3?"background:#fdebd9;color:#b4764a":"";
+    return ` <span class="pill ${col?'':'pill-gray'}" style="font-size:9px;${col}">⏳ ${dd<0?(-dd)+"d late":dd===0?"due today":dd===1?"due tomorrow":"due "+fmtDate(s.due)}</span>`; };
   const rows=sp.length?sp.map(s=>`<div class="listrow" style="align-items:flex-start">
-      <span class="grow"><b style="font-size:13px">${esc(s.name)}</b> <span class="pill ${badge(s.status)}" style="font-size:10px">${esc(s.status||'pending')}</span>
+      <span class="grow"><b style="font-size:13px">${esc(s.name)}</b> <span class="pill ${badge(s.status)}" style="font-size:10px">${esc(s.status||'pending')}</span>${due(s)}
         <div class="soft" style="font-size:11.5px">${s.code?'code '+esc(s.code)+' · ':''}${s.payout?esc(s.payout)+' · ':''}${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--peri-deep)">link</a>`:''}${s.note?' · '+esc(s.note):''}</div></span>
+      <label class="x" style="cursor:pointer" title="deliverable due date">📅<input type="date" data-spdue="${s.id}" value="${s.due||''}" style="display:none"></label>
       <button class="x" data-act="spCycle" data-v="${s.id}" title="cycle status">↻</button>
       <button class="x" data-act="delSponsor" data-v="${s.id}">✕</button></div>`).join("")
     :`<p class="soft" style="font-size:12.5px">No sponsors yet — add brand deals, codes, and payouts to keep them all in one place. 💜</p>`;
@@ -2376,10 +2474,36 @@ function sponsorBlock(){
         <input class="inp" id="sp_payout" placeholder="deal / payout (e.g. €300 + 10%)">
         <input class="inp" id="sp_url" placeholder="link (https://…)">
       </div>
-      <input class="inp" id="sp_note" placeholder="note (deliverables, dates…)" style="margin-top:8px">
+      <input class="inp" id="sp_note" placeholder="note (deliverables…)" style="margin-top:8px">
+      <div class="field" style="margin-top:8px"><div class="label">Deliverable due date · optional</div><input class="inp" id="sp_due" type="date"></div>
       <button class="btn btn-grad" data-act="addSponsor" style="margin-top:8px">Add sponsor</button>
     </div></details>
   </section>`;
+}
+/* creator tools — draft streams from game events + a quick post-stream debrief */
+function creatorTools(){
+  const s=state.sentinel||{}; const wk=weekStartISO(0);
+  const ge=(s.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; }).sort((a,b)=>a.date<b.date?-1:1);
+  const log=(s.streamLog||[]).slice().reverse();
+  const draft=`<section class="panel">
+    <div class="card-head"><span class="label">📅 Plan this week's streams</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Turn this week's tracked game beats into stream slots in one tap — then tweak times on Home → Stream schedule. ❄️</p>
+    ${ge.length?`<div style="margin-bottom:8px">${ge.map(e=>`<div class="listrow"><span class="grow" style="font-size:12.5px">🎮 ${esc(e.title)} <span class="soft">· ${new Date(e.date+"T00:00").toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</span></span></div>`).join("")}</div>
+      <button class="btn btn-grad" data-act="draftStreams">＋ draft ${ge.length} stream slot${ge.length>1?'s':''}</button>`
+      :`<p class="soft" style="font-size:12px">No game beats on the calendar for this week yet — ask Kiko to "refresh my game calendar" and they'll appear here. 🦊</p>`}
+  </section>`;
+  const debrief=`<section class="panel">
+    <div class="card-head"><span class="label">🎬 Post-stream debrief</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">A 20-second note after a stream — how it felt + an idea for next time. Kiko remembers these and can pull ideas from them. 💗</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input class="inp" id="db_game" placeholder="what did you stream?" style="flex:2;min-width:140px">
+      <select class="inp" id="db_vibe" style="max-width:130px"><option value="">how'd it feel?</option>${[["5","✨ great"],["4","🙂 good"],["3","😌 okay"],["2","😕 meh"],["1","🌧️ rough"]].map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select>
+    </div>
+    <textarea class="inp" id="db_note" rows="2" placeholder="highlights, what to try next time, ideas…" style="margin-top:8px"></textarea>
+    <button class="btn btn-grad" data-act="saveDebrief" style="margin-top:8px">Save debrief 🎬</button>
+    ${log.length?`<details class="acc" style="margin-top:10px"><summary>recent debriefs (${log.length})</summary><div style="margin-top:6px">${log.slice(0,6).map(d=>`<div class="listrow"><span class="grow" style="font-size:12px"><b>${esc(d.game||'stream')}</b> <span class="soft">· ${fmtDate(d.date)}${d.vibe?' · '+["","🌧️","😕","😌","🙂","✨"][d.vibe]:''}</span>${d.note?`<div class="soft" style="font-size:11px">${esc(d.note)}</div>`:''}</span><button class="x" data-act="delDebrief" data-id="${d.id}">✕</button></div>`).join("")}</div></details>`:''}
+  </section>`;
+  return draft+debrief;
 }
 function viewOptimize(){
   const m=OPT.mode;
@@ -2399,6 +2523,7 @@ function viewOptimize(){
   ${OPT.err?`<div class="disc">⚠️<span>${esc(OPT.err)}</span></div>`:''}
   ${m==='video'?(OPT.video?optVideoResult(OPT.video):''):(OPT.stream?optStreamResult(OPT.stream):'')}
   ${thumbCard()}
+  ${creatorTools()}
   ${sponsorBlock()}
   <details class="acc" style="margin-top:14px"><summary>📺 Channel snapshot</summary><div class="acc-body">
     <button class="btn btn-grad" data-act="optChannel" ${OPT.busy==='channel'?'disabled':''}>${OPT.busy==='channel'?'…':'Pull '+esc(CONFIG.youtube.handle)}</button>
@@ -2716,6 +2841,8 @@ const H={
     await setToday(n=>({...n,sleep:Math.max(0,Math.min(14,(n.sleep||0)+d))})); render(); },
   async medToggle(el){ const part=el.dataset.v;   // 'am' | 'pm' — both done ⇒ home "meds" habit ticks too
     await setToday(n=>{ const meds={...(n.meds||{})}; meds[part]=!meds[part]; const habits={...(n.habits||{})}; habits.h_meds=!!(meds.am&&meds.pm); return {...n,meds,habits}; }); render(); },
+  async medTake(el){ const id=el.dataset.v;   // per-medication daily check-off
+    await setToday(n=>({...n,medsTaken:{...(n.medsTaken||{}),[id]:!(n.medsTaken||{})[id]}})); render(); },
 
   async saveHelps(){ const t=$("#helpsNote").value; await setSent(n=>({...n,helps:t})); toast("saved 💗"); },
 
@@ -2784,6 +2911,15 @@ const H={
       kcal:Math.round(num(g("fe_kcal"))), protein:num(g("fe_protein")), carbs:num(g("fe_carbs")), fiber:num(g("fe_fiber")), fat:num(g("fe_fat")), time:new Date().toISOString()};
     await setToday(n=>({...n,food:[...(n.food||[]),item]})); state.foodDraft={image:null,desc:"",est:null}; toast("logged 🍽️"); render(); },
   async foodDel(el){ const id=el.dataset.id; await setToday(n=>({...n,food:(n.food||[]).filter(x=>x.id!==id)})); render(); },
+  async favSave(el){ const id=el.dataset.id; const x=(state.today.food||[]).find(f=>f.id===id); if(!x){ toast("hmm, couldn't find it"); return; }
+    await setSent(n=>{ const faves=(n.foodFaves||[]).slice(); if(faves.some(f=>f.name.toLowerCase()===x.name.toLowerCase())){ return n; }
+      faves.push({id:"fav"+Date.now(),name:x.name,serving:x.serving||"",kcal:x.kcal||0,protein:x.protein||0,carbs:x.carbs||0,fiber:x.fiber||0,fat:x.fat||0}); return {...n,foodFaves:faves.slice(-24)}; });
+    toast("saved to favorites ⭐"); render(); },
+  async favLog(el){ if(el.target&&el.target!==el&&el.target.dataset&&el.target.dataset.act==="favDel")return; const id=el.dataset.id;
+    const f=(state.sentinel.foodFaves||[]).find(x=>x.id===id); if(!f)return;
+    const item={id:"fd"+Date.now(),name:f.name,serving:f.serving||"",kcal:f.kcal||0,protein:f.protein||0,carbs:f.carbs||0,fiber:f.fiber||0,fat:f.fat||0,time:new Date().toISOString()};
+    await setToday(n=>({...n,food:[...(n.food||[]),item]})); toast("logged "+f.name+" 🍽️"); render(); },
+  async favDel(el){ const id=el.dataset.id; await setSent(n=>({...n,foodFaves:(n.foodFaves||[]).filter(f=>f.id!==id)})); render(); },
   async saveFoodTargets(){ const num=id=>{const el=$("#"+id);const n=el?parseFloat(el.value):NaN;return isNaN(n)?null:n;};
     await setSent(n=>({...n,foodTargets:{kcal:num("ft_kcal")||1500,protein:num("ft_protein")||110,fiber:num("ft_fiber")||28}})); toast("targets saved 🎯"); render(); },
   revealNum(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); const avg=rollingAvg(wl);
@@ -3133,6 +3269,10 @@ const H={
     KIKO.log=[]; KIKO._spoken=-1; KIKO.sinceReflect=0; saveKikoLog(); paintKiko(); toast("fresh page ❄️"); },
   async delMemory(el){ const id=el.dataset.v; await setSent(n=>({...n,kikoMemory:(n.kikoMemory||[]).filter(m=>m.id!==id)})); toast("forgotten 🧠"); render(); },
   async clearUserModel(){ await setSent(n=>({...n,kikoUserModel:""})); toast("Kiko will get to know you fresh 🦊"); render(); },
+  healthReport(){ showHealthReport(); },
+  copyHealthReport(){ const el=$("#hrText"); const t=el?el.innerText:buildHealthReport(); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("copied 📋"); },
+  printHealthReport(){ const t=$("#hrText")?$("#hrText").innerText:buildHealthReport(); const w=window.open("","_blank"); if(!w){ toast("allow pop-ups to print 🌸"); return; }
+    w.document.write(`<pre style="white-space:pre-wrap;font-family:system-ui,sans-serif;font-size:13px;line-height:1.55;padding:24px">${esc(t)}</pre>`); w.document.close(); setTimeout(()=>{ try{w.print();}catch(e){} },300); },
   kikoMaximize(){ state.kikoReturn=(state.tab==="kiko")?(state.kikoReturn||"home"):state.tab; KIKO.open=false; const c=$("#kikoChat"); if(c)c.classList.add("hidden"); kikoState="walk"; setTab("kiko"); },
   kikoMinimize(){ setTab(state.kikoReturn||"home"); },
   kikoSkill(el){ const inp=kikoInputEl(); if(!inp)return; if(el.dataset.send!=null){ inp.value=el.dataset.send; H.kikoSend(); } else { inp.value=el.dataset.seed||""; try{inp.focus();}catch(_){} } },
@@ -3162,8 +3302,18 @@ const H={
   // --- Optimize ---
   // --- sponsors ---
   async addSponsor(){ const g=id=>{const e=$("#"+id);return e?e.value.trim():"";}; const name=g("sp_name"); if(!name){toast("name please 💜");return;}
-    await setSent(n=>({...n,sponsors:[...(n.sponsors||[]),{id:"sp"+Date.now(),name,code:g("sp_code"),payout:g("sp_payout"),url:g("sp_url"),note:g("sp_note"),status:"pending"}]})); toast("added 💜"); render(); },
+    await setSent(n=>({...n,sponsors:[...(n.sponsors||[]),{id:"sp"+Date.now(),name,code:g("sp_code"),payout:g("sp_payout"),url:g("sp_url"),note:g("sp_note"),due:g("sp_due")||undefined,status:"pending"}]})); toast("added 💜"); render(); },
   async delSponsor(el){ const id=el.dataset.v; await setSent(n=>({...n,sponsors:(n.sponsors||[]).filter(s=>s.id!==id)})); render(); },
+  async draftStreams(){ const wk=weekStartISO(0);
+    const ge=(state.sentinel.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; });
+    if(!ge.length){ toast("no game beats this week 🌸"); return; }
+    await setWeekSlots(wk,arr=>{ const out=arr.slice();
+      ge.forEach(e=>{ const wd=DOW_ORDER[(new Date(e.date+"T00:00").getDay()+6)%7]; out.push({id:"sc"+Date.now()+Math.floor(Math.random()*1000),day:wd,show:e.title,time:STREAM_TIME_DEFAULT}); }); return out; });
+    toast("drafted "+ge.length+" stream"+(ge.length>1?"s":"")+" 📅"); state.tab="home"; state.schedEdit=true; render(); },
+  async saveDebrief(){ const g=id=>{const e=$("#"+id);return e?e.value.trim():"";}; const game=g("db_game"), note=g("db_note"), vibe=Number(g("db_vibe"))||null;
+    if(!game&&!note){ toast("add a word or two first 🌸"); return; }
+    await setSent(n=>({...n,streamLog:[...(n.streamLog||[]),{id:"sl"+Date.now(),date:TODAY,game,vibe,note}].slice(-40)})); toast("debrief saved 🎬"); render(); },
+  async delDebrief(el){ const id=el.dataset.id; await setSent(n=>({...n,streamLog:(n.streamLog||[]).filter(d=>d.id!==id)})); render(); },
   async spCycle(el){ const id=el.dataset.v, order=["pending","active","done"]; await setSent(n=>({...n,sponsors:(n.sponsors||[]).map(s=>s.id===id?{...s,status:order[(order.indexOf(s.status||"pending")+1)%3]}:s)})); render(); },
   // --- money ---
   moneyDir(el){ const g=id=>{const e=$("#"+id);return e?e.value:"";};
@@ -3256,6 +3406,10 @@ document.addEventListener("change",e=>{
     state.moneyYear=t.value; render();
   } else if(t.dataset && t.dataset.sched){ const id=t.dataset.sched, k=t.dataset.k, v=t.value, wk=weekStartISO(state.schedWeekOff||0);
     setWeekSlots(wk,arr=>arr.map(r=>r.id===id?{...r,[k]:v}:r)); // fire-and-forget; writes to the active week (override or usual)
+  } else if(t.dataset && t.dataset.medrefill){ const id=t.dataset.medrefill, v=t.value;
+    setSent(n=>({...n,medsList:(n.medsList||[]).map(m=>m.id===id?{...m,refill:v||undefined}:m)})).then(()=>render());
+  } else if(t.dataset && t.dataset.spdue){ const id=t.dataset.spdue, v=t.value;
+    setSent(n=>({...n,sponsors:(n.sponsors||[]).map(sp=>sp.id===id?{...sp,due:v||undefined}:sp)})).then(()=>render());
   }
 });
 window._lastPtr="mouse"; document.addEventListener("pointerdown",e=>{ window._lastPtr=e.pointerType||"mouse"; },true);   // pen/touch must not trigger native HTML5 drags
@@ -3620,7 +3774,9 @@ function kikoDataSummary(){
       const cat={}; tx.forEach(x=>{ cat[x.cat]=(cat[x.cat]||0)+(x.dir==="in"?1:-1)*(+x.amount||0); });
       const top=Object.entries(cat).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,4).map(([c,v])=>`${c} ${v>=0?'+':''}€${Math.round(v)}`);
       L.push(`MONEY ${y}: in €${Math.round(inc)}, out €${Math.round(exp)}, net €${Math.round(inc-exp)} (${tx.length} entries; ${top.join(", ")})`); }
-    const sp=(s.sponsors||[]); if(sp.length) L.push(`SPONSORS (${sp.length}): `+sp.map(x=>`${x.name} [${x.status||'pending'}]${x.payout?" "+x.payout:""}`).join("; "));
+    const sp=(s.sponsors||[]); if(sp.length) L.push(`SPONSORS (${sp.length}): `+sp.map(x=>`${x.name} [${x.status||'pending'}]${x.payout?" "+x.payout:""}${x.due?" due "+x.due:""}`).join("; "));
+    const sl=(s.streamLog||[]); if(sl.length) L.push(`STREAM DEBRIEFS (recent): `+sl.slice(-4).map(d=>`${d.game||'stream'} (${fmtDate(d.date)}${d.vibe?", vibe "+d.vibe+"/5":""})${d.note?": "+String(d.note).slice(0,80):""}`).join("; "));
+    const ff=(s.foodFaves||[]); if(ff.length) L.push(`FAVORITE MEALS: `+ff.map(f=>f.name).join(", "));
 
     // ===== TASKS / GOALS / HABITS / GACHA =====
     const tasks=(s.tasks||[]); const open=tasks.filter(x=>!x.done);
@@ -3712,6 +3868,23 @@ async function execAgentAction(a){
   try{
     if(T==="navigate"){ if(TABS.some(t=>t[0]===a.tab)) state.tab=a.tab; return "opened "+a.tab; }
     if(T==="setProactivity"){ const v=["quiet","gentle","active"].includes(a.level)?a.level:"gentle"; localStorage.setItem("kiko-prolevel",v); localStorage.setItem("kiko-proactive",v==="quiet"?"0":"1"); return "🌅 proactivity set to "+v; }
+    if(T==="healthReport"){ state.tab="health"; setTimeout(()=>{ try{showHealthReport();}catch(e){} },60); return "📋 opened your doctor-ready health report"; }
+    if(T==="markMed"){ const meds=(state.sentinel.medsList||[]); const i=findByText(meds,a.name,"name"); if(i<0)return null; const on=a.on!=null?!!a.on:true;
+      await setToday(n=>({...n,medsTaken:{...(n.medsTaken||{}),[meds[i].id]:on}})); return (on?"💊 took ":"↩️ unmarked ")+meds[i].name; }
+    if(T==="setMedRefill"){ const meds=(state.sentinel.medsList||[]); const i=findByText(meds,a.name,"name"); if(i<0||!/^\d{4}-\d{2}-\d{2}$/.test(a.date||""))return null;
+      await setSent(n=>({...n,medsList:(n.medsList||[]).map(m=>m.id===meds[i].id?{...m,refill:a.date}:m)})); return "💊 "+meds[i].name+" refill by "+fmtDate(a.date); }
+    if(T==="logDebrief"){ if(!a.game&&!a.note)return null;
+      await setSent(n=>({...n,streamLog:[...(n.streamLog||[]),{id:"sl"+Date.now(),date:TODAY,game:a.game||"",vibe:(a.vibe>=1&&a.vibe<=5)?a.vibe:null,note:a.note||""}].slice(-40)})); return "🎬 stream debrief saved"+(a.game?": "+a.game:""); }
+    if(T==="setSponsorDue"){ const sps=(state.sentinel.sponsors||[]); const i=findByText(sps,a.name,"name"); if(i<0||!/^\d{4}-\d{2}-\d{2}$/.test(a.date||""))return null;
+      await setSent(n=>({...n,sponsors:(n.sponsors||[]).map(x=>x.id===sps[i].id?{...x,due:a.date}:x)})); return "💜 "+sps[i].name+" deliverable due "+fmtDate(a.date); }
+    if(T==="draftStreamWeek"){ const wk=weekStartISO(0);
+      const ge=(state.sentinel.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; });
+      if(!ge.length)return "no game beats on the calendar this week to draft from";
+      await setWeekSlots(wk,arr=>{ const out=arr.slice(); ge.forEach(e=>{ const wd=DOW_ORDER[(new Date(e.date+"T00:00").getDay()+6)%7]; out.push({id:"sc"+Date.now()+Math.floor(Math.random()*1000),day:wd,show:e.title,time:STREAM_TIME_DEFAULT}); }); return out; });
+      return "📅 drafted "+ge.length+" stream slot"+(ge.length>1?"s":"")+" from this week's game beats"; }
+    if(T==="logFavorite"){ const faves=(state.sentinel.foodFaves||[]); const i=findByText(faves,a.name,"name"); if(i<0)return null; const f=faves[i];
+      const item={id:"fd"+Date.now(),name:f.name,serving:f.serving||"",kcal:f.kcal||0,protein:f.protein||0,carbs:f.carbs||0,fiber:f.fiber||0,fat:f.fat||0,time:new Date().toISOString()};
+      await setToday(n=>({...n,food:[...(n.food||[]),item]})); return "🍽️ logged your usual: "+f.name; }
     if(T==="addEvent"){ const src=["game","gameevent","gamestream"].includes(a.src)?a.src:null;
       const ev={id:uid(),title:a.title||"event",date:a.date||TODAY,endDate:(!src&&a.endDate&&a.endDate>(a.date||TODAY))?a.endDate:null,time:a.time||"",tz:a.tz||"Europe/Amsterdam",note:a.note||"",url:a.url||"",
         ...(src?{src}:{color:(typeof CAL_COLORS!=="undefined"&&CAL_COLORS[1])||"#c9b8f0"})};
@@ -4084,11 +4257,13 @@ function kikoNotice(){
       else if(di===1) ins.push({key:"dosesoon",pri:6,text:"💉 your shot's tomorrow — rotate to a fresh site, and I can remind you ❄️"}); }
     if([0,1,2].every(i=>{ const hb=(byDate[dayAgo(-i)]&&byDate[dayAgo(-i)].habits)||{}; return !hb.h_meds; }))
       ins.push({key:"meds",pri:8,text:"💊 meds haven't been ticked in a few days — want a daily reminder to make it easier?"});
+    (s.medsList||[]).forEach(m=>{ if(m.refill){ const dd=daysBetween(TODAY,m.refill); if(dd>=0&&dd<=5) ins.push({key:"refill-"+m.id,pri:7,text:"💊 your "+m.name+" refill is "+(dd===0?"today":dd===1?"tomorrow":"in "+dd+" days")+" — worth sorting before you run low ❄️"}); } });
     const water=lastN(["mounjaro","water"],5), naus=lastN(["mounjaro","nausea"],5);
     if(water.length>=3&&naus.length>=3){ const aw=water.reduce((a,b)=>a+b,0)/water.length, an=naus.reduce((a,b)=>a+b,0)/naus.length;
       if(aw<CUPS_PER_40OZ*1.5 && an>=2) ins.push({key:"waternausea",pri:7,text:"🥤 your water's been low and nausea a bit higher lately — they often go together. a couple of 40oz today might help 💗"}); }
     try{ const {series}=buildSeries(); const en=(series.energy||[]).filter(v=>v!=null);
       if(en.length>=6){ const h=Math.floor(en.length/2); const d=en.slice(-h).reduce((a,b)=>a+b,0)/h-en.slice(0,h).reduce((a,b)=>a+b,0)/h; if(d<-0.6) ins.push({key:"energy",pri:5,text:"⚡ your energy's trended down this stretch — be gentle today; want me to keep your plan light?"}); } }catch(_){}
+    (s.sponsors||[]).forEach(sp=>{ if(sp.due&&sp.status!=="done"){ const dd=daysBetween(TODAY,sp.due); if(dd>=0&&dd<=3) ins.push({key:"sponsor-"+sp.id,pri:7,text:"💜 your "+sp.name+" deliverable is "+(dd===0?"due today":dd===1?"due tomorrow":"due in "+dd+" days")+" — want a reminder or to block stream time?"}); else if(dd<0) ins.push({key:"sponsorlate-"+sp.id,pri:8,text:"💜 the "+sp.name+" deliverable was due "+(-dd)+"d ago — want to sort it or push the date?"}); } });
     const wk=weekStartISO(0); const ge=(s.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; });
     if(ge.length) ins.push({key:"game-"+ge[0].date,pri:4,text:"🎮 "+ge[0].title+" lands this week — could be a fun stream! want it on your schedule?"});
     const je=(s.journalEntries||[]); const lastJ=je.length?je[je.length-1].date:null;
