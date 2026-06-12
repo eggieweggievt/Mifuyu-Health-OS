@@ -508,7 +508,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-12.5";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-12.6";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -4369,8 +4369,9 @@ const H={
           memory:(state.sentinel.kikoMemory||[]).slice(-30).map(m=>({text:m.text})),
           userModel:(state.sentinel.kikoUserModel||""),
           recentActions:(state.sentinel.kikoActions||[]).slice(-12),
-          history:KIKO.log.slice(0,-1).slice(-8).map(m=>({role:m.role,text:String(m.text||"").slice(0,300)})),
+          history:KIKO.log.slice(0,-1).slice(-8).map(m=>({role:m.role,text:String(m.text||"").slice(0,300)+(m.imgs&&m.imgs.length?" [she attached "+m.imgs.length+" image"+(m.imgs.length>1?"s":"")+" here]":"")})),
           images:imgs,   // he sees what you sent — designs, DMs, screenshots, food, anything
+          priorImages:KIKO.log.slice(0,-1).slice(-8).filter(m=>m.role==="me"&&m.imgs&&m.imgs.length).flatMap(m=>m.imgs).slice(-3),   // and remembers what you sent a few messages ago
           smart:localStorage.getItem("kiko-smart")==="1",
           summary:kikoDataSummary()};
         let d;
