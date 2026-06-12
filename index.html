@@ -391,6 +391,12 @@
   .tb-steps .listrow{align-items:flex-start;}
   .spice{display:flex;gap:3px;align-items:center;}
   .spice button{border:none;background:none;font-size:16px;opacity:.35;cursor:pointer;padding:2px;} .spice button.on{opacity:1;}
+  .jr-cell{min-width:0;min-height:72px;border:1px solid var(--line);border-radius:10px;padding:4px 6px;display:flex;flex-direction:column;gap:2px;transition:transform .12s,border-color .15s;}
+  .jr-cell:hover{border-color:var(--lav);transform:scale(1.02);}
+  .jr-cell.today{border-color:var(--peri);box-shadow:inset 0 0 0 2px rgba(117,138,198,.25);}
+  .jr-meta{font-size:9px;color:var(--ink-soft);line-height:1.3;display:flex;gap:4px;flex-wrap:wrap;}
+  .jr-dot{display:inline-block;width:9px;height:9px;border-radius:3px;vertical-align:middle;margin-right:3px;}
+  @media(max-width:640px){ .jr-cell{min-height:54px;padding:3px 4px;} .jr-meta{font-size:8px;} }
 </style>
 </head>
 <body>
@@ -421,7 +427,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-12.2";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-12.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -668,10 +674,10 @@ const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plann
 try{ state.trendType=localStorage.getItem("mifu-trend-type")||state.trendType; state.wtType=localStorage.getItem("mifu-wt-type")||state.wtType; }catch(e){}   // remember her chart choices
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["health","❄️ Health"],["food","🍱 Food"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 /* ===== one app, two minds — Creator OS 🎀 / Health OS ❄️ (tap the logo to swap) ===== */
 const CREATOR_TABS=["home","kiko","planner","calendar","script","optimize","money","art","toolbox","settings"];
-const HEALTH_TABS=["home","kiko","food","care","trends","health","settings"];
+const HEALTH_TABS=["home","kiko","food","care","trends","health","journal","settings"];
 let OS_MODE=(function(){ try{ return localStorage.getItem("mifu-mode")==="health"?"health":"creator"; }catch(e){ return "creator"; } })();   // default: Creator OS
 function modeTabs(){ return OS_MODE==="health"?HEALTH_TABS:CREATOR_TABS; }
 function modeSwapAnim(){ const v=$("#view"); if(!v)return; v.classList.remove("mode-anim"); void v.offsetWidth; v.classList.add("mode-anim");
@@ -728,7 +734,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -1129,7 +1135,160 @@ function viewArt(){
   ${(state.sentinel.artLog||[]).length?`<details class="acc"><summary>📜 art rhythm (${(state.sentinel.artLog||[]).length} days made)</summary><div class="acc-body">${(state.sentinel.artLog||[]).slice(-20).reverse().map(a=>`<div class="listrow"><span class="grow" style="font-size:12px">${fmtDate(a.date)}${a.note?" · "+esc(a.note):""}</span></div>`).join("")}</div></details>`:""}
   </div>`;
 }
-/* ===================== 🧰 TOOLBOX — goblin-tools-style ADHD helpers ===================== */
+/* ===================== 📓 JOURNAL — private life archive (calendar · entries · capsules) =====================
+   Privacy-first: the grid shows only summary chips; her written words appear ONLY after she opens a day.
+   No forked data: it reads/writes the same day rows everything else uses (mood, sleep, weight, symptoms,
+   the `journal` text) — new fields are just stress, sleepQ, tags, special. */
+const JR_MOODS=["😶","🌧️","😔","😌","🙂","✨"];
+function jrYM(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+async function jrFetchMonth(ref){
+  const ym=jrYM(ref); state.jrCache=state.jrCache||{};
+  if(state.jrCache[ym]) return state.jrCache[ym];
+  const last=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate();
+  const start=ym+"-01", end=ym+"-"+String(last).padStart(2,"0");
+  const rows={};
+  if(DEMO){ Object.entries(demo).forEach(([d,n])=>{ if(d>=start&&d<=end&&d!==SENTINEL) rows[d]=n; }); }
+  else if(SB){ try{ const {data}=await SB.from("daily_logs").select("date,notes").eq("user_id",UID).gte("date",start).lte("date",end).neq("date",SENTINEL); (data||[]).forEach(r=>rows[r.date]=r.notes||{}); }catch(e){} }
+  if(TODAY.slice(0,7)===ym) rows[TODAY]={...(rows[TODAY]||{}),...state.today};
+  state.jrCache[ym]=rows; return rows;
+}
+async function jrFetchAll(){
+  if(state.jrAll) return state.jrAll;
+  let rows={};
+  if(DEMO){ Object.entries(demo).forEach(([d,n])=>{ if(d!==SENTINEL) rows[d]=n; }); }
+  else if(SB){ try{ const {data}=await SB.from("daily_logs").select("date,notes").eq("user_id",UID).neq("date",SENTINEL); (data||[]).forEach(r=>rows[r.date]=r.notes||{}); }catch(e){} }
+  rows[TODAY]={...(rows[TODAY]||{}),...state.today};
+  state.jrAll=rows; return rows;
+}
+/* write to ANY day's row (today or the past) and keep caches in step */
+async function setDay(date,merge){
+  const next=await DB.saveDaily(date,n=>merge(n));
+  if(date===TODAY) state.today=next;
+  const ym=date.slice(0,7);
+  if(state.jrCache&&state.jrCache[ym]) state.jrCache[ym][date]=next;
+  if(state.jrAll) state.jrAll[date]=next;
+  return next;
+}
+function jrWeightMap(){ const m={}; (state.sentinel.weightLog||[]).forEach(x=>{ if(x.w!=null)m[x.date]=x.w; }); return m; }
+/* was this date a stream day? best effort: planned week slots (current/overridden weeks; past defaults under-detect) */
+function jrStreamDay(date){ try{ const d=new Date(date+"T00:00"); const wd=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
+  return slotsForDate(d).some(s=>s.day===wd); }catch(e){ return false; } }
+function jrSpecial(date,n){ if(n&&n.special)return true; return (state.sentinel.calendarEvents||[]).some(e=>!gameSrc(e)&&e.date===date); }
+function jrDayColor(n,special){ if(special)return "#ece2fb"; const mo=n&&n.mind&&n.mind.mood;
+  if(mo==null)return "#eef3fa"; return mo>=4?"#e0f5ea":mo===3?"#fdf3da":"#fde6e9"; }
+function jrSymptomFlag(n){ if(!n)return false; const p=n.pcos||{},mj=n.mounjaro||{};
+  return ["fatigue","bloating","acne","shedding","cravings"].some(k=>(p[k]||0)>=3)||["nausea","constipation","diarrhea","reflux","belly"].some(k=>(mj[k]||0)>=3); }
+function jrStats(rows){
+  const ds=Object.entries(rows||{}).map(([date,n])=>({date,n})).sort((a,b)=>a.date<b.date?-1:1);
+  const pick=(f)=>ds.map(d=>f(d.n)).filter(v=>v!=null);
+  const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10:null;
+  const moods=pick(n=>n.mind&&n.mind.mood), en=pick(n=>n.mind&&n.mind.energy), sl=pick(n=>n.sleep), fn=pick(n=>n.mounjaro&&n.mounjaro.foodnoise);
+  const wm=jrWeightMap(); const wIn=ds.map(d=>wm[d.date]).filter(v=>v!=null);
+  const scored=ds.filter(d=>d.n.mind&&d.n.mind.mood!=null).map(d=>({date:d.date,score:d.n.mind.mood+(d.n.mind.energy||0)/2-(d.n.stress||0)/2}));
+  const best=scored.slice().sort((a,b)=>b.score-a.score)[0], hard=scored.slice().sort((a,b)=>a.score-b.score)[0];
+  const sym={}; ds.forEach(d=>{ const p=d.n.pcos||{},mj=d.n.mounjaro||{}; [["fatigue",p],["bloating",p],["cravings",p],["nausea",mj],["reflux",mj],["belly",mj]].forEach(([k,o])=>{ if((o[k]||0)>=3) sym[k]=(sym[k]||0)+1; }); });
+  const topSym=Object.entries(sym).sort((a,b)=>b[1]-a[1])[0];
+  return { logged:ds.filter(d=>d.n.mind&&d.n.mind.mood!=null).length, avgMood:avg(moods), avgEnergy:avg(en), avgSleep:avg(sl),
+    wDelta:wIn.length>1?Math.round((wIn[wIn.length-1]-wIn[0])*10)/10:null,
+    fnTrend:fn.length>=4?(avg(fn.slice(-Math.ceil(fn.length/2)))-avg(fn.slice(0,Math.floor(fn.length/2)))):null,
+    best, hard, topSym };
+}
+function viewJournal(){
+  if(!state.jrRef){ const t=new Date(); state.jrRef=new Date(t.getFullYear(),t.getMonth(),1); }
+  const ref=state.jrRef, ym=jrYM(ref);
+  const rows=(state.jrCache||{})[ym];
+  if(!rows){ setTimeout(async()=>{ try{ await jrFetchMonth(state.jrRef); if(state.tab==="journal") render(); }catch(_){} },10); }
+  const R=rows||{};
+  const st=jrStats(R); const wm=jrWeightMap();
+  const monthName=ref.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+  const startDow=new Date(ref.getFullYear(),ref.getMonth(),1).getDay();
+  const daysIn=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate();
+  let cells="";
+  for(let i=0;i<startDow;i++) cells+=`<div></div>`;
+  for(let d=1;d<=daysIn;d++){
+    const ds=ym+"-"+String(d).padStart(2,"0"); const n=R[ds]; const sp=jrSpecial(ds,n);
+    const mo=n&&n.mind&&n.mind.mood; const future=ds>TODAY;
+    cells+=`<div class="jr-cell ${ds===TODAY?'today':''}" style="background:${future?'#fff':jrDayColor(n,sp)};${future?'opacity:.45;':''}cursor:${future?'default':'pointer'}" ${future?'':`data-act="jrOpenDay" data-date="${ds}"`}>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="cal-daynum">${d}</span>${mo!=null?`<span style="font-size:13px">${JR_MOODS[Math.max(0,Math.min(5,mo))]}</span>`:""}</div>
+      ${n||wm[ds]?`<div class="jr-meta">${wm[ds]!=null?`⚖️${wm[ds]}`:""} ${n&&n.mind&&n.mind.energy!=null?`⚡${n.mind.energy}`:""} ${n&&n.sleep!=null?`🌙${n.sleep}h`:""}</div>
+      <div class="jr-meta">${n&&n.stress!=null?`🫨${n.stress}`:""} ${jrSymptomFlag(n)?"🩹":""} ${n&&n.journal?"✍️":""} ${jrStreamDay(ds)?"🔴":""} ${sp?"💜":""}</div>`:""}
+    </div>`;
+  }
+  const caps=state.sentinel.memoryCapsules||{};
+  const capYMs=(function(){ const out=[]; const t=new Date(); for(let i=1;i<=6;i++){ const d=new Date(t.getFullYear(),t.getMonth()-i,1); out.push(jrYM(d)); } return out; })();
+  const srch=state.jrSearch||{};
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+  <section class="panel">
+    <div class="card-head"><h2 style="font-size:18px">📓 ${monthName}</h2>
+      <div style="display:flex;gap:6px"><button class="btn" data-act="jrShift" data-d="-1">‹</button><button class="btn" data-act="jrToday">today</button><button class="btn" data-act="jrShift" data-d="1">›</button><button class="btn btn-grad" data-act="jrOpenDay" data-date="${TODAY}">✍️ today's entry</button></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">
+      ${[["🌤️ avg mood",st.avgMood!=null?st.avgMood+"/5":"—"],["⚡ avg energy",st.avgEnergy!=null?st.avgEnergy+"/5":"—"],["🌙 avg sleep",st.avgSleep!=null?st.avgSleep+"h":"—"],["⚖️ this month",st.wDelta!=null?(st.wDelta>0?"+":"")+st.wDelta+CONFIG.weightUnit:"—"],["✨ best day",st.best?fmtDate(st.best.date):"—"],["🌧️ hardest",st.hard?fmtDate(st.hard.date):"—"]].map(([l,v])=>`<div class="soft-card" style="padding:8px 10px;text-align:center"><div class="label" style="font-size:9px">${l}</div><div style="font-weight:700;font-size:14px">${v}</div></div>`).join("")}
+    </div>
+    <div class="cal-grid" style="margin-bottom:4px">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>`<div class="cal-dow">${d}</div>`).join("")}</div>
+    <div class="cal-grid">${cells}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--muted);margin-top:8px">
+      <span><span class="jr-dot" style="background:#e0f5ea"></span> lovely</span><span><span class="jr-dot" style="background:#fdf3da"></span> okay</span><span><span class="jr-dot" style="background:#fde6e9"></span> rough</span><span><span class="jr-dot" style="background:#eef3fa"></span> unlogged</span><span><span class="jr-dot" style="background:#ece2fb"></span> special 💜</span><span>· ✍️ has words · 🩹 symptoms · 🔴 stream day</span>
+    </div>
+    <p class="soft" style="font-size:10.5px;margin-top:6px">Your written words never show here — open a day to read them. 🔒💗</p>
+  </section>
+  <section class="panel">
+    <div class="label" style="margin-bottom:6px">🔎 Find a day</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <input class="inp" id="jrQ" placeholder="search your words &amp; tags…" style="flex:2;min-width:150px" value="${esc(srch.q||'')}">
+      <select class="inp" id="jrMood" style="max-width:150px">${[["","any mood"],["low","rough days (≤2)"],["mid","okay days (3)"],["high","lovely days (≥4)"]].map(([v,l])=>`<option value="${v}" ${srch.mood===v?'selected':''}>${l}</option>`).join("")}</select>
+      <label class="chiptog ${srch.stream?'on':''}" style="cursor:pointer"><input type="checkbox" id="jrStream" ${srch.stream?'checked':''} style="display:none"><span>${srch.stream?'✓':''}</span>🔴 stream days</label>
+      <label class="chiptog ${srch.sym?'on':''}" style="cursor:pointer"><input type="checkbox" id="jrSym" ${srch.sym?'checked':''} style="display:none"><span>${srch.sym?'✓':''}</span>🩹 symptom days</label>
+      <button class="btn btn-grad" data-act="jrSearch">search</button>
+    </div>
+    ${srch.results?`<div style="margin-top:10px">${srch.results.length?srch.results.slice(0,40).map(r=>`<div class="listrow" data-act="jrOpenDay" data-date="${r.date}" style="cursor:pointer"><span class="grow" style="font-size:12.5px"><b>${fmtDate(r.date)}</b> <span class="soft" style="font-size:11px">${r.meta}</span></span><span class="soft" style="font-size:11px">open →</span></div>`).join(""):'<p class="soft" style="font-size:12px">nothing matched — try fewer filters 🌸</p>'}${srch.results.length>40?`<p class="soft" style="font-size:10.5px">showing 40 of ${srch.results.length}</p>`:""}</div>`:""}
+  </section>
+  <section class="panel">
+    <div class="card-head"><span class="label">💊 Monthly memory capsules</span><span class="pill pill-gray">a keepsake per month</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Kiko folds a whole month into a tiny keepsake — best day, hardest day, wins, and a line of yours worth keeping. 💗</p>
+    ${capYMs.map(cym=>{ const c=caps[cym]; const label=new Date(cym+"-01T00:00").toLocaleDateString("en-US",{month:"long",year:"numeric"});
+      return c?`<details class="acc" style="margin-bottom:6px"><summary>💊 ${label}</summary><div class="acc-body"><div style="white-space:pre-wrap;font-size:12.5px;line-height:1.65">${esc(c.text)}</div><button class="btn" data-act="jrCapsule" data-ym="${cym}" style="margin-top:8px">↻ rebuild</button></div></details>`
+        :`<div class="listrow"><span class="grow" style="font-size:12.5px">${label}</span><button class="btn" data-act="jrCapsule" data-ym="${cym}">✨ build capsule</button></div>`; }).join("")}
+  </section>
+  <details class="acc"><summary>🗂 Archive timeline</summary><div class="acc-body">
+    ${state.jrAll?(function(){ const byYM={}; Object.entries(state.jrAll).forEach(([d,n])=>{ if((n.mind&&n.mind.mood!=null)||n.journal){ const k=d.slice(0,7); byYM[k]=(byYM[k]||0)+1; } });
+      const yms=Object.keys(byYM).sort().reverse(); if(!yms.length)return '<p class="soft" style="font-size:12px">no entries yet — every logged day will gather here 💗</p>';
+      let lastY=""; return yms.map(k=>{ const y=k.slice(0,4); const head=y!==lastY?`<div class="label" style="margin:8px 0 2px">${y}</div>`:""; lastY=y;
+        return head+`<div class="listrow" data-act="jrJump" data-ym="${k}" style="cursor:pointer"><span class="grow" style="font-size:12.5px">${new Date(k+"-01T00:00").toLocaleDateString("en-US",{month:"long"})}</span><span class="pill pill-gray">${byYM[k]} day${byYM[k]>1?"s":""}</span></div>`; }).join(""); })()
+      :`<button class="btn" data-act="jrLoadAll">load the full archive</button>`}
+  </div></details>
+  ${DISCLAIMER}</div>`;
+}
+/* the day view/editor — her words live HERE, behind a click, never on the grid */
+async function jrEntryModal(date){
+  await jrFetchMonth(new Date(date+"T00:00"));
+  const n=((state.jrCache||{})[date.slice(0,7)]||{})[date]||{};
+  const m=n.mind||{}, mj=n.mounjaro||{}, p=n.pcos||{};
+  const wm=jrWeightMap();
+  const kikoEntries=(state.sentinel.journalEntries||[]).filter(e=>e.date===date);
+  const scaleBtns=(id,val)=>[0,1,2,3,4,5].map(i=>`<button data-jrscale="${id}" data-v="${i}" class="${val===i?'on':''}">${i}</button>`).join("");
+  $("#modal").innerHTML=`<div class="modal-bg" data-act="closeModal"><div class="modal" data-act="noop" style="max-width:560px;width:100%;max-height:92vh;overflow:auto">
+    <div class="card-head"><h3 style="font-size:16px">📓 ${new Date(date+"T00:00").toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})} ${jrStreamDay(date)?'<span class="pill pill-sak">🔴 stream day</span>':""}</h3><button class="btn" data-act="closeModal">✕</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field" style="margin:0"><div class="label">Mood</div><div class="scale">${scaleBtns("mood",m.mood)}</div></div>
+      <div class="field" style="margin:0"><div class="label">Energy</div><div class="scale">${scaleBtns("energy",m.energy)}</div></div>
+      <div class="field" style="margin:0"><div class="label">Stress</div><div class="scale">${scaleBtns("stress",n.stress)}</div></div>
+      <div class="field" style="margin:0"><div class="label">Sleep quality</div><div class="scale">${scaleBtns("sleepQ",n.sleepQ)}</div></div>
+      <div class="field" style="margin:0"><div class="label">Sleep (hrs)</div><input class="inp" id="jrSleep" type="number" step="0.5" value="${n.sleep!=null?n.sleep:""}"></div>
+      <div class="field" style="margin:0"><div class="label">Weight (${CONFIG.weightUnit})</div><input class="inp" id="jrWeight" type="number" step="0.1" value="${wm[date]!=null?wm[date]:""}"></div>
+      <div class="field" style="margin:0"><div class="label">Food noise</div><div class="scale">${scaleBtns("foodnoise",mj.foodnoise)}</div></div>
+      <div class="field" style="margin:0"><div class="label">Cravings</div><div class="scale">${scaleBtns("cravings",p.cravings)}</div></div>
+    </div>
+    <div class="field"><div class="label">Tags <span class="soft" style="text-transform:none">· comma separated</span></div><input class="inp" id="jrTags" placeholder="collab, con-prep, cozy…" value="${esc((n.tags||[]).join(", "))}"></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;cursor:pointer;margin:4px 0 10px"><input type="checkbox" id="jrSpecial" ${n.special?"checked":""}> 💜 special day</label>
+    <div class="field"><div class="label">Your journal <span class="soft" style="text-transform:none">· private, only behind this click 🔒</span></div>
+      <textarea class="inp" id="jrText" rows="6" placeholder="today, in your own words…">${esc(n.journal||"")}</textarea></div>
+    ${kikoEntries.length?`<details class="acc" style="margin:4px 0 10px"><summary>🦊 Kiko journal${kikoEntries.length>1?"s":""} from this day (${kikoEntries.length})</summary><div class="acc-body">${kikoEntries.map(e=>`<div style="white-space:pre-wrap;font-size:12.5px;line-height:1.6;margin-bottom:8px">${esc(e.text||"")}</div>`).join("")}</div></details>`:""}
+    <p class="soft" style="font-size:10.5px;margin:0 0 10px">Full symptom check-ins live on the ❄️ Health tab — these are the journal essentials. Notes on PCOS/Mounjaro from that day ride along automatically.</p>
+    <button class="btn btn-grad" data-act="jrSave" data-date="${date}" style="width:100%">💾 save this day</button>
+  </div></div>`;
+  document.querySelectorAll("[data-jrscale]").forEach(b=>b.addEventListener("click",()=>{
+    document.querySelectorAll(`[data-jrscale="${b.dataset.jrscale}"]`).forEach(x=>x.classList.remove("on")); b.classList.add("on"); }));
+}
 function viewToolbox(){
   const tb=state.tb||(state.tb={spice:3,steps:null,task:"",fText:"",fTone:"professional",fOut:"",eTask:"",eOut:null,cText:"",groups:null,busy:""});
   const chili=n=>`<span class="spice">${[1,2,3,4,5].map(i=>`<button data-act="tbSpice" data-v="${i}" class="${i<=n?'on':''}" title="${i}/5 — higher = tinier steps">🌶️</button>`).join("")}</span>`;
@@ -2277,6 +2436,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v4.1 · June 2026 — The Journal</b> 📓 a new <b>Journal page</b> in Health OS — your private life archive: a soft month grid where each day shows only quick chips (mood ✨, weight, ⚡energy, 🌙sleep, 🩹symptoms, 🔴stream, 💜special) in gentle day-colours, and your <b>written words stay locked behind a click</b> · one cozy entry form per day (mood, energy, NEW stress &amp; sleep-quality, weight, food noise, cravings, tags, special-day, and your private journal — past days editable too; Kiko's guided journals from that day ride along) · 📊 month stats up top (averages, weight change, best &amp; hardest day) · 🔎 search your words, tags, moods, stream &amp; symptom days · 🗂 an archive timeline so no month is ever lost · 💊 <b>Monthly Memory Capsules</b> — Kiko folds each month into a tiny keepsake (best day, hardest day, wins, a line of yours worth keeping) · and Kiko can now read stress, sleep quality, tags and your day-notes across any date range, plus log them by chat ("stress was a 4", "tag today collab").</p>
       <p><b>v4.0 · June 2026 — One app, two minds</b> 🎀❄️ <b>Tap the logo</b> to swap between <b>Creator OS</b> (Home · Kiko · Planner · Calendar · Script · Stream · Money · Art · Toolbox) and <b>Health OS</b> (Home · Kiko · Food · Care · Trends · Health) — your choice is remembered · 🦊 the Home greeting is now a real <b>daily briefing</b>: Kiko reads your whole hub each morning and tells you what's coming, what might help, and one kind health note — no buttons, no guilt · 🧳 <b>Event prep</b>, 🎂 <b>Birthday assistant</b> (with a guilt-free "skip this year") and 💡 <b>Content opportunities</b> cards keep the remembering off your plate · 🎨 a new <b>Art page</b>: inspiration vault, "pick something for me", and the gentlest art-rhythm nudges · 🧰 a new <b>Toolbox</b>: magic task breakdown with a 🌶️ spiciness dial (send steps straight to the Planner), a formalizer, a time estimator and a brain-dump compiler · 💬 Kiko's chat now leads his page, the quick skills slimmed down and moved below, his hello is a simple warm greeting, and 📷 images now <b>show in the chat and he sees exactly what they are</b> — designs, DMs, emails, food, anything · ↔️ drag the ⤡ to <b>resize his chat window</b> · 💪 a <b>smart-brain toggle</b> for whole conversations (plus a quick-skill) · 🍅 "<b>work with me</b>" starts a body-double focus session with a check-in when the timer rings · 🌉 a <b>pre-stream bridge</b> pings softly an hour and 15 minutes before stream time · 💉 an <b>evening-before shot forecast</b> from your own past shot days, a <b>step-up watch</b> for new doses, a 💪 <b>muscle guardrail</b>, a kinder <b>plateau audit</b>, and a 🍩 <b>food-noise wave</b> watcher · and underneath: care &amp; safety rules (Kiko never validates harsh self-talk, knows the 113 crisis line, and nudges you toward real people too 💗).</p>
       <p><b>v3.1.1 · June 2026 — learning, polished</b> 🧠 Kiko's reflection no longer re-remembers what he already knows (✨ duplicates pruned for good, his auto-memory capped — yours is never touched) · his background learning can't slow the chat or overwrite itself anymore · venting isn't logging ("ugh, barely slept" gets warmth and an offer, not a silent 4-hour sleep entry) · per-med ticks now complete the Home meds habit when they're all done — and Kiko can see exactly which meds you've taken · "save that as my usual" now works by chat · the stream-week planner won't duplicate slots if you run it twice · and one journal nudge a day, never two.</p>
       <p><b>v3.1 · June 2026 — Deeper everywhere</b> 📋 a <b>doctor-ready health report</b> (Health → 📋 Doctor report, or ask Kiko) — a tidy 30-day summary of weight/body-comp, Mounjaro, PCOS &amp; cycle, wellbeing trends, meds adherence &amp; nutrition you can copy or print for an appointment · 💊 tick off <b>each medication</b> on the Food tab, with <b>refill dates</b> + gentle low-supply nudges · 🥄 the Planner now reads today's energy and <b>suggests how to pace your list</b> · ⭐ save <b>favorite meals</b> and re-log "the usual" in a tap · 🔴 Stream tab gains a <b>one-tap stream planner</b> (drafts this week's game beats into your schedule), <b>sponsor deadline tracking</b> with reminders, and a quick <b>post-stream debrief</b> Kiko remembers · plus Kiko can drive all of it by chat.</p>
@@ -3042,6 +3202,62 @@ const H={
   async tbGroupToPlanner(el){ const g=((state.tb&&state.tb.groups)||[])[Number(el.dataset.i)]; if(!g||!(g.items||[]).length)return;
     await setSent(n=>({...n,tasks:[...(n.tasks||[]),...g.items.map((it,i)=>({id:"t"+Date.now()+i,text:String(it).slice(0,140),bucket:"personal",spoon:"some",done:false,status:"todo",sub:[]}))]}));
     toast("“"+g.title+"” → planner 🗒️"); render(); },
+  // --- 📓 journal page ---
+  jrShift(el){ const d=Number(el.dataset.d)||0; state.jrRef=new Date(state.jrRef.getFullYear(),state.jrRef.getMonth()+d,1); render(); },
+  jrToday(){ const t=new Date(); state.jrRef=new Date(t.getFullYear(),t.getMonth(),1); render(); },
+  jrJump(el){ const ym=el.dataset.ym; state.jrRef=new Date(ym+"-01T00:00"); render(); window.scrollTo({top:0,behavior:"smooth"}); },
+  async jrLoadAll(){ toast("gathering your archive… 📚"); await jrFetchAll(); render(); },
+  async jrOpenDay(el){ const date=el.dataset.date||(el.closest("[data-date]")&&el.closest("[data-date]").dataset.date); if(!date)return; await jrEntryModal(date); },
+  async jrSave(el){ const date=el.dataset.date;
+    const sv=id=>{ const b=document.querySelector(`[data-jrscale="${id}"].on`); return b?Number(b.dataset.v):null; };
+    const num=id=>{ const e2=$("#"+id); const v=e2&&e2.value!==""?parseFloat(e2.value):null; return (v==null||isNaN(v))?null:v; };
+    const mood=sv("mood"),energy=sv("energy"),stress=sv("stress"),sleepQ=sv("sleepQ"),fn=sv("foodnoise"),cr=sv("cravings");
+    const sleep=num("jrSleep"), w=num("jrWeight");
+    const tags=(($("#jrTags")&&$("#jrTags").value)||"").split(",").map(t=>t.trim()).filter(Boolean).slice(0,8);
+    const special=!!($("#jrSpecial")&&$("#jrSpecial").checked);
+    const text=($("#jrText")&&$("#jrText").value)||"";
+    await setDay(date,n=>{ const out={...n};
+      const mind={...(n.mind||{})}; if(mood!=null)mind.mood=mood; if(energy!=null)mind.energy=energy; out.mind=mind;
+      const mj={...(n.mounjaro||{})}; if(fn!=null)mj.foodnoise=fn; out.mounjaro=mj;
+      const p2={...(n.pcos||{})}; if(cr!=null)p2.cravings=cr; out.pcos=p2;
+      if(stress!=null)out.stress=stress; if(sleepQ!=null)out.sleepQ=sleepQ; if(sleep!=null)out.sleep=sleep;
+      out.tags=tags; out.special=special; out.journal=text;
+      return out; });
+    if(w!=null){ await setSent(n=>{ const wl=(n.weightLog||[]).slice(); const i=wl.findIndex(x=>x.date===date);
+      if(i>=0)wl[i]={...wl[i],w,date}; else wl.push({date,w}); wl.sort((a,b)=>a.date<b.date?-1:1); return {...n,weightLog:wl}; }); }
+    $("#modal").innerHTML=""; toast("day saved 📓💗"); render(); },
+  async jrSearch(){ const q=(($("#jrQ")&&$("#jrQ").value)||"").toLowerCase().trim();
+    const mood=($("#jrMood")&&$("#jrMood").value)||""; const stream=!!($("#jrStream")&&$("#jrStream").checked); const sym=!!($("#jrSym")&&$("#jrSym").checked);
+    if(!q&&!mood&&!stream&&!sym){ state.jrSearch={results:null}; render(); return; }
+    toast("searching… 🔎"); const all=await jrFetchAll();
+    const results=Object.entries(all).map(([date,n])=>({date,n})).filter(({date,n})=>{
+      if(q){ const hay=((n.journal||"")+" "+((n.tags||[]).join(" "))).toLowerCase(); if(!hay.includes(q))return false; }
+      const mo=n.mind&&n.mind.mood;
+      if(mood==="low"&&!(mo!=null&&mo<=2))return false;
+      if(mood==="mid"&&mo!==3)return false;
+      if(mood==="high"&&!(mo!=null&&mo>=4))return false;
+      if(stream&&!jrStreamDay(date))return false;
+      if(sym&&!jrSymptomFlag(n))return false;
+      return true; })
+      .sort((a,b)=>a.date<b.date?1:-1)
+      .map(({date,n})=>({date,meta:`${n.mind&&n.mind.mood!=null?JR_MOODS[Math.max(0,Math.min(5,n.mind.mood))]+" ":""}${n.journal?"✍️ ":""}${(n.tags||[]).slice(0,3).map(t=>"#"+esc(t)).join(" ")}`}));
+    state.jrSearch={q,mood,stream,sym,results}; render(); },
+  async jrCapsule(el){ const cym=el.dataset.ym; if(DEMO||!SB){ toast("capsules need live mode ❄️"); return; }
+    toast("Kiko is folding that month into a capsule… 💊");
+    const rows=await jrFetchMonth(new Date(cym+"-01T00:00"));
+    const lines=Object.entries(rows).sort((a,b)=>a[0]<b[0]?-1:1).map(([d,n])=>{ const m=n.mind||{},mj=n.mounjaro||{},p2=n.pcos||{}; const parts=[];
+      if(m.mood!=null)parts.push("mood "+m.mood); if(m.energy!=null)parts.push("energy "+m.energy); if(n.stress!=null)parts.push("stress "+n.stress);
+      if(n.sleep!=null)parts.push("sleep "+n.sleep+"h"); if(mj.nausea!=null)parts.push("nausea "+mj.nausea); if(p2.cravings!=null)parts.push("cravings "+p2.cravings);
+      if((n.tags||[]).length)parts.push("tags["+n.tags.join("/")+"]"); if(n.special)parts.push("special💜");
+      return parts.length?d+": "+parts.join(", "):null; }).filter(Boolean).join("\n");
+    const wm=jrWeightMap(); const ws=Object.keys(wm).filter(d=>d.startsWith(cym)).sort();
+    const quotes=[Object.entries(rows).filter(([d,n])=>n.journal).slice(-10).map(([d,n])=>d+': "'+String(n.journal).replace(/\s+/g," ").slice(0,160)+'"').join("\n"),
+      (state.sentinel.journalEntries||[]).filter(e=>e.date&&e.date.startsWith(cym)&&e.text).slice(-4).map(e=>e.date+': "'+String(e.text).replace(/\s+/g," ").slice(0,160)+'"').join("\n")].filter(Boolean).join("\n");
+    const events=(state.sentinel.calendarEvents||[]).filter(e=>e.date&&e.date.startsWith(cym)).map(e=>e.date+" "+e.title).slice(0,20).join("; ");
+    try{ const d=await aiCall("capsule",{ym:cym,lines:lines+(ws.length>1?`\nWEIGHT over month: ${wm[ws[0]]}→${wm[ws[ws.length-1]]}${CONFIG.weightUnit}`:""),quotes,events});
+      if(d&&d.capsule){ await setSent(n=>({...n,memoryCapsules:{...(n.memoryCapsules||{}),[cym]:{text:d.capsule,builtAt:TODAY}}})); toast("capsule ready 💊✨"); render(); }
+      else toast((d&&d.error)||"capsule hiccup 🌧️");
+    }catch(e){ toast("capsule hiccup — try again 🌧️"); } },
 
   async energySet(el){ await setToday(n=>({...n,energy:Number(el.dataset.v)})); render(); },
 
@@ -4000,6 +4216,7 @@ function kikoDataSummary(){
     // ===== TODAY CHECK-IN + WATER + SLEEP =====
     const m=t.mind||{}; const ci=[];
     if(m.mood!=null)ci.push(`mood ${m.mood}/5`); if(m.anxiety!=null)ci.push(`anxiety ${m.anxiety}/5`); if(m.energy!=null)ci.push(`energy ${m.energy}/5`); if(m.weather!=null)ci.push(`weather-inside ${m.weather}/5`);
+    if(t.stress!=null)ci.push(`stress ${t.stress}/5`); if((t.tags||[]).length)ci.push("tags: "+t.tags.join("/"));
     if(ci.length) L.push("TODAY check-in: "+ci.join(", "));
     const wCups=(mj.water||0); L.push(`WATER today: ${(wCups/CUPS_PER_40OZ).toFixed(1)} × 40oz cups (${wCups} internal cups)`);
     if(t.sleep!=null) L.push(`SLEEP last night: ${t.sleep}h`);
@@ -4411,6 +4628,9 @@ async function execAgentAction(a){
       const pick=v[Math.floor(Math.random()*v.length)]; state.inspoPicked=pick.id;
       return "🦊 picked for you: “"+((pick.text||pick.url||"a saved reference").slice(0,80))+"” — it's glowing on your Art page"; }
     if(T==="logArt"){ await setSent(n=>{ const log=(n.artLog||[]).slice(); if(!log.some(x=>x.date===TODAY)) log.push({date:TODAY,note:String(a.note||"").slice(0,120)}); return {...n,artLog:log.slice(-120)}; }); return "🎨 art day logged — look at you ✨"; }
+    if(T==="logStress"){ const v=Number(a.value); if(isNaN(v))return null; await setToday(n=>({...n,stress:Math.max(0,Math.min(5,v))})); return "🫨 stress "+Math.max(0,Math.min(5,v))+"/5 logged"; }
+    if(T==="tagDay"){ const tg=(Array.isArray(a.tags)?a.tags:[]).map(t=>String(t).trim().slice(0,24)).filter(Boolean).slice(0,6); if(!tg.length)return null;
+      await setToday(n=>({...n,tags:[...new Set([...(n.tags||[]),...tg])]})); return "🏷️ tagged today: "+tg.join(", "); }
     if(T==="prepCheck"){ const on=a.on!=null?!!a.on:true; let hit=null;
       if(a.list==="birthday"){ const bd=(state.sentinel.birthdays||[]).map(b=>({...b,...nextBirthdayInfo(b)})); const i=findByText(bd,a.name,"name"); if(i<0)return null;
         const key=bd[i].id+"-"+bd[i].date.slice(0,4);
