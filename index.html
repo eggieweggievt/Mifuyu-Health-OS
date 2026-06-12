@@ -389,6 +389,46 @@
   .vault-item.picked{outline:3px solid var(--sakura);box-shadow:0 0 18px rgba(255,158,216,.45);}
   .vault-item .x{position:absolute;top:4px;right:4px;background:rgba(255,255,255,.85);border-radius:50%;width:20px;height:20px;font-size:11px;line-height:1;padding:0;border:1px solid var(--line);}
   .tb-steps .listrow{align-items:flex-start;}
+  /* === 🎨 art studio (ported from Eggie OS, snowfox palette) === */
+  .art-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+  .art-cols>*{min-width:0;}
+  .art-span2{grid-column:1/-1;}
+  @media(max-width:860px){ .art-cols{grid-template-columns:1fr;} }
+  .hbtn{text-align:left;border:1.5px solid var(--line-2);border-radius:13px;padding:9px 11px;background:#fff;transition:.15s;}
+  .hbtn.done{border-color:#bfe9d8;background:#f1fbf6;} .hbtn:hover{border-color:var(--peri);}
+  .check{width:18px;height:18px;border-radius:7px;border:2px solid var(--line-2);background:#fff;flex:none;} .check.on{background:var(--mint);border-color:var(--mint);}
+  .art-sw{display:flex;border-radius:12px;overflow:hidden;border:1px solid var(--line);height:62px;}
+  .art-sw>button{flex:1;border:none;cursor:pointer;position:relative;transition:flex .15s;color:#fff;font:inherit;font-size:10px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;text-shadow:0 1px 2px rgba(0,0,0,.45);}
+  .art-sw>button:hover{flex:1.4;}
+  .art-chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel-soft);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;}
+  .art-tim{font-family:var(--display);font-size:48px;text-align:center;letter-spacing:.02em;color:var(--ink);}
+  .art-prompt{background:linear-gradient(135deg,#fdf0fb,#eef2fb);border:1px solid var(--line);border-radius:14px;padding:16px;font-family:var(--display);font-size:18px;line-height:1.5;color:var(--sakura-deep);text-align:center;}
+  .art-grid-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .idea-card{position:relative;border-radius:4px 14px 14px 14px;padding:12px 12px 32px;font-size:12.5px;line-height:1.5;min-height:86px;box-shadow:0 3px 10px rgba(90,100,150,.14);word-break:break-word;color:#4a4f6a;}
+  .idea-card .ic-tools{position:absolute;bottom:5px;right:6px;display:flex;gap:2px;opacity:.7;}
+  .ft-ic{border:none;background:none;cursor:pointer;font-size:13px;padding:2px;color:var(--muted);} .ft-ic:hover{color:var(--sakura-deep);}
+  .inspo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
+  .inspo-card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;display:flex;flex-direction:column;box-shadow:0 3px 10px rgba(90,100,150,.10);}
+  .inspo-card.done{opacity:.55;}
+  .inspo-thumb{height:104px;background:#eef2fb center/cover no-repeat;display:grid;place-items:center;}
+  .inspo-body{padding:9px 11px;display:flex;flex-direction:column;gap:4px;flex:1;}
+  .mb-board{position:relative;background:#f6f8ff;border:1px solid var(--line);border-radius:14px;overflow:hidden;height:520px;background-image:radial-gradient(#dfe5f4 1px,transparent 1px);background-size:22px 22px;}
+  .mb-board.max{height:auto;flex:1;width:100%;border-radius:12px;}
+  .mb-full{position:fixed;inset:0;z-index:9993;background:var(--bg);padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .mb-card{position:absolute;border-radius:12px;box-shadow:0 4px 14px rgba(90,100,150,.18);border:1px solid var(--line);background:#fff;touch-action:none;cursor:grab;overflow:hidden;}
+  .mb-card:active{cursor:grabbing;}
+  .mb-card.img{background-size:cover;background-position:center;}
+  .mb-card.note{background:#fff7da;border-color:#f0e3a8;}
+  .mb-card.note textarea{width:100%;height:100%;border:none;background:none;resize:none;outline:none;padding:9px;font:inherit;font-size:12.5px;color:#5a5230;cursor:text;}
+  .mb-card.swatch{display:flex;align-items:flex-end;justify-content:center;}
+  .mb-card .mb-x{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:7px;width:20px;height:20px;cursor:pointer;font-size:11px;line-height:1;opacity:0;transition:opacity .12s;}
+  .mb-card:hover .mb-x{opacity:1;}
+  .mb-card .mb-rz{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;color:#9aa5c8;font-size:11px;display:grid;place-items:center;}
+  .mb-card .mb-hex{background:rgba(0,0,0,.4);color:#fff;font-size:10px;padding:2px 6px;border-radius:6px;margin-bottom:5px;}
+  .res-grip{cursor:grab;touch-action:none;color:var(--muted);font-size:14px;padding:0 2px;user-select:none;}
+  .res-grip:active{cursor:grabbing;}
+  @media(max-width:640px){ .art-tim{font-size:38px;} .mb-board{height:420px;} .idea-grid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr));} .inspo-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));} }
   .spice{display:flex;gap:3px;align-items:center;}
   .spice button{border:none;background:none;font-size:16px;opacity:.35;cursor:pointer;padding:2px;} .spice button.on{opacity:1;}
   .jr-cell{min-width:0;min-height:72px;border:1px solid var(--line);border-radius:10px;padding:4px 6px;display:flex;flex-direction:column;gap:2px;transition:transform .12s,border-color .15s;}
@@ -427,7 +467,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-12.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-12.4";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -748,6 +788,7 @@ async function render(){
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
     if(state.tab==='planner'){ try{ wireTaskDnD(); }catch(e){ console.error(e); } } // board drag (mouse) — touch uses ◀▶
     if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } }
+    if(state.tab==='art'){ try{ if(state.art&&state.art.notan) artNotanPaint(); }catch(e){} }   // repaint the value-checker canvas after innerHTML
     if(MODULAR_TABS.includes(state.tab)){ requestAnimationFrame(()=>{try{layoutHome();}catch(e){}}); setTimeout(()=>{try{layoutHome();}catch(e){}},150); setTimeout(()=>{try{layoutHome();}catch(e){}},520); }
     if(state.tab==='kiko'){ KIKO.open=false; const cc=$("#kikoChat"); if(cc)cc.classList.add("hidden"); try{ paintKiko(); }catch(e){} }   // fill the Ask-Kiko chat panel
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
@@ -1006,7 +1047,8 @@ function viewHome(){
 /* toolbox keeps half-typed inputs across re-renders (same capture pattern as the script tab) */
 function tbCapture(){ if(!state.tb)state.tb={spice:3}; const g=id=>{const e=document.getElementById(id);return e?e.value:null;};
   const t=g("tbTask"); if(t!=null)state.tb.task=t; const f=g("tbFText"); if(f!=null)state.tb.fText=f;
-  const tn=g("tbFTone"); if(tn!=null)state.tb.fTone=tn; const e2=g("tbETask"); if(e2!=null)state.tb.eTask=e2; const c=g("tbCText"); if(c!=null)state.tb.cText=c; }
+  const tn=g("tbFTone"); if(tn!=null)state.tb.fTone=tn; const e2=g("tbETask"); if(e2!=null)state.tb.eTask=e2; const c=g("tbCText"); if(c!=null)state.tb.cText=c;
+  const tt=g("tbTText"); if(tt!=null)state.tb.tText=tt; }
 /* shared store for event-prep + birthday-prep checklists (sentinel.eventPrep / sentinel.bdayPrep) */
 async function prepWrite(kind,key,fn){ const field=kind==="bday"?"bdayPrep":"eventPrep";
   await setSent(n=>{ const all={...(n[field]||{})}; const cur={items:[],...(all[key]||{})}; all[key]=fn({...cur,items:(cur.items||[]).slice()}); return {...n,[field]:all}; }); render(); }
@@ -1100,39 +1142,434 @@ function cardContentOps(){
   </section>`;
 }
 
-/* ===================== 🎨 ART — creative support (inspiration vault · pick-for-me · gentle rhythm) ===================== */
-const ART_IDEAS=["Eye study","Outfit sketch","OC doodle","Character study","10-min gestures","Redraw an old piece","Background practice","Hands practice","Chibi version of a fave","Palette challenge"];
-function lastArtInfo(){ const log=(state.sentinel.artLog||[]); const last=log[log.length-1]; return last?{date:last.date,days:daysBetween(last.date,TODAY),note:last.note}:null; }
+/* ===================== 🎨 ART STUDIO — full creative suite (ported from Eggie OS 2026-06-12) =====================
+   16 cards: permission slip · challenges · draw-this prompt · art minutes · practice timer (+focus mode) ·
+   100-of-anything · ideas dump · inspiration vault · emote previewer · value checker · palette & ramps ·
+   platform specs · Live2D cut prep · drawing guides · mood board · tools & tutorials. All client-side maths
+   (colour, SVG guides, canvas) — zero libraries. Data lives on the sentinel row. */
+const ART_SUBJECTS=[
+  "your OC at a summer festival (yukata)","your OC as a magical girl","your OC in their dream outfit","your OC in the clothes you're wearing right now","your OC as a flower fairy","your OC with wings","your OC in a Ghibli-esque style","your OC's most powerful moment","your OC on a rainy day in their world","your OC meeting their rival","your OC as a mecha pilot","your OC mid-laugh, a genuine smile","your OC half-asleep / just woke up","your OC bundled up for winter","your OC's villain alt / dark version","your OC as royalty","your OC as a café maid / butler","your OC and their pet or familiar","your OC taking a selfie","your OC in an idol stage outfit","your OC caught in the rain","your OC as a vampire / monster cutie","your OC at a school festival","your OC in a battle stance","your OC giving a shy confession","your OC in a cozy oversized hoodie","your OC as a fellow VTuber's design (fanart)","your OC reimagined in another art style",
+  "your VTuber OC, half-body bust, ¾ view","a chibi version of your OC","an emote concept (pog / happy / crying)","an expression sheet, 5 emotions","a key-visual splash of your OC","a 'currently streaming' screen illustration","a detailed anime eye study","your OC's hairstyle explored 3 ways"
+];
+const ART_MOODS=["soft anime cel-shading","golden-hour rim light","neon cyberpunk glow","dreamy pastel gradient","moody dramatic backlight","sakura petals & bloom","cozy warm indoor light","ethereal cool blues","high-contrast manga inks","vaporwave sunset"];
+const ART_CONSTRAINTS=["cel-shade with 2 light values","limited 3-colour palette","clean, finished lineart","one accent colour only","push the expression further","fully render the eyes","try foreshortening","background gradient + bloom","post it even if unfinished","30-minute speedpaint"];
+const ART_GESTURES=["anime ¾ face","expressive anime eyes","dynamic action pose","hands holding a prop","idol / performance pose","cozy seated pose","hair-flow study","chibi proportions","dramatic foreshortening","two characters interacting","clothing-fold study","confident hero pose"];
+const ART_REFRAMES=[
+  "Art isn't a detour from your work — it's the well your work draws from. A dry well makes nothing. 🌊",
+  "You're allowed to make things that only matter to you. That's not wasted time, that's being a person. 💗",
+  "Play is how skill sneaks in. Every doodle is reps. 🖍️",
+  "Rest and joy ARE productive — they're what keep you able to do everything else. 🥄",
+  "No one ever regretted the 20 minutes they spent drawing something silly. 🦊",
+  "Done beats perfect. A scribble finished beats a masterpiece imagined. 🌸",
+  "Your worth isn't an output. You're allowed to make art for absolutely no reason. ✨",
+  "The pressure to be 'productive' is what's stealing your art — not the art stealing your productivity. 🌙"
+];
+const ART_DAILY=["warm up with 5 expression doodles","a quick chibi of your OC","one detailed anime eye study","redraw an old piece of your OC art","30-min colour study from an anime screencap","design one new emote","ink one clean character","draw your OC's hairstyle 3 ways","a half-body bust, sketch only","gesture 5 poses, 30s each"];
+const ART_WEEKLY=["finish one polished half-body illustration of your OC","design a post-ready emote","a master study of an artist you admire","render your OC in a brand-new outfit","build an expression sheet you can reuse","make a key-visual splash to post","draw fanart of a VTuber you like","learn + apply one new rendering technique"];
+const DEFAULT_ART_RES=[
+  {id:"r1",title:"Line of Action — gesture / figure timer",url:"https://line-of-action.com/practice-tools/",tag:"reference"},
+  {id:"r2",title:"Coolors — palette generator",url:"https://coolors.co/",tag:"colour"},
+  {id:"r3",title:"Adobe Color — colour wheel + harmonies",url:"https://color.adobe.com/create/color-wheel",tag:"colour"},
+  {id:"r4",title:"Paletton — classical colour schemes",url:"https://paletton.com/",tag:"colour"},
+  {id:"r5",title:"Free perspective grid generator",url:"https://art-and-see.com/blogs/tools/perspective-grid-generator",tag:"perspective"},
+  {id:"r6",title:"17 digital drawing exercises (Don Corgi)",url:"https://doncorgi.com/blog/digital-drawing-exercises/",tag:"learn"},
+  {id:"r7",title:"Color theory for digital artists (Clip Studio)",url:"https://www.clipstudio.net/how-to-draw/archives/161372",tag:"learn"}
+];
+/* research pack — added via the one-tap button (never force-merged, so deletes stick) */
+const ART_PACK=[
+  {title:"AdorkaStock — photo poses (CC, diverse, SFW)",url:"https://www.adorkastock.com",tag:"reference"},
+  {title:"AdorkaStock Sketch — timed pose sessions",url:"https://www.adorkastock.com/sketch/",tag:"reference"},
+  {title:"Posemaniacs — 3D écorché + free hand viewer",url:"https://www.posemaniacs.com/en",tag:"reference"},
+  {title:"x6ud — pose a skeleton, find photo refs",url:"https://x6ud.github.io/pose-search/",tag:"reference"},
+  {title:"Quickposes — timed gesture",url:"https://quickposes.com/en/gestures/timed",tag:"reference"},
+  {title:"PoseMy.Art — 3D posing, anime models",url:"https://posemy.art",tag:"reference"},
+  {title:"Character Design References — visual library",url:"https://characterdesignreferences.com/visual-library",tag:"learn"},
+  {title:"Sakugabooru — standout anime cuts (safe-filtered)",url:"https://www.sakugabooru.com/post?tags=rating%3As",tag:"learn"},
+  {title:"e-shuushuu — strictly-SFW anime board",url:"https://e-shuushuu.net",tag:"reference"},
+  {title:"Clip Studio Assets — free brushes & materials",url:"https://assets.clip-studio.com/en-us",tag:"learn"},
+  {title:"Drawabox — free fundamentals (the 50% rule 💗)",url:"https://drawabox.com",tag:"learn"},
+  {title:"Colormind — ML palettes (Ghibli-pastel vibes)",url:"http://colormind.io",tag:"colour"},
+  {title:"Coblis — colour-blindness check for emotes/thumbs",url:"https://www.color-blindness.com/coblis-color-blindness-simulator/",tag:"colour"},
+  {title:"PureRef — floating reference board (pay-what-you-want)",url:"https://www.pureref.com",tag:"other"},
+];
+/* Live2D cut-prep rules, from Live2D's official docs (one part = one layer etc.) */
+const LIVE2D_ITEMS=[
+  ["onepart","one part = one layer (no merged bits)"],["nomask","no layer masks — bake them in"],["srgb","sRGB · 8-bit · PSD"],
+  ["hair","hair split: bangs / sides / back"],["eyes","eyes split: lash / iris / white-as-mask"],["mouth","mouth split: upper lip / lower lip / inside"],
+  ["overdraw","overdraw hidden skin under hair & clothes"],["neck","neck drawn up to mouth height"],["sway","swayable bits (ribbons, tails) on own layers"],["names","every layer uniquely named"],
+];
+/* spec cheat sheet (verified against official docs 2026-06-10) */
+const ART_SPECS=[
+  ["Twitch emote","PNG transparent · 28/56/112px · ≤1MB (animated: GIF 112px ≤60 frames)"],
+  ["Twitch sub badge","18/36/72px · ≤25KB each"],
+  ["Twitch panel","320px wide"],
+  ["Discord emoji","≤256KB · renders 22px inline (48px on hover)"],
+  ["Discord sticker","exactly 320×320 APNG · ≤512KB"],
+  ["Discord banner","960×540 or larger (Boost L2)"],
+  ["YouTube thumbnail","3840×2160 official rec (16:9) · ≤50MB — must read at 160×90; avoid bottom-right (duration badge) + bottom 15%"],
+];
+function aid(p){ return (p||"a")+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function artRand(a){ return a[Math.floor(Math.random()*a.length)]; }
+function seedPick(list,seed){ let h=0; for(let i=0;i<seed.length;i++)h=(h*31+seed.charCodeAt(i))>>>0; return list[h%list.length]; }
+function artMonday(d){ const dt=new Date(d+"T00:00"); const off=(dt.getDay()+6)%7; dt.setDate(dt.getDate()-off); return dt.toLocaleDateString("en-CA"); }
+function fmtClock(s){ s=Math.max(0,s); return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2); }
+/* colour maths — no libraries */
+function hex2hsl(hex){ hex=(hex||"#ff9ed8").replace("#",""); if(hex.length===3)hex=hex.split("").map(c=>c+c).join(""); const r=parseInt(hex.slice(0,2),16)/255,g=parseInt(hex.slice(2,4),16)/255,b=parseInt(hex.slice(4,6),16)/255; const mx=Math.max(r,g,b),mn=Math.min(r,g,b); let h,s,l=(mx+mn)/2; if(mx===mn){h=s=0;}else{const d=mx-mn; s=l>.5?d/(2-mx-mn):d/(mx+mn); switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4;} h/=6;} return {h:h*360,s:s*100,l:l*100}; }
+function hsl2hex(h,s,l){ h=(h%360+360)%360; s=Math.max(0,Math.min(100,s))/100; l=Math.max(0,Math.min(100,l))/100; const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2; let r,g,b; if(h<60){r=c;g=x;b=0;}else if(h<120){r=x;g=c;b=0;}else if(h<180){r=0;g=c;b=x;}else if(h<240){r=0;g=x;b=c;}else if(h<300){r=x;g=0;b=c;}else{r=c;g=0;b=x;} const t=v=>("0"+Math.round((v+m)*255).toString(16)).slice(-2); return "#"+t(r)+t(g)+t(b); }
+function genPalette(base,scheme){ const {h,s,l}=hex2hsl(base); const mk=(dh,dl,ds)=>hsl2hex(h+dh,s+(ds||0),Math.max(10,Math.min(94,l+(dl||0))));
+  switch(scheme){
+    case "complementary": return [mk(0,20),mk(0,4),mk(0,-12),mk(180,8),mk(180,-12)];
+    case "triadic": return [mk(0,0),mk(120,6),mk(240,6),mk(120,-18),mk(0,20)];
+    case "split": return [mk(0,4),mk(0,20),mk(150,2),mk(210,2),mk(180,-14)];
+    case "tetradic": return [mk(0,2),mk(90,4),mk(180,2),mk(270,4),mk(0,22)];
+    case "mono": return [mk(0,30),mk(0,15),mk(0,0),mk(0,-15),mk(0,-30)];
+    default: return [mk(-60,6),mk(-30,3),mk(0,0),mk(30,3),mk(60,6)]; // analogous
+  }
+}
+function randHex(){ return hsl2hex(Math.random()*360, 42+Math.random()*42, 44+Math.random()*26); }
+/* value ramp + cel-shade pair from a base colour (pure HSL math) */
+function genRamp(hex){ const {h,s}=hex2hsl(hex); const out=[]; for(let i=0;i<7;i++){ const li=88-i*11; out.push(hsl2hex(h,Math.min(95,s+(i>3?6:0)),Math.max(10,li))); } return out; }
+function celPair(hex){ const {h,s,l}=hex2hsl(hex); return [hsl2hex(h,s,l), hsl2hex((h+330)%360,Math.min(95,s+12),Math.max(8,l-22))]; }
+/* notan/value checker: grayscale + posterize the uploaded image onto the canvas */
+function artNotanPaint(){
+  const A=state.art||{}; const n=A.notan; const cv=document.getElementById("notanCv"); if(!n||!cv)return;
+  const steps=Math.max(2,Math.min(6,A.notanSteps||3));
+  const im=new Image();
+  im.onload=()=>{ try{
+    const k=Math.min(1,560/Math.max(im.width||1,im.height||1)); cv.width=Math.max(1,Math.round(im.width*k)); cv.height=Math.max(1,Math.round(im.height*k));
+    const ctx=cv.getContext("2d"); ctx.drawImage(im,0,0,cv.width,cv.height);
+    const d=ctx.getImageData(0,0,cv.width,cv.height), p=d.data;
+    for(let i=0;i<p.length;i+=4){ const g=0.2126*p[i]+0.7152*p[i+1]+0.0722*p[i+2]; const q=Math.round(Math.round((g/255)*(steps-1))/(steps-1)*255); p[i]=p[i+1]=p[i+2]=q; }
+    ctx.putImageData(d,0,0);
+  }catch(e){} };
+  im.src=n.data;
+}
+/* clip an infinite line (point + direction) to the WxH box → two edge points */
+function clipSeg(px,py,vx,vy,W,H){ const ts=[]; const E=0.001;
+  if(Math.abs(vx)>E){ let t=(0-px)/vx,y=py+t*vy; if(y>=-E&&y<=H+E)ts.push([0,y]); t=(W-px)/vx; y=py+t*vy; if(y>=-E&&y<=H+E)ts.push([W,y]); }
+  if(Math.abs(vy)>E){ let t=(0-py)/vy,x=px+t*vx; if(x>=-E&&x<=W+E)ts.push([x,0]); t=(H-py)/vy; x=px+t*vx; if(x>=-E&&x<=W+E)ts.push([x,H]); }
+  return ts.slice(0,2);
+}
+function goldenSpiralPath(w,h){
+  const k=Math.log(1.6180339887)/(Math.PI/2); const thetaMax=4*Math.PI/2, steps=260, pts=[];
+  for(let i=0;i<=steps;i++){ const th=(i/steps)*thetaMax; const r=Math.exp(k*th); pts.push([r*Math.cos(th), r*Math.sin(th)]); }
+  let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9; pts.forEach(p=>{mnx=Math.min(mnx,p[0]);mny=Math.min(mny,p[1]);mxx=Math.max(mxx,p[0]);mxy=Math.max(mxy,p[1]);});
+  const sw=mxx-mnx, sh=mxy-mny, sc=Math.min(w/sw,h/sh)*0.98, ox=(w-sw*sc)/2-mnx*sc, oy=(h-sh*sc)/2-mny*sc;
+  return "M "+pts.map(p=>(p[0]*sc+ox).toFixed(1)+" "+(p[1]*sc+oy).toFixed(1)).join(" L ");
+}
+/* unified drawing-guide / composition-overlay SVG. type: thirds, phi, spiral, armature, radial, iso, persp1/2/3 */
+function artGuideSVG(type,W,H,opt){
+  opt=opt||{}; const sk='stroke="#a9b4d8" stroke-width="1.1"', sk2='stroke="#d5dbee" stroke-width="1"', accent='stroke="#ec74bf" stroke-width="1.6"'; let L="";
+  const phi1=0.381966, phi2=0.618034;
+  if(type==="thirds"){ [W/3,2*W/3].forEach(x=>L+=`<line x1="${x}" y1="0" x2="${x}" y2="${H}" ${sk}/>`); [H/3,2*H/3].forEach(y=>L+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" ${sk}/>`); }
+  else if(type==="phi"){ [phi1*W,phi2*W].forEach(x=>L+=`<line x1="${x}" y1="0" x2="${x}" y2="${H}" ${sk}/>`); [phi1*H,phi2*H].forEach(y=>L+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" ${sk}/>`); }
+  else if(type==="spiral"){ const o=opt.orient||0, fx=(o===1||o===3)?-1:1, fy=(o===2||o===3)?-1:1; const tx=fx<0?W:0, ty=fy<0?H:0; L+=`<rect x="0" y="0" width="${W}" height="${H}" fill="none" ${sk2}/><g transform="translate(${tx} ${ty}) scale(${fx} ${fy})"><path d="${goldenSpiralPath(W,H)}" fill="none" ${accent}/></g>`; [phi1*W,phi2*W].forEach(x=>L+=`<line x1="${x}" y1="0" x2="${x}" y2="${H}" ${sk2}/>`); [phi1*H,phi2*H].forEach(y=>L+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" ${sk2}/>`); }
+  else if(type==="armature"){ L+=`<line x1="0" y1="0" x2="${W}" y2="${H}" ${sk}/><line x1="${W}" y1="0" x2="0" y2="${H}" ${sk}/>`;
+    const recip=(qx,qy,dx,dy)=>{ const v=[dy,-dx]; const s=clipSeg(qx,qy,v[0],v[1],W,H); if(s.length===2)L+=`<line x1="${s[0][0].toFixed(1)}" y1="${s[0][1].toFixed(1)}" x2="${s[1][0].toFixed(1)}" y2="${s[1][1].toFixed(1)}" ${sk2}/>`; };
+    recip(W,0,W,H); recip(0,H,W,H); recip(0,0,-W,H); recip(W,H,-W,H);
+    L+=`<line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" ${sk2}/><line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" ${sk2}/>`; }
+  else if(type==="radial"){ const n=Math.max(4,Math.min(24,opt.spokes||12)), cx=W/2, cy=H/2; for(let i=0;i<n;i++){ const a=(i/n)*Math.PI*2, s=clipSeg(cx,cy,Math.cos(a),Math.sin(a),W,H); if(s.length===2)L+=`<line x1="${s[0][0].toFixed(1)}" y1="${s[0][1].toFixed(1)}" x2="${s[1][0].toFixed(1)}" y2="${s[1][1].toFixed(1)}" ${i%((n/4)|0||1)===0?sk:sk2}/>`; } const rr=Math.min(W,H)/2; for(let j=1;j<=3;j++)L+=`<circle cx="${cx}" cy="${cy}" r="${(rr/3)*j}" fill="none" ${sk2}/>`; L+=`<line x1="${cx}" y1="0" x2="${cx}" y2="${H}" ${accent}/><line x1="0" y1="${cy}" x2="${W}" y2="${cy}" ${accent}/>`; }
+  else if(type==="iso"){ const g=opt.gap||38, dx=H/Math.tan(Math.PI/6);
+    for(let x=-Math.ceil(dx/g)*g;x<=W+dx;x+=g){ L+=`<line x1="${x}" y1="0" x2="${x+dx}" y2="${H}" ${sk2}/>`; L+=`<line x1="${x+dx}" y1="0" x2="${x}" y2="${H}" ${sk2}/>`; }
+    for(let x=0;x<=W;x+=g)L+=`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#e3e8f5" stroke-width="1"/>`; }
+  else if(type==="persp1"||type==="persp2"||type==="persp3"){ const hy=H*0.5,vx=W/2;
+    if(type==="persp1"){ for(let i=0;i<=24;i++){ const x=(W/24)*i; L+=`<line x1="${x}" y1="0" x2="${vx}" y2="${hy}" ${sk2}/><line x1="${x}" y1="${H}" x2="${vx}" y2="${hy}" ${sk2}/>`; } }
+    else if(type==="persp2"){ const v1=-W*0.45,v2=W*1.45; for(let i=-8;i<=32;i++){ const y=(H/24)*i; L+=`<line x1="${v1}" y1="${hy}" x2="${W}" y2="${y}" ${sk2}/><line x1="${v2}" y1="${hy}" x2="0" y2="${y}" ${sk2}/>`; } for(let i=2;i<=22;i+=2){ const x=(W/24)*i; L+=`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#e3e8f5" stroke-width="1"/>`; } }
+    else { const v1=-W*0.35,v2=W*1.35,v3y=H*1.7; for(let i=-6;i<=28;i++){ const y=(H/22)*i; L+=`<line x1="${v1}" y1="${hy}" x2="${W}" y2="${y}" ${sk2}/><line x1="${v2}" y1="${hy}" x2="0" y2="${y}" ${sk2}/>`; } for(let i=0;i<=24;i++){ const x=(W/24)*i; L+=`<line x1="${x}" y1="0" x2="${vx}" y2="${v3y}" ${sk2}/>`; } }
+    L+=`<line x1="0" y1="${hy}" x2="${W}" y2="${hy}" ${accent} stroke-dasharray="7 5"/>`; }
+  return `<svg id="artGridSvg" viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="display:block;background:#fff;max-height:420px;margin:0 auto">${L}<rect x="0.5" y="0.5" width="${W-1}" height="${H-1}" fill="none" stroke="#cdd5ea" stroke-width="1"/></svg>`;
+}
+/* mood-board cards */
+function mbCardHTML(c){
+  const pos=`left:${c.x||0}px;top:${c.y||0}px;width:${c.w||160}px;height:${c.h||160}px`;
+  if(c.type==="img") return `<div class="mb-card img" data-mb="${c.id}" style="${pos};background-image:url('${esc(c.url)}')"><button class="mb-x" data-act="mbDel" data-id="${c.id}">×</button><span class="mb-rz" data-mbrz="${c.id}">◢</span></div>`;
+  if(c.type==="note") return `<div class="mb-card note" data-mb="${c.id}" style="${pos}"><button class="mb-x" data-act="mbDel" data-id="${c.id}">×</button><textarea data-mbnote="${c.id}" placeholder="jot a note…">${esc(c.text||"")}</textarea><span class="mb-rz" data-mbrz="${c.id}">◢</span></div>`;
+  return `<div class="mb-card swatch" data-mb="${c.id}" style="${pos};background:${esc(c.color||"#ff9ed8")}"><button class="mb-x" data-act="mbDel" data-id="${c.id}">×</button><span class="mb-hex" data-act="copyHex" data-t="${esc(c.color||"")}">${esc(c.color||"")}</span><span class="mb-rz" data-mbrz="${c.id}">◢</span></div>`;
+}
+async function mbUpdate(id,patch){ await setSent(n=>({...n,artBoard:(n.artBoard||[]).map(c=>c.id===id?{...c,...patch}:c)})); }
+/* uploaded photos → downscaled data-URL so they persist in the DB and always export to PNG (no CORS) */
+function mbFileToDataURL(file){ return new Promise((res,rej)=>{ const img=new Image(); const u=URL.createObjectURL(file);
+  img.onload=()=>{ const MAX=900; let w=img.width,h=img.height; if(Math.max(w,h)>MAX){ const s=MAX/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+    const cv=document.createElement("canvas"); cv.width=w; cv.height=h; cv.getContext("2d").drawImage(img,0,0,w,h); URL.revokeObjectURL(u);
+    const png=(file.type==="image/png"); res({url:cv.toDataURL(png?"image/png":"image/jpeg",0.82), ar:w/h}); };
+  img.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error("couldn't read image")); };
+  img.src=u; }); }
+function mbWrapText(ctx,text,x,y,maxW,lh){ let yy=y; String(text).split("\n").forEach(para=>{ const words=para.split(/\s+/); let line=""; words.forEach(w=>{ const test=line?line+" "+w:w; if(ctx.measureText(test).width>maxW && line){ ctx.fillText(line,x,yy); line=w; yy+=lh; } else line=test; }); ctx.fillText(line,x,yy); yy+=lh; }); }
+/* rasterise the freeform mood board to a PNG (for importing into Clip Studio etc.). CORS-blocked
+   images can't be read back by the browser, so those become placeholder boxes — layout is preserved. */
+async function exportMoodBoardPNG(){
+  const boardEl=document.getElementById("moodBoard");
+  const cards=(state.sentinel.artBoard||[]);
+  if(!cards.length){ toast("Board's empty — add something first 🌸"); return; }
+  const BW=Math.round((boardEl&&boardEl.clientWidth)||900), BH=Math.round((boardEl&&boardEl.clientHeight)||520), scale=2;
+  const cv=document.createElement("canvas"); cv.width=BW*scale; cv.height=BH*scale; const ctx=cv.getContext("2d"); ctx.scale(scale,scale);
+  ctx.fillStyle="#f6f8ff"; ctx.fillRect(0,0,BW,BH);
+  ctx.fillStyle="#dfe5f4"; for(let y=0;y<BH;y+=22)for(let x=0;x<BW;x+=22){ ctx.beginPath(); ctx.arc(x,y,1,0,7); ctx.fill(); }
+  const imgs={}; let failed=0;
+  await Promise.all(cards.filter(c=>c.type==="img").map(c=>new Promise(res=>{ const im=new Image(); im.crossOrigin="anonymous"; im.onload=()=>{imgs[c.id]=im;res();}; im.onerror=()=>{failed++;res();}; im.src=c.url; })));
+  const rr=(x,y,w,h,r)=>{ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); };
+  cards.forEach(c=>{ const x=c.x||0,y=c.y||0,w=c.w||160,h=c.h||160; ctx.save();
+    ctx.shadowColor="rgba(90,100,150,.18)"; ctx.shadowBlur=10; ctx.shadowOffsetY=3;
+    if(c.type==="img"){ rr(x,y,w,h,12); ctx.fillStyle="#e9edf8"; ctx.fill(); ctx.shadowColor="transparent"; ctx.save(); rr(x,y,w,h,12); ctx.clip(); const im=imgs[c.id];
+        if(im){ const ar=im.width/im.height, br=w/h; let dw,dh,dx,dy; if(ar>br){ dh=h; dw=h*ar; dx=x-(dw-w)/2; dy=y; } else { dw=w; dh=w/ar; dx=x; dy=y-(dh-h)/2; } ctx.drawImage(im,dx,dy,dw,dh); }
+        else { ctx.fillStyle="#9aa5c8"; ctx.font="13px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("🖼 image",x+w/2,y+h/2); }
+        ctx.restore(); }
+    else if(c.type==="note"){ rr(x,y,w,h,12); ctx.fillStyle="#fff7da"; ctx.fill(); ctx.shadowColor="transparent"; ctx.strokeStyle="#f0e3a8"; ctx.lineWidth=1; rr(x,y,w,h,12); ctx.stroke(); ctx.fillStyle="#5a5230"; ctx.font="12.5px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top"; ctx.save(); rr(x,y,w,h,12); ctx.clip(); mbWrapText(ctx,c.text||"",x+9,y+9,w-18,17); ctx.restore(); }
+    else { rr(x,y,w,h,12); ctx.fillStyle=c.color||"#ff9ed8"; ctx.fill(); ctx.shadowColor="transparent"; ctx.font="10px sans-serif"; const lw=ctx.measureText(c.color||"").width+12; ctx.fillStyle="rgba(0,0,0,.4)"; rr(x+w/2-lw/2,y+h-22,lw,16,6); ctx.fill(); ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(c.color||"",x+w/2,y+h-14); }
+    ctx.restore(); });
+  try{ cv.toBlob(b=>{ if(!b){ toast("Couldn't make the PNG 🌸"); return; } const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download="mood-board.png"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1500); toast(failed?("Saved 🎨 — "+failed+" image"+(failed>1?"s":"")+" couldn't embed (that site blocks it)"):"Mood board saved as PNG 🎨"); },"image/png"); }
+  catch(err){ toast("Some images block PNG export — try CORS-friendly image links 🌸"); }
+}
+/* challenges refresh daily/weekly by DERIVING from the date — no render-time write */
+function artChallengeState(sent){
+  const ch=sent.artChallenge||{}; const wk=artMonday(TODAY);
+  return {
+    wk,
+    dayText:(ch.dayRollDate===TODAY&&ch.dayRollText)?ch.dayRollText:seedPick(ART_DAILY,TODAY),
+    weekText:(ch.weekRollWk===wk&&ch.weekRollText)?ch.weekRollText:seedPick(ART_WEEKLY,wk),
+    dayDone:ch.dayDoneDate===TODAY,
+    weekDone:ch.weekDoneWk===wk
+  };
+}
+/* practice timer — global interval so it survives re-renders; updates the DOM by id */
+let _artInt=null;
+function artPickGesture(){ return ART_GESTURES[Math.floor(Math.random()*ART_GESTURES.length)]; }
+function artTimerStart(){ if(!state.art)state.art={}; const t=state.art.timer=state.art.timer||{len:60,round:0,left:60}; t.on=true; t.left=t.len; t.round=(t.round||0)+1; t.elapsed=0; t.subject=artPickGesture(); state.art.pendingLog=null; if(_artInt)clearInterval(_artInt); _artInt=setInterval(artTick,1000); render(); }
+function artTimerStop(){ const t=state.art&&state.art.timer; if(t){ t.on=false; if((t.elapsed||0)>=60) state.art.pendingLog=Math.round(t.elapsed/60); t.elapsed=0; } if(_artInt){clearInterval(_artInt);_artInt=null;} render(); }   /* stopping offers to log the minutes — practice counts */
+function artTimerSkip(){ const t=state.art&&state.art.timer; if(!t||!t.on)return; t.left=t.len; t.round=(t.round||0)+1; t.subject=artPickGesture(); artPaint(); }
+function artPaint(){ const t=state.art&&state.art.timer; if(!t)return; const d=document.getElementById("artTimerDisp"); if(d)d.textContent=fmtClock(t.left); const s=document.getElementById("artTimerSub"); if(s)s.textContent=t.subject||""; const r=document.getElementById("artTimerRound"); if(r)r.textContent="round "+t.round; }
+function artTick(){ const t=state.art&&state.art.timer; if(!t||!t.on||state.tab!=="art"){ if(_artInt){clearInterval(_artInt);_artInt=null;} if(t&&t.on){ t.on=false; if((t.elapsed||0)>=60)state.art.pendingLog=Math.round(t.elapsed/60); t.elapsed=0; } return; } t.elapsed=(t.elapsed||0)+1; t.left--; if(t.left<0){ t.round++; t.left=t.len-1; t.subject=artPickGesture(); const w=document.getElementById("artStage"); if(w){ w.style.background="#fdeaf6"; setTimeout(()=>{ w.style.background=""; },450); } } artPaint(); }
 function viewArt(){
-  const vault=(state.sentinel.inspoVault||[]).slice().reverse();
-  const la=lastArtInfo(); const picked=state.inspoPicked;
-  const ideas=state.artIdeas||(state.artIdeas=ART_IDEAS.slice().sort(()=>Math.random()-0.5).slice(0,4));
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
-  <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">🎨 Art</h2><span class="pill ${la&&la.days<=3?'pill-mint':'pill-gray'}">${la?(la.days===0?"made art today ✨":la.days+"d since last art"):"no art logged yet"}</span></div>
-    <p class="soft" style="font-size:12px;margin:0 0 10px">Your creative corner — zero pressure, all play. Park inspiration here, let Kiko pick when choosing is the hard part, and tap the button when you made something (it keeps your gentle rhythm). 💗</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-grad" data-act="artLogToday">✨ I made art today</button>
-      <button class="btn" data-act="inspoPick" title="decision paralysis? let the fox choose">🦊 pick something for me</button>
+  const sent=state.sentinel||{};
+  if(!state.art)state.art={};
+  const A=state.art;
+  const log=sent.artLog||[];
+  const wk=artMonday(TODAY);
+  const ch=artChallengeState(sent);
+  // minutes this week + sparkline (old entries without min still count as a made-art day)
+  const weekMin=log.filter(e=>e.date>=wk).reduce((a,e)=>a+Number(e.min||0),0);
+  const weekDays=new Set(log.filter(e=>e.date>=wk&&(e.min==null||Number(e.min)>0)).map(e=>e.date)).size;
+  const days14=[]; for(let i=13;i>=0;i--){ const d=new Date(TODAY+"T00:00"); d.setDate(d.getDate()-i); const ds=d.toLocaleDateString("en-CA"); days14.push(log.filter(e=>e.date===ds).reduce((a,e)=>a+Number(e.min||0),0)); }
+  const maxd=Math.max(30,...days14);
+  const spark=`<div style="display:flex;align-items:flex-end;gap:3px;height:34px">${days14.map(v=>`<span style="flex:1;border-radius:3px;background:linear-gradient(180deg,var(--sakura),var(--peri));height:${v?Math.max(3,(v/maxd)*32):2}px;opacity:${v?1:.3}" title="${v} min"></span>`).join("")}</div>`;
+  const reframe=A.reframe||seedPick(ART_REFRAMES,TODAY);
+  const P=A.prompt||(A.prompt={subject:artRand(ART_SUBJECTS),mood:artRand(ART_MOODS),constraint:artRand(ART_CONSTRAINTS)});
+  const pBase=A.pBase||"#ff9ed8", pScheme=A.pScheme||"analogous", pal=genPalette(pBase,pScheme);
+  const SCHEMES=[["analogous","Analogous"],["complementary","Complement"],["triadic","Triadic"],["split","Split"],["tetradic","Tetradic"],["mono","Monochrome"]];
+  const sw=arr=>`<div class="art-sw">${arr.map(c=>`<button style="background:${c}" data-act="copyHex" data-t="${c}">${c}</button>`).join("")}</div>`;
+  const t=A.timer||{len:60,round:0,left:60}; const tLen=t.len||60;
+  const lenSeg=[[30,"30s"],[60,"1m"],[120,"2m"],[300,"5m"]].map(([v,l])=>`<button data-act="artTimerLen" data-v="${v}" class="${tLen===v?'on':''}" ${t.on?'disabled':''}>${l}</button>`).join("");
+  const GUIDES=[["thirds","Rule of thirds"],["phi","Phi grid · golden"],["spiral","Golden spiral 🐚"],["armature","Dynamic symmetry"],["radial","Radial / mirror"],["iso","Isometric"],["persp1","1-pt perspective"],["persp2","2-pt perspective"],["persp3","3-pt perspective"]];
+  const GHINT={thirds:"subject on the lines, interest at the crossings",phi:"like thirds but at the golden ratio — gentler, more natural",spiral:"lead the eye along the curl; the tightest curl is your focal point 🐚",armature:"classical 'sacred geometry' — place subjects on the diagonals & their crossings",radial:"for mandalas & symmetry — pink lines are your mirror axes",iso:"true isometric grid for pixel art, rooms & objects",persp1:"one vanishing point — hallways, roads, head-on rooms",persp2:"two vanishing points — corners of buildings & objects",persp3:"three points — dramatic up/down hero shots"};
+  const RATIOS=[["3:2",900,600],["1:1",720,720],["4:5",600,750],["16:9",960,540],["9:16",506,900]];
+  const gType=A.gType||"thirds", gRatio=A.gRatio||"3:2", rd=RATIOS.find(r=>r[0]===gRatio)||RATIOS[0], GW=rd[1], GH=rd[2], gOrient=A.gOrient||0, gSpokes=A.gSpokes||12;
+  const board=sent.artBoard||[], boardMax=!!A.boardMax;
+  const boardCtrls=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <input class="inp" id="mbImgUrl" placeholder="paste an image URL…" style="flex:1;min-width:140px"/>
+      <button class="btn btn-grad" data-act="mbAddImage">🖼️ image</button>
+      <input type="file" id="mbFile" accept="image/*" multiple style="display:none"/>
+      <button class="btn" data-act="mbUpload">⤒ upload</button>
+      <button class="btn" data-act="mbAddNote">📝 note</button>
+      <button class="btn" data-act="mbAddColor">🎨 colour</button>
+      <button class="btn" data-act="mbExport">⤓ PNG</button>
+      <button class="btn" data-act="mbMax">${boardMax?'⤡ minimize':'⤢ expand'}</button></div>`;
+  const boardInner=`<div class="mb-board ${boardMax?'max':''}" id="moodBoard">${board.length?board.map(mbCardHTML).join(""):`<div class="label" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;opacity:.65;width:80%">your canvas is empty ❄️<br>add an image, note, or colour below — then drag things anywhere</div>`}</div>`;
+  const res=sent.artResources||DEFAULT_ART_RES;
+  const resTags={reference:"🧍",colour:"🎨",perspective:"📐",learn:"📚",other:"🔗"};
+  const pendingChip=A.pendingLog?`<div style="margin-top:10px;text-align:center"><button class="btn btn-grad" data-act="artLogQuick" data-m="${A.pendingLog}">🎨 log those ${A.pendingLog} min — they count!</button> <button class="ft-ic" data-act="artLogDismiss" title="skip logging">✕</button></div>`:"";
+  /* art focus mode — enter play, see ONLY play (timer + prompt + log). Everything else waits. */
+  if(A.focus){
+    return `<div style="max-width:560px;margin:4vh auto;display:flex;flex-direction:column;gap:14px;text-align:center">
+      <div class="label">art focus 🎨 just you and the page</div>
+      <div class="panel" style="background:linear-gradient(135deg,#fdf0fb,#eef2fb)"><div class="art-prompt" style="background:none;border:none;padding:0;font-size:15px">${esc(reframe)}</div></div>
+      <div class="panel"><div class="art-prompt">Draw <b>${esc(P.subject)}</b><br><span style="font-size:14px;color:var(--lav-deep)">${esc(P.mood)} · ${esc(P.constraint)}</span></div>
+        <button class="btn" data-act="artPromptRoll" style="margin-top:10px">🎲 different prompt</button></div>
+      <div class="panel">
+        <div id="artStage" style="border-radius:14px;padding:16px;transition:background .6s">
+          <div class="art-tim" id="artTimerDisp">${fmtClock(t.left??tLen)}</div>
+          <div style="font-family:var(--display);font-size:16px;color:var(--sakura-deep);min-height:22px" id="artTimerSub">${t.on?esc(t.subject||""):"press start to begin"}</div>
+          <div class="label" id="artTimerRound">${t.on?("round "+t.round):"&nbsp;"}</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap">
+          <div class="seg">${lenSeg}</div>
+          ${t.on?`<button class="btn btn-grad" data-act="artTimerStop">⏹ stop</button><button class="btn" data-act="artTimerSkip">⏭ next pose</button>`:`<button class="btn btn-grad" data-act="artTimerStart">▶ start</button>`}
+        </div>
+        ${pendingChip}
+      </div>
+      <div><button class="btn" data-act="artFocusExit">← back to the full studio</button></div>
+    </div>`;
+  }
+  /* expanded mood board keeps its own full-screen stage */
+  if(boardMax) return `<div class="mb-full"><div style="display:flex;align-items:center;gap:8px"><h2 style="font-size:17px;font-family:var(--display);flex:1">🖼️ Mood board</h2></div>${boardCtrls}<div style="flex:1;min-height:0;display:flex">${boardInner}</div></div>`;
+  /* === the 16 cards === */
+  const heroCard=`<section class="panel art-span2" style="background:linear-gradient(135deg,#fdf0fb,#eef2fb)">
+      <div class="art-prompt" style="background:none;border:none;padding:0">${esc(reframe)}</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-grad" data-act="artStartNow">🎨 I'm making art now</button>
+        <button class="btn" data-act="artReframe">↻ another reminder</button>
+        <button class="btn" data-act="inspoPick" title="decision paralysis? let the fox choose">🦊 pick something for me</button>
+      </div>
+      <p class="soft" style="font-size:11px;text-align:center;margin:10px 0 0">the 50% rule (Drawabox): half your art time is allowed to be pure play — that's not slacking, it's the curriculum 💗</p>
+    </section>`;
+  const challengesCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">🌱 Challenges</h2><span class="label">tiny + weekly</span></div>
+      <div class="card-head" style="margin:4px 0 2px"><span class="label">🌱 today's tiny challenge</span><button class="btn" data-act="artRoll" data-scope="day" style="padding:2px 8px">↻</button></div>
+      <button class="hbtn ${ch.dayDone?'done':''}" data-act="artChallengeDone" data-scope="day" style="display:flex;gap:9px;align-items:center;width:100%;text-align:left"><span class="check ${ch.dayDone?'on':''}"></span><span style="font-size:13.5px">${esc(ch.dayText)}</span></button>
+      <div class="card-head" style="margin:12px 0 2px"><span class="label">🌷 this week's challenge</span><button class="btn" data-act="artRoll" data-scope="week" style="padding:2px 8px">↻</button></div>
+      <button class="hbtn ${ch.weekDone?'done':''}" data-act="artChallengeDone" data-scope="week" style="display:flex;gap:9px;align-items:center;width:100%;text-align:left"><span class="check ${ch.weekDone?'on':''}"></span><span style="font-size:13.5px">${esc(ch.weekText)}</span></button>
+    </section>`;
+  const promptCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">🎲 Draw-this prompt</h2><button class="btn btn-grad" data-act="artPromptRoll">↻ roll a new one</button></div>
+      <div class="art-prompt">Draw <b>${esc(P.subject)}</b><br><span style="font-size:14px;color:var(--lav-deep)">${esc(P.mood)} · ${esc(P.constraint)}</span></div>
+      ${P.fromIdea?`<div class="label" style="text-align:center;margin-top:6px">💡 from your own ideas dump — past-you had taste</div>`:""}
+    </section>`;
+  const minutesCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">⏱️ Art minutes</h2><span class="label">every minute counts — even 5</span></div>
+      <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+        <div><div class="num" style="font-size:30px;font-family:var(--display);color:var(--sakura-deep)">${weekMin}<span style="font-size:14px"> min</span></div><div class="label">this week · ${weekDays} day${weekDays===1?'':'s'} of play 💗</div></div>
+        <div class="grow" style="min-width:180px">${spark}<div class="label" style="margin-top:2px">last 14 days</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
+        <span class="label">log</span>
+        <button class="btn" data-act="artLogQuick" data-m="15">+15</button>
+        <button class="btn" data-act="artLogQuick" data-m="30">+30</button>
+        <button class="btn" data-act="artLogQuick" data-m="60">+60</button>
+        <input class="inp" id="artMin" type="number" placeholder="min" style="width:80px"/>
+        <input class="inp" id="artNote" placeholder="what did you make? (optional)" style="flex:1;min-width:140px"/>
+        <button class="btn btn-grad" data-act="artLogMin">＋ log</button>
+      </div>
+      <p class="soft" style="font-size:11.5px;margin:10px 0 0">No streaks to break, no red numbers. A blank week just means you rested — that's allowed too. 🌙</p>
+      ${log.length?`<details class="acc" style="margin-top:8px"><summary>📜 art rhythm (${log.length} entries)</summary><div class="acc-body">${log.slice(-20).reverse().map(a=>`<div class="listrow"><span class="grow" style="font-size:12px">${fmtDate(a.date)}${a.min?` · ${a.min} min`:""}${a.note?" · "+esc(a.note):""}</span></div>`).join("")}</div></details>`:""}
+    </section>`;
+  const timerCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">⏲️ Practice timer</h2><div style="display:flex;gap:8px;align-items:center"><button class="btn" data-act="artFocusEnter" title="hide everything except play">⛶ focus</button><span class="label">gesture / warm-ups</span></div></div>
+      <div id="artStage" style="border-radius:14px;padding:16px;text-align:center;transition:background .6s">
+        <div class="art-tim" id="artTimerDisp">${fmtClock(t.left??tLen)}</div>
+        <div style="font-family:var(--display);font-size:16px;color:var(--sakura-deep);min-height:22px" id="artTimerSub">${t.on?esc(t.subject||""):"press start to begin"}</div>
+        <div class="label" id="artTimerRound">${t.on?("round "+t.round):"&nbsp;"}</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap">
+        <div class="seg">${lenSeg}</div>
+        ${t.on?`<button class="btn btn-grad" data-act="artTimerStop">⏹ stop</button><button class="btn" data-act="artTimerSkip">⏭ next pose</button>`:`<button class="btn btn-grad" data-act="artTimerStart">▶ start</button>`}
+      </div>
+      ${pendingChip}
+      <p class="soft" style="font-size:11.5px;margin:10px 0 0;text-align:center">A fresh subject each round. Don't aim for pretty — aim for loose. 🖍️</p>
+    </section>`;
+  const cnt=sent.artCount||{label:"heads",n:0,goal:100};
+  const cPct=Math.min(1,(cnt.n||0)/(cnt.goal||100)), cDash=(cPct*213.6).toFixed(1);
+  const headsCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">💯 100 ${esc(cnt.label)}</h2><button class="btn" data-act="artCountEdit" style="padding:2px 9px">✎</button></div>
+      ${A.countEdit?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input class="inp" id="cnt_label" value="${esc(cnt.label)}" placeholder="heads / hands / eyes…" style="flex:1;min-width:100px"/><input class="inp num" id="cnt_goal" type="number" value="${cnt.goal||100}" style="width:80px"/><button class="btn btn-grad" data-act="artCountSave">💾</button><button class="btn" data-act="artCountReset" style="color:var(--sakura-deep)">↺ restart at 0</button></div>`:""}
+      <div style="display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap">
+        <svg width="86" height="86" viewBox="0 0 86 86"><circle cx="43" cy="43" r="34" fill="none" stroke="#eef0fa" stroke-width="9"/><circle cx="43" cy="43" r="34" fill="none" stroke="url(#artCntG)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${cDash} 213.6" transform="rotate(-90 43 43)"/><defs><linearGradient id="artCntG"><stop offset="0%" stop-color="#758ac6"/><stop offset="100%" stop-color="#ff9ed8"/></linearGradient></defs><text x="43" y="40" text-anchor="middle" style="font-size:17px;font-weight:700;fill:var(--ink)">${cnt.n||0}</text><text x="43" y="56" text-anchor="middle" style="font-size:10px;fill:#9b96b6">of ${cnt.goal||100}</text></svg>
+        <button class="btn btn-grad" data-act="artCountInc" style="font-size:15px;padding:10px 18px">＋1 ${esc(cnt.label.replace(/s$/,""))}</button>
+      </div>
+      <p class="soft" style="font-size:11px;text-align:center;margin:10px 0 0">the 100 heads challenge, mifu-style: 5–10 min each, no deadline — the pile grows when it grows 💗</p>
+    </section>`;
+  const ideasCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">💡 Ideas dump</h2><span class="pill pill-lav">${(sent.artIdeas||[]).length} idea${(sent.artIdeas||[]).length===1?"":"s"}</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px"><input class="inp" id="ideaText" placeholder="that piece I suddenly want to draw…"/><button class="btn btn-grad" data-act="artIdeaAdd">＋ park it</button></div>
+      ${(sent.artIdeas||[]).length?`<div class="idea-grid">${(sent.artIdeas||[]).slice().reverse().map((i,ix)=>{const cols2=["#fff3c9","#ffe1ee","#e7defb","#dcf4ea","#ffe7d6"];return `<div class="idea-card" style="background:${cols2[ix%5]};transform:rotate(${ix%2?0.8:-0.8}deg)">${esc(i.text)}<div class="ic-tools"><button class="ft-ic" data-act="artIdeaToBoard" data-id="${i.id}" title="pin to mood board">📌</button><button class="ft-ic" data-act="artIdeaDel" data-id="${i.id}" style="color:var(--sakura-deep)">🗑</button></div></div>`;}).join("")}</div>`:`<p class="soft" style="font-size:12px;margin:0">Every "ooh I should draw that" lands here as a sticky — no more losing them. 📌 pins one to the mood board. 🌸</p>`}
+    </section>`;
+  const vault=(sent.inspoVault||[]); const picked=state.inspoPicked;
+  const inspoCard=`<section class="panel art-span2"><div class="card-head"><h2 style="font-size:17px">✨ Inspiration vault</h2><div style="display:flex;gap:8px;align-items:center"><span class="pill pill-sak">${vault.filter(s2=>!s2.done).length} to try · ${vault.filter(s2=>s2.done).length} done</span></div></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <input class="inp" id="inspoText" placeholder="an idea, a vibe, why it sparked you…" style="flex:2;min-width:150px" value="${esc((state.inspoDraft||{}).text||'')}"/>
+        <input class="inp" id="inspoUrl" placeholder="link (tweet, trend, artwork…)" style="flex:2;min-width:140px" value="${esc((state.inspoDraft||{}).url||'')}"/>
+        <label class="btn" style="cursor:pointer" title="add a reference image">🖼️<input type="file" id="artFile" accept="image/*" style="display:none"></label>
+        <button class="btn btn-grad" data-act="inspoAdd">＋ save</button>
+      </div>
+      ${vault.length?`<div class="inspo-grid">${vault.slice().reverse().map(s2=>{let host="link";try{host=new URL(s2.url).hostname.replace("www.","");}catch(e){} const isImg=s2.img||/\.(png|jpe?g|gif|webp)(\?|$)/i.test(s2.url||"");
+        const thumb=s2.img?`style="background-image:url('${s2.img}')"`:(isImg&&s2.url?`style="background-image:url('${esc(s2.url)}')"`:"");
+        return `<div class="inspo-card ${s2.done?'done':''}" ${picked===s2.id?'style="outline:2.5px solid var(--sakura);outline-offset:2px;border-radius:14px"':""}>
+          ${s2.url?`<a href="${esc(s2.url)}" target="_blank" rel="noopener"><div class="inspo-thumb" ${thumb}>${isImg?"":`<img src="https://www.google.com/s2/favicons?domain=${esc(host)}&sz=64" style="width:34px;height:34px;border-radius:9px" onerror="this.style.display='none'"/>`}</div></a>`:`<div class="inspo-thumb" ${thumb}>${isImg?"":"💡"}</div>`}
+          <div class="inspo-body">
+            ${s2.url?`<a href="${esc(s2.url)}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--lav-deep);text-decoration:none">${esc(host)} ↗</a>`:""}
+            ${s2.text?`<div class="soft" style="font-size:11.5px;${s2.done?'text-decoration:line-through':''}">${esc(s2.text)}</div>`:""}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto"><button class="chiptog ${s2.done?'on':''}" data-act="inspoDone" data-v="${s2.id}" style="font-size:10.5px;padding:3px 9px">${s2.done?'✓ tried it!':'mark tried'}</button><button class="ft-ic" data-act="inspoDel" data-v="${s2.id}" style="color:var(--sakura-deep)">🗑</button></div>
+          </div>
+        </div>`;}).join("")}</div>`:`<p class="soft" style="font-size:12px;margin:0">Trending tweet? Style you want to try? Drop the link so it stops living in 47 open tabs — cards with images show the picture itself. 💗</p>`}
+    </section>`;
+  const em=A.emote;
+  const chk=`background:repeating-conic-gradient(#e9e6f4 0 25%,#ffffff 0 50%);background-size:14px 14px`;
+  const emRow=(bg,fg,label,sizes,inline)=>`<div style="background:${bg};border-radius:10px;padding:9px 11px;margin-top:6px">
+        <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:${fg}88;margin-bottom:5px">${label}</div>
+        ${inline?`<div style="font-size:13px;color:${fg};display:flex;align-items:center;gap:5px;flex-wrap:wrap"><b style="color:#a970ff">mifu</b>: omg <img src="${em?em.data:""}" style="width:${inline}px;height:${inline}px;object-fit:contain"/> so cute!!</div>`:""}
+        <div style="display:flex;gap:12px;align-items:flex-end;margin-top:7px">${sizes.map(s2=>`<div style="text-align:center"><img src="${em?em.data:""}" style="width:${s2}px;height:${s2}px;object-fit:contain"/><div style="font-size:9.5px;color:${fg}88;margin-top:2px">${s2}px</div></div>`).join("")}</div>
+      </div>`;
+  const kb=em?Math.max(1,Math.round(em.size/1024)):0;
+  const sizePill=(lim,name)=>em?`<span class="pill ${kb<=lim?'pill-mint':''}" ${kb>lim?'style="background:#fde4e4;color:#c0566a"':''}>${name}: ${kb<=lim?"✓":"✗"} ${kb}KB / ${lim>=1024?(lim/1024)+"MB":lim+"KB"}</span>`:"";
+  const emoteCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">🟣 Emote previewer</h2>${em?`<button class="btn" data-act="artEmoteClear">✕ clear</button>`:`<span class="label">chat-size reality check</span>`}</div>
+      <input type="file" id="emoteFile" accept="image/png,image/gif,image/webp" style="display:none"/>
+      ${em?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">${sizePill(1024,"Twitch emote")}${sizePill(256,"Discord emoji")}${sizePill(25,"sub badge")}</div>
+        ${emRow("#18181b","#efeff1","Twitch · dark",[112,56,28],28)}
+        ${emRow("#313338","#dbdee1","Discord · dark",[48,22],22)}
+        ${emRow("#ffffff;border:1px solid var(--line)","#1f1633","light mode",[56,28],28)}
+        <div style="${chk};border-radius:10px;padding:9px 11px;margin-top:6px"><div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#9b96b6;margin-bottom:5px">transparency check</div><img src="${em.data}" style="width:72px;height:72px;object-fit:contain"/></div>`
+      :`<p class="soft" style="font-size:12px;margin:0 0 8px">Upload an emote/badge PNG → see it at REAL chat sizes on Twitch-dark, Discord-dark, light, and a transparency checkerboard — with size-limit checks. No more uploading to find out it's mud at 28px. 💗</p>
+        <button class="btn btn-grad" data-act="artEmotePick">🖼 choose a PNG</button>`}
+    </section>`;
+  const nSteps=Math.max(2,Math.min(6,A.notanSteps||3));
+  const valueCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">◐ Value checker</h2>${A.notan?`<button class="btn" data-act="artNotanClear">✕ clear</button>`:`<span class="label">squint, but scientific</span>`}</div>
+      <input type="file" id="notanFile" accept="image/*" style="display:none"/>
+      <p class="soft" style="font-size:12px;margin:0 0 8px">Drop your WIP in → it collapses to ${A.notan?nSteps:"2–6"} values. If it reads here, it reads everywhere; if it's mud here, that's the fix. 🌗</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn ${A.notan?'':'btn-grad'}" data-act="artNotanPick">🖼 ${A.notan?"different image":"choose your WIP"}</button>
+        <span class="label">values</span><div class="seg">${[2,3,4,5,6].map(v=>`<button data-act="artNotanSteps" data-v="${v}" class="${nSteps===v?'on':''}">${v}</button>`).join("")}</div>
+      </div>
+      ${A.notan?`<canvas id="notanCv" style="max-width:100%;border-radius:10px;margin-top:10px;border:1px solid var(--line)"></canvas>`:""}
+    </section>`;
+  const paletteCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">🎨 Palette & ramps</h2></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+        <label class="art-chip">base <input type="color" id="artBase" value="${pBase}" style="width:34px;height:24px;border:none;background:none;padding:0;cursor:pointer"/></label>
+        <button class="btn" data-act="artPaletteRoll">🎲 random base</button>
+        <div class="seg" style="flex-wrap:wrap">${SCHEMES.map(([v,l])=>`<button data-act="artPaletteScheme" data-v="${v}" class="${pScheme===v?'on':''}">${l}</button>`).join("")}</div>
+      </div>
+      ${sw(pal)}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px"><span class="label">🃏 limited-palette challenge — draw with only these</span><button class="btn btn-grad" data-act="artLimited">🎲 roll 3</button></div>
+      ${A.limited?sw(A.limited):`<p class="soft" style="font-size:12px;margin:8px 0 0">Roll three random swatches and make something using <i>only</i> those. Great for learning colour mixing.</p>`}
+      <div class="label" style="margin:14px 0 4px">🪜 value ramp of your base <span class="muted">· light → dark, for shading picks</span></div>
+      ${sw(genRamp(pBase))}
+      <div class="label" style="margin:10px 0 4px">⛅ two-value cel pair <span class="muted">· base + hue-shifted shadow</span></div>
+      ${sw(celPair(pBase))}
+      <p class="soft" style="font-size:11px;margin:10px 0 0">Tap any swatch to copy its hex 💗</p>
+    </section>`;
+  const specsCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">📏 Platform specs</h2><span class="label">verified 2026-06-10</span></div>
+      ${ART_SPECS.map(([n2,s2])=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><div style="font-size:12.5px;font-weight:700">${n2}</div><div class="soft" style="font-size:11.5px;margin-top:1px">${s2}</div></div>`).join("")}
+      <p class="soft" style="font-size:11px;margin:8px 0 0">the blogs are stale — these came from the official docs 🌸</p>
+    </section>`;
+  const l2=sent.live2dCheck||{name:"",items:{}};
+  const l2n=LIVE2D_ITEMS.filter(([k])=>l2.items&&l2.items[k]).length;
+  const live2dCard=`<section class="panel"><div class="card-head"><h2 style="font-size:17px">🧩 Live2D cut prep</h2><div style="display:flex;gap:8px;align-items:center"><span class="pill ${l2n===LIVE2D_ITEMS.length?'pill-mint':'pill-lav'}">${l2n}/${LIVE2D_ITEMS.length}</span><button class="btn" data-act="l2dReset" title="new model — clear all ticks">↺</button></div></div>
+      <input class="inp" id="l2dName" value="${esc(l2.name||"")}" placeholder="model / outfit name (optional)…" style="margin-bottom:8px"/>
+      ${LIVE2D_ITEMS.map(([k,l])=>`<button class="hbtn ${l2.items&&l2.items[k]?'done':''}" data-act="l2dToggle" data-k="${k}" style="display:flex;gap:9px;align-items:center;width:100%;margin-top:5px;text-align:left"><span class="check ${l2.items&&l2.items[k]?'on':''}"></span><span style="font-size:12.5px">${l}</span></button>`).join("")}
+      <p class="soft" style="font-size:11px;margin:8px 0 0">the layer-separation rules from Live2D's official docs — tick as you cut, before export 💗</p>
+    </section>`;
+  const guidesCard=`<section class="panel art-span2"><div class="card-head"><h2 style="font-size:17px">📐 Drawing guides & overlays</h2></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+        <select class="inp" id="artGType" style="width:auto">${GUIDES.map(([v,l])=>`<option value="${v}" ${gType===v?'selected':''}>${l}</option>`).join("")}</select>
+        <span class="label">canvas</span><div class="seg">${RATIOS.map(r=>`<button data-act="artGRatio" data-v="${r[0]}" class="${gRatio===r[0]?'on':''}">${r[0]}</button>`).join("")}</div>
+        ${gType==="spiral"?`<button class="btn" data-act="artGOrient">↻ flip</button>`:""}
+        ${gType==="radial"?`<label class="art-chip">spokes <input type="range" id="artSpokes" min="4" max="24" value="${gSpokes}" style="width:84px"></label>`:""}
+      </div>
+      <div class="art-grid-wrap">${artGuideSVG(gType,GW,GH,{orient:gOrient,spokes:gSpokes})}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" data-act="artGridDownload">⤓ download SVG</button><span class="soft" style="font-size:11.5px;align-self:center">${GHINT[gType]||"drop it under your canvas as a guide layer"}</span></div>
+    </section>`;
+  const boardCard=`<section class="panel art-span2"><div class="card-head"><h2 style="font-size:17px">🖼️ Mood board</h2><span class="label">drag anything anywhere · auto-saves</span></div>
+      ${boardCtrls}
+      ${boardInner}
+      <p class="soft" style="font-size:11.5px;margin:10px 0 0">Paste image links, jot notes, drop colour chips — then drag them into a layout. Grab the ◢ corner to resize. ❄️</p>
+    </section>`;
+  const packNew=ART_PACK.filter(p=>!res.some(r=>r.url===p.url)).length;
+  const libraryCard=`<section class="panel art-span2"><div class="card-head"><h2 style="font-size:17px">📚 Tools & tutorials</h2>${packNew?`<button class="btn btn-grad" data-act="artResPack" title="adds the research-verified pose/anatomy/colour links — all free, all checked alive">🌟 add research pack (${packNew})</button>`:`<span class="label">your own library</span>`}</div>
+      <div id="artResList" style="display:flex;flex-direction:column;gap:6px">${res.map(r=>`<div data-resid="${r.id}" style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);background:#fff;border-radius:8px"><span class="res-grip" data-resgrip title="drag to reorder">⠿</span><span>${resTags[r.tag]||"🔗"}</span><a href="${esc(r.url)}" target="_blank" rel="noopener" class="grow" style="font-size:13px;color:var(--lav-deep);text-decoration:none">${esc(r.title)} ↗</a><button class="ft-ic" data-act="artResDel" data-id="${r.id}" style="color:var(--sakura-deep)">🗑</button></div>`).join("")}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <input class="inp" id="artResTitle" placeholder="title" style="flex:1;min-width:120px"/>
+        <input class="inp" id="artResUrl" placeholder="https://…" style="flex:1;min-width:140px"/>
+        <select class="inp" id="artResTag" style="width:auto">${Object.keys(resTags).map(k=>`<option value="${k}">${resTags[k]} ${k}</option>`).join("")}</select>
+        <button class="btn btn-grad" data-act="artResAdd">＋ save</button>
+      </div>
+    </section>`;
+  return `<div style="max-width:1100px;margin:0 auto">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <h2 style="font-size:22px;font-family:var(--display)">🎨 Art studio</h2>
+      <span class="label">just for you · play is allowed 🌸</span>
     </div>
-    ${la&&la.days>=10?`<div class="disc" style="margin-top:10px">🎨<span>It's been a little while — zero guilt, but if you feel like a tiny one: ${ideas.map(i=>`<b>${esc(i)}</b>`).join(" · ")}. Or ask Kiko to pick. 💗</span></div>`:""}
-  </section>
-  <section class="panel">
-    <div class="card-head"><span class="label">💡 Inspiration vault</span><span class="pill pill-gray">${vault.length}</span></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-      <input class="inp" id="inspoText" placeholder="an idea, a vibe, a tweet…" style="flex:2;min-width:160px" value="${esc((state.inspoDraft||{}).text||'')}">
-      <input class="inp" id="inspoUrl" placeholder="link (optional)" style="flex:1;min-width:120px" value="${esc((state.inspoDraft||{}).url||'')}">
-      <label class="btn" style="cursor:pointer" title="add a reference image">🖼️<input type="file" id="artFile" accept="image/*" style="display:none"></label>
-      <button class="btn btn-grad" data-act="inspoAdd">＋ park it</button>
-    </div>
-    ${vault.length?`<div class="vault-grid">${vault.map(v=>`<div class="vault-item ${picked===v.id?'picked':''}" data-vid="${v.id}">
-        ${v.img?`<img src="${v.img}" alt="">`:""}
-        ${v.text?`<div>${esc(v.text)}</div>`:""}
-        ${v.url?`<a href="${esc(v.url)}" target="_blank" rel="noopener" style="font-size:11px;word-break:break-all">${esc(v.url.replace(/^https?:\/\//,"").slice(0,40))}…</a>`:""}
-        <button class="x" data-act="inspoDel" data-v="${v.id}">✕</button></div>`).join("")}</div>`
-      :`<p class="soft" style="font-size:12px">Empty vault — park ideas, links and reference images here so future-you never starts from nothing. ❄️</p>`}
-  </section>
-  ${(state.sentinel.artLog||[]).length?`<details class="acc"><summary>📜 art rhythm (${(state.sentinel.artLog||[]).length} days made)</summary><div class="acc-body">${(state.sentinel.artLog||[]).slice(-20).reverse().map(a=>`<div class="listrow"><span class="grow" style="font-size:12px">${fmtDate(a.date)}${a.note?" · "+esc(a.note):""}</span></div>`).join("")}</div></details>`:""}
+    <div class="art-cols">${heroCard}${challengesCard}${promptCard}${minutesCard}${timerCard}${headsCard}${ideasCard}${inspoCard}${emoteCard}${valueCard}${paletteCard}${specsCard}${live2dCard}${guidesCard}${boardCard}${libraryCard}</div>
   </div>`;
 }
 /* ===================== 📓 JOURNAL — private life archive (calendar · entries · capsules) =====================
@@ -1289,18 +1726,32 @@ async function jrEntryModal(date){
   document.querySelectorAll("[data-jrscale]").forEach(b=>b.addEventListener("click",()=>{
     document.querySelectorAll(`[data-jrscale="${b.dataset.jrscale}"]`).forEach(x=>x.classList.remove("on")); b.classList.add("on"); }));
 }
+function tbStepText(s){ return typeof s==="string"?s:(s&&s.text)||""; }
 function viewToolbox(){
-  const tb=state.tb||(state.tb={spice:3,steps:null,task:"",fText:"",fTone:"professional",fOut:"",eTask:"",eOut:null,cText:"",groups:null,busy:""});
+  const tb=state.tb||(state.tb={spice:3,steps:null,task:"",fText:"",fTone:"professional",fOut:"",eTask:"",eOut:null,cText:"",groups:null,tText:"",tOut:null,busy:""});
   const chili=n=>`<span class="spice">${[1,2,3,4,5].map(i=>`<button data-act="tbSpice" data-v="${i}" class="${i<=n?'on':''}" title="${i}/5 — higher = tinier steps">🌶️</button>`).join("")}</span>`;
+  const totalMin=(tb.steps||[]).reduce((a,s)=>a+(typeof s==="object"?Number(s.min||0):0),0);
   return `<div style="max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
   <section class="panel"><div class="card-head"><h2 style="font-size:18px">🧰 Toolbox</h2><span class="pill pill-gray">brain helpers</span></div>
-    <p class="soft" style="font-size:12px;margin:0">Little machines for the hard parts — breaking things down, finding words, guessing time, sorting a full brain. ${DEMO?"<b>(needs live mode)</b>":""}</p></section>
+    <p class="soft" style="font-size:12px;margin:0">Little machines for the hard parts — breaking things down, reading scary messages, finding words, guessing time, sorting a full brain. ${DEMO?"<b>(needs live mode)</b>":""}</p></section>
   <section class="panel">
     <div class="card-head"><span class="label">✨ Magic breakdown</span>${chili(tb.spice)}</div>
-    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Type the scary task; get tiny physical steps. More 🌶️ = smaller pieces.</p>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Type the scary task; get tiny physical steps. More 🌶️ = smaller pieces. The first step is always the easiest way in.</p>
     <div style="display:flex;gap:6px"><input class="inp" id="tbTask" placeholder="the task that won't start itself…" value="${esc(tb.task||'')}"><button class="btn btn-grad" data-act="tbBreak" ${tb.busy==='break'?'disabled':''}>${tb.busy==='break'?'…':'break it down'}</button></div>
-    ${tb.steps?`<div class="tb-steps" style="margin-top:10px">${tb.steps.map((s,i)=>`<div class="listrow"><span class="soft" style="min-width:20px;font-size:11px">${i+1}.</span><span class="grow" style="font-size:12.5px">${esc(s)}</span><button class="x" data-act="tbBreakStep" data-i="${i}" title="still too big — break this step smaller">🪓</button></div>`).join("")}
+    ${tb.steps?`<div class="tb-steps" style="margin-top:10px">${totalMin?`<div class="label" style="margin-bottom:4px">~${totalMin} min all-in (honest minutes, not optimistic ones)</div>`:""}${tb.steps.map((s,i)=>`<div class="listrow"><span class="soft" style="min-width:20px;font-size:11px">${i+1}.</span><span class="grow" style="font-size:12.5px">${esc(tbStepText(s))}</span>${typeof s==="object"&&s.min?`<span class="label num">~${Number(s.min)}m</span>`:""}<button class="x" data-act="tbBreakStep" data-i="${i}" title="still too big — break this step smaller">🪓</button></div>`).join("")}
       <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-grad" data-act="tbStepsToPlanner">🗒️ add all to planner</button><button class="btn" data-act="tbClear">clear</button></div></div>`:""}
+  </section>
+  <section class="panel">
+    <div class="label" style="margin-bottom:6px">⚖️ Tone judge <span class="muted">· how does it actually read?</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Paste a message you received and your brain is spiralling about — get an honest read of what it's actually saying (and what it's NOT). RSD first-aid. 💗</p>
+    <textarea class="inp" id="tbTText" rows="3" placeholder="paste the message here…">${esc(tb.tText||'')}</textarea>
+    <button class="btn btn-grad" data-act="tbTone" style="margin-top:8px" ${tb.busy==='tone'?'disabled':''}>${tb.busy==='tone'?'reading the room…':'⚖️ read it for me'}</button>
+    ${tb.tOut?`<div class="soft-card" style="margin-top:10px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${(tb.tOut.vibe||[]).map(v=>`<span class="pill pill-lav">${esc(v)}</span>`).join("")}</div>
+      <div style="font-size:13px;line-height:1.6">${esc(tb.tOut.read||"")}</div>
+      ${tb.tOut.notSaying?`<div style="margin-top:8px;font-size:12.5px;line-height:1.55"><b class="sak">what it's NOT saying:</b> ${esc(tb.tOut.notSaying)}</div>`:""}
+      ${tb.tOut.respond?`<div class="label" style="margin-top:8px">easiest healthy reply</div><div class="soft" style="font-size:12.5px">${esc(tb.tOut.respond)}</div>`:""}
+    </div>`:""}
   </section>
   <section class="panel">
     <div class="label" style="margin-bottom:6px">🪄 Formalizer</div>
@@ -1313,8 +1764,13 @@ function viewToolbox(){
   </section>
   <section class="panel">
     <div class="label" style="margin-bottom:6px">⏱️ Time estimator</div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">ADHD time-blindness antidote — honest ranges that include the hidden time (setup, transitions, decision pauses).</p>
     <div style="display:flex;gap:6px"><input class="inp" id="tbETask" placeholder="how long will … actually take?" value="${esc(tb.eTask||'')}"><button class="btn btn-grad" data-act="tbEstimate" ${tb.busy==='est'?'disabled':''}>${tb.busy==='est'?'…':'estimate'}</button></div>
-    ${tb.eOut?`<div class="soft-card" style="margin-top:8px;font-size:12.5px"><b>${esc(tb.eOut.estimate)}</b> · <span class="soft">${esc(tb.eOut.note)}</span></div>`:""}
+    ${tb.eOut?(tb.eOut.likely?`<div class="soft-card" style="margin-top:8px;font-size:12.5px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline"><span><b style="font-size:15px">${esc(tb.eOut.likely)}</b> <span class="label">realistic</span></span>${tb.eOut.bestCase?`<span class="soft">${esc(tb.eOut.bestCase)} <span class="label">if everything cooperates</span></span>`:""}</div>
+        ${tb.eOut.why?`<div class="soft" style="margin-top:6px;line-height:1.5">${esc(tb.eOut.why)}</div>`:""}
+        ${(tb.eOut.parts||[]).length?`<div style="margin-top:8px">${tb.eOut.parts.map(p2=>`<div style="display:flex;gap:8px;padding:2px 0;font-size:12px"><span class="grow">• ${esc(p2.text)}</span><span class="label num">~${Number(p2.min)||"?"}m</span></div>`).join("")}</div>`:""}
+      </div>`:`<div class="soft-card" style="margin-top:8px;font-size:12.5px"><b>${esc(tb.eOut.estimate||"")}</b> · <span class="soft">${esc(tb.eOut.note||"")}</span></div>`):""}
   </section>
   <section class="panel">
     <div class="label" style="margin-bottom:6px">🧠 Brain-dump compiler</div>
@@ -3156,33 +3612,102 @@ const H={
   async prepDel(el){ const d=el.dataset; await prepWrite(d.kind,d.key,c=>({...c,items:c.items.filter(i=>i.id!==d.v)})); },
   async bdaySkip(el){ await prepWrite("bday",el.dataset.key,c=>({...c,skipped:true})); toast("skipped — no guilt, ever 💗"); },
   kikoSeedAsk(el){ H.openKikoChatPanel(); const inp=kikoInputEl(); if(inp){ inp.value=el.dataset.seed||""; try{inp.focus();}catch(_){}} },
-  // --- 🎨 art ---
-  async artLogToday(){ await setSent(n=>{ const log=(n.artLog||[]).slice(); if(!log.some(a=>a.date===TODAY)) log.push({date:TODAY,note:""}); return {...n,artLog:log.slice(-120)}; }); toast("logged — look at you, making things ✨"); render(); },
+  // --- 🎨 art studio (full suite, ported from Eggie OS) ---
+  async artLogToday(){ await setSent(n=>{ const log=(n.artLog||[]).slice(); if(!log.some(a=>a.date===TODAY)) log.push({date:TODAY,note:""}); return {...n,artLog:log.slice(-200)}; }); toast("logged — look at you, making things ✨"); render(); },
   async inspoAdd(){ const t=($("#inspoText")&&$("#inspoText").value||"").trim(); const u=($("#inspoUrl")&&$("#inspoUrl").value||"").trim();
     if(!t&&!u){ toast("give it a word or a link 🌸"); return; } state.inspoDraft=null;
-    await setSent(n=>({...n,inspoVault:[...(n.inspoVault||[]),{id:"iv"+Date.now(),kind:u?"link":"idea",text:t,url:u}].slice(-40)})); toast("parked 💡"); render(); },
+    await setSent(n=>({...n,inspoVault:[...(n.inspoVault||[]),{id:"iv"+Date.now(),kind:u?"link":"idea",text:t,url:u,done:false}].slice(-60)})); toast("saved to the vault ✨"); render(); },
   async inspoDel(el){ const id=el.dataset.v; await setSent(n=>({...n,inspoVault:(n.inspoVault||[]).filter(v=>v.id!==id)})); render(); },
-  inspoPick(){ const v=(state.sentinel.inspoVault||[]); if(!v.length){ toast("the vault's empty — park an idea first 💡"); return; }
+  async inspoDone(el){ const id=el.dataset.v; await setSent(n=>({...n,inspoVault:(n.inspoVault||[]).map(v=>v.id===id?{...v,done:!v.done}:v)})); render(); },
+  inspoPick(){ const v=(state.sentinel.inspoVault||[]).filter(x=>!x.done); if(!v.length){ toast("the vault's all tried — go collect more sparks ✨"); return; }
     const pick=v[Math.floor(Math.random()*v.length)]; state.inspoPicked=pick.id; render();
-    toast("🦊 this one: "+((pick.text||pick.url||"").slice(0,60))); },
+    toast("🦊 this one: "+((pick.text||pick.url||"a reference image").slice(0,60))); },
+  artReframe(){ if(!state.art)state.art={}; let r; do{ r=ART_REFRAMES[Math.floor(Math.random()*ART_REFRAMES.length)]; }while(r===state.art.reframe&&ART_REFRAMES.length>1); state.art.reframe=r; render(); },
+  artStartNow(){ if(!state.art)state.art={}; if(!state.art.timer)state.art.timer={len:120,round:0,left:120}; state.art.focus=true; if(state.tab!=="art")state.tab="art"; toast("Yes! Go play. Future-you says thank you 💗"); artTimerStart(); },
+  artFocusEnter(){ if(!state.art)state.art={}; state.art.focus=true; render(); },
+  artFocusExit(){ if(state.art)state.art.focus=false; render(); },
+  async artRoll(el){ const sc=el.dataset.scope; const txt=sc==="week"?artRand(ART_WEEKLY):artRand(ART_DAILY); const wk=artMonday(TODAY);
+    await setSent(n=>{const c=Object.assign({},n.artChallenge||{}); if(sc==="week"){c.weekRollText=txt;c.weekRollWk=wk;c.weekDoneWk=null;}else{c.dayRollText=txt;c.dayRollDate=TODAY;c.dayDoneDate=null;} return {...n,artChallenge:c};}); render(); },
+  async artChallengeDone(el){ const sc=el.dataset.scope; const wk=artMonday(TODAY);
+    await setSent(n=>{const c=Object.assign({},n.artChallenge||{}); if(sc==="week")c.weekDoneWk=(c.weekDoneWk===wk)?null:wk; else c.dayDoneDate=(c.dayDoneDate===TODAY)?null:TODAY; return {...n,artChallenge:c};}); render(); },
+  async artLogQuick(el){ const m=parseInt(el.dataset.m)||0; if(m)await setSent(n=>({...n,artLog:[...(n.artLog||[]),{date:TODAY,min:m}].slice(-200)})); if(state.art)state.art.pendingLog=null; toast("Logged "+m+" min of play 🎨 proud of you"); render(); },
+  async artLogMin(){ const mi=$("#artMin"), ni=$("#artNote"); const m=parseInt(mi&&mi.value)||0; const note=(ni&&ni.value||"").trim(); if(!m){ toast("How many minutes? 🌸"); return; }
+    await setSent(n=>({...n,artLog:[...(n.artLog||[]),{date:TODAY,min:m,note:note||undefined}].slice(-200)})); toast("Logged "+m+" min 🎨"); render(); },
+  artLogDismiss(){ if(state.art)state.art.pendingLog=null; render(); },
+  artPromptRoll(){ if(!state.art)state.art={}; const myIdeas=(state.sentinel.artIdeas||[]); /* ~1 in 3 rolls resurface one of HER parked ideas */
+    if(myIdeas.length&&Math.random()<0.34){ const pick=myIdeas[Math.floor(Math.random()*myIdeas.length)]; state.art.prompt={subject:String(pick.text||"").slice(0,90),mood:artRand(ART_MOODS),constraint:artRand(ART_CONSTRAINTS),fromIdea:true}; }
+    else state.art.prompt={subject:artRand(ART_SUBJECTS),mood:artRand(ART_MOODS),constraint:artRand(ART_CONSTRAINTS)};
+    render(); },
+  async artIdeaAdd(){ const i=$("#ideaText"); const t=(i&&i.value||"").trim(); if(!t){ toast("What's the idea? 🌸"); return; }
+    await setSent(n=>({...n,artIdeas:[...(n.artIdeas||[]),{id:aid("i"),text:t,added:TODAY}]})); toast("Idea parked 💡"); render(); },
+  async artIdeaDel(el){ const id=el.dataset.id; await setSent(n=>({...n,artIdeas:(n.artIdeas||[]).filter(x=>x.id!==id)})); render(); },
+  async artIdeaToBoard(el){ const id=el.dataset.id; const idea=(state.sentinel.artIdeas||[]).find(x=>x.id===id); if(!idea)return;
+    const ox=30+Math.floor(Math.random()*60), oy=30+Math.floor(Math.random()*50);
+    await setSent(n=>({...n,artBoard:[...(n.artBoard||[]),{id:aid("b"),type:"note",text:idea.text,x:ox,y:oy,w:170,h:120}]})); toast("Pinned to the mood board 📌"); render(); },
+  artEmotePick(){ const f=$("#emoteFile"); if(f)f.click(); },
+  artEmoteClear(){ if(state.art)state.art.emote=null; render(); },
+  artNotanPick(){ const f=$("#notanFile"); if(f)f.click(); },
+  artNotanClear(){ if(state.art)state.art.notan=null; render(); },
+  artNotanSteps(el){ if(!state.art)state.art={}; state.art.notanSteps=parseInt(el.dataset.v)||3; render(); setTimeout(artNotanPaint,80); },
+  async artCountInc(){ const cur=(state.sentinel.artCount)||{label:"heads",n:0,goal:100}; const n2=(cur.n||0)+1;
+    await setSent(nn=>({...nn,artCount:{...(nn.artCount||{label:"heads",goal:100}),n:((nn.artCount||{}).n||0)+1}}));
+    if(n2===(cur.goal||100)) toast("💯 "+n2+" "+cur.label+"!! THE WHOLE CHALLENGE. absolute legend 🎉🦊"); else if(n2%25===0) toast("🎉 "+n2+" "+cur.label+" — that's a real pile of practice 💗"); else if(n2%10===0) toast("✨ "+n2+" down!");
+    render(); },
+  artCountEdit(){ if(!state.art)state.art={}; state.art.countEdit=!state.art.countEdit; render(); },
+  async artCountSave(){ const lb=($("#cnt_label")&&$("#cnt_label").value||"heads").trim().slice(0,30)||"heads"; const gl=Math.max(5,Math.min(1000,parseInt($("#cnt_goal")&&$("#cnt_goal").value)||100));
+    await setSent(nn=>({...nn,artCount:{...(nn.artCount||{n:0}),label:lb,goal:gl}})); if(state.art)state.art.countEdit=false; render(); },
+  async artCountReset(){ await setSent(nn=>({...nn,artCount:{...(nn.artCount||{label:"heads",goal:100}),n:0}})); if(state.art)state.art.countEdit=false; toast("fresh page — the practice you did still happened 💗"); render(); },
+  async l2dToggle(el){ const k=el.dataset.k; const nm=($("#l2dName")&&$("#l2dName").value||"").slice(0,80);
+    await setSent(nn=>{ const c2=nn.live2dCheck||{name:"",items:{}}; const it={...(c2.items||{})}; it[k]=!it[k]; return {...nn,live2dCheck:{name:nm||c2.name||"",items:it}}; }); render(); },
+  async l2dReset(){ await setSent(nn=>({...nn,live2dCheck:{name:"",items:{}}})); toast("🧩 fresh checklist for the next model"); render(); },
+  async artResPack(){ await setSent(nn=>{ const cur=(nn.artResources&&nn.artResources.length)?nn.artResources.slice():DEFAULT_ART_RES.slice(); const add=ART_PACK.filter(p=>!cur.some(r=>r.url===p.url)).map(p=>({id:aid("r"),...p})); return {...nn,artResources:[...cur,...add]}; }); toast("🌟 research pack added — every link verified alive + free 💗"); render(); },
+  async artResAdd(){ const ti=$("#artResTitle"), ui=$("#artResUrl"), tg=$("#artResTag"); const title=(ti&&ti.value||"").trim(), url=(ui&&ui.value||"").trim(); if(!title||!url){ toast("Need a title and a link 🌸"); return; }
+    await setSent(n=>({...n,artResources:[...((n.artResources)||DEFAULT_ART_RES),{id:aid("r"),title,url,tag:(tg&&tg.value)||"other"}]})); render(); },
+  async artResDel(el){ const id=el.dataset.id; await setSent(n=>({...n,artResources:((n.artResources)||DEFAULT_ART_RES).filter(x=>x.id!==id)})); render(); },
+  artPaletteRoll(){ if(!state.art)state.art={}; state.art.pBase=randHex(); render(); },
+  artPaletteScheme(el){ if(!state.art)state.art={}; state.art.pScheme=el.dataset.v; render(); },
+  artLimited(){ if(!state.art)state.art={}; state.art.limited=[randHex(),randHex(),randHex()]; render(); },
+  artTimerLen(el){ if(!state.art)state.art={}; const t=state.art.timer=state.art.timer||{round:0}; t.len=parseInt(el.dataset.v)||60; t.left=t.len; render(); },
+  artTimerStart(){ artTimerStart(); },
+  artTimerStop(){ artTimerStop(); },
+  artTimerSkip(){ artTimerSkip(); },
+  artGRatio(el){ if(!state.art)state.art={}; state.art.gRatio=el.dataset.v; render(); },
+  artGOrient(){ if(!state.art)state.art={}; state.art.gOrient=((state.art.gOrient||0)+1)%4; render(); },
+  artGridDownload(){ const s=document.getElementById("artGridSvg"); if(s){ const blob=new Blob([s.outerHTML],{type:"image/svg+xml"}); const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download="guide-"+((state.art&&state.art.gType)||"thirds")+".svg"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000); toast("Guide saved 🎨"); } },
+  async mbAddImage(){ const i=$("#mbImgUrl"); const u=(i&&i.value||"").trim(); if(!u){ toast("Paste an image URL 🌸"); return; } const ox=24+Math.floor(Math.random()*60), oy=24+Math.floor(Math.random()*50);
+    await setSent(n=>({...n,artBoard:[...(n.artBoard||[]),{id:aid("b"),type:"img",url:u,x:ox,y:oy,w:180,h:180}]})); render(); },
+  async mbAddNote(){ const ox=30+Math.floor(Math.random()*60), oy=30+Math.floor(Math.random()*50);
+    await setSent(n=>({...n,artBoard:[...(n.artBoard||[]),{id:aid("b"),type:"note",text:"",x:ox,y:oy,w:170,h:120}]})); render(); },
+  async mbAddColor(){ const col=(state.art&&state.art.pBase)||randHex(); const ox=40+Math.floor(Math.random()*60), oy=40+Math.floor(Math.random()*50);
+    await setSent(n=>({...n,artBoard:[...(n.artBoard||[]),{id:aid("b"),type:"swatch",color:col,x:ox,y:oy,w:92,h:92}]})); render(); },
+  async mbDel(el){ const id=el.dataset.id; await setSent(n=>({...n,artBoard:(n.artBoard||[]).filter(c=>c.id!==id)})); render(); },
+  mbUpload(){ const f=$("#mbFile"); if(f){ f.value=""; f.click(); } },
+  async mbExport(){ try{ await exportMoodBoardPNG(); }catch(e){ toast("Export hiccuped 🌸"); } },
+  mbMax(){ if(!state.art)state.art={}; state.art.boardMax=!state.art.boardMax; render(); },
+  copyHex(el){ const t=el.dataset.t||""; if(t&&navigator.clipboard)navigator.clipboard.writeText(t).catch(()=>{}); toast("copied "+t+" 📋"); },
   // --- 🧰 toolbox (capture-before-render, like the script tab) ---
   tbSpice(el){ tbCapture(); state.tb.spice=Number(el.dataset.v)||3; render(); },
   tbClear(){ tbCapture(); state.tb.steps=null; render(); },
   async tbBreak(){ tbCapture(); const t=(state.tb.task||"").trim(); if(!t){ toast("type the task first 🌶️"); return; }
     if(DEMO||!SB){ toast("needs live mode ❄️"); return; }
     state.tb.busy="break"; render();
-    try{ const d=await aiCall("toolbox",{op:"breakdown",task:t,spice:state.tb.spice}); state.tb.steps=(d&&d.steps)||null; if(d&&d.error)toast(d.error); }
+    try{ const d=await aiCall("toolbox",{op:"breakdown",task:t,spice:state.tb.spice}); state.tb.steps=(d&&Array.isArray(d.steps))?d.steps:null; if(d&&d.error)toast(d.error); }
     catch(e){ toast("hiccup — try again 🌧️"); } state.tb.busy=""; render(); },
   async tbBreakStep(el){ tbCapture(); const i=Number(el.dataset.i); const s=(state.tb.steps||[])[i]; if(s==null)return;
     if(DEMO||!SB){ toast("needs live mode ❄️"); return; }
     state.tb.busy="break"; render();
-    try{ const d=await aiCall("toolbox",{op:"breakdown",task:s,spice:Math.min(5,(state.tb.spice||3)+1),context:"a sub-step of: "+state.tb.task});
+    try{ const d=await aiCall("toolbox",{op:"breakdown",task:tbStepText(s),spice:Math.min(5,(state.tb.spice||3)+1),context:"a sub-step of: "+state.tb.task});
       if(d&&Array.isArray(d.steps)){ const st=state.tb.steps.slice(); st.splice(i,1,...d.steps); state.tb.steps=st; } }
     catch(e){ toast("hiccup 🌧️"); } state.tb.busy=""; render(); },
   async tbStepsToPlanner(){ const steps=(state.tb&&state.tb.steps)||[]; if(!steps.length)return;
     const main=(state.tb.task||"task").slice(0,80);
-    await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text:main,bucket:"personal",spoon:"some",done:false,status:"todo",sub:steps.map((s,i)=>({id:"s"+Date.now()+i,text:s,done:false}))}]}));
+    await setSent(n=>({...n,tasks:[...(n.tasks||[]),{id:"t"+Date.now(),text:main,bucket:"personal",spoon:"some",done:false,status:"todo",sub:steps.map((s,i)=>({id:"s"+Date.now()+i,text:tbStepText(s).slice(0,140),done:false}))}]}));
     toast("in the planner, broken down 🗒️✨"); render(); },
+  async tbTone(){ tbCapture(); const t=(state.tb.tText||"").trim(); if(!t){ toast("paste the message first 🌸"); return; }
+    if(DEMO||!SB){ toast("needs live mode ❄️"); return; }
+    state.tb.busy="tone"; render();
+    try{ const d=await aiCall("toolbox",{op:"tone",text:t}); state.tb.tOut=(d&&d.read)?d:null; if(d&&d.error)toast(d.error); }
+    catch(e){ toast("hiccup 🌧️"); } state.tb.busy=""; render(); },
   async tbFormal(){ tbCapture(); const t=(state.tb.fText||"").trim(); if(!t){ toast("paste some words first 🪄"); return; }
     if(DEMO||!SB){ toast("needs live mode ❄️"); return; }
     state.tb.busy="formal"; render();
@@ -3192,7 +3717,7 @@ const H={
   async tbEstimate(){ tbCapture(); const t=(state.tb.eTask||"").trim(); if(!t){ toast("name the task ⏱️"); return; }
     if(DEMO||!SB){ toast("needs live mode ❄️"); return; }
     state.tb.busy="est"; render();
-    try{ const d=await aiCall("toolbox",{op:"estimate",task:t}); state.tb.eOut=(d&&d.estimate)?d:null; if(d&&d.error)toast(d.error); }
+    try{ const d=await aiCall("toolbox",{op:"estimate",task:t}); state.tb.eOut=(d&&(d.likely||d.estimate))?d:null; if(d&&d.error)toast(d.error); }
     catch(e){ toast("hiccup 🌧️"); } state.tb.busy=""; render(); },
   async tbCompile(){ tbCapture(); const t=(state.tb.cText||"").trim(); if(!t){ toast("pour the brain out first 🧠"); return; }
     if(DEMO||!SB){ toast("needs live mode ❄️"); return; }
@@ -3867,6 +4392,26 @@ document.addEventListener("change",e=>{
       await setSent(n=>({...n,inspoVault:[...(n.inspoVault||[]),{id:"iv"+Date.now(),kind:"img",text:txt,img:data}].slice(-40)}));
       state.inspoDraft=null; toast("reference parked 🖼️"); render();
     }; img.src=r.result; }; r.readAsDataURL(f); t.value="";
+  } else if(t.id==="emoteFile"){
+    const f=t.files&&t.files[0]; if(!f) return; t.value="";
+    const r=new FileReader(); r.onload=()=>{ if(!state.art)state.art={}; state.art.emote={data:r.result,size:f.size,name:f.name}; render(); }; r.readAsDataURL(f);
+  } else if(t.id==="notanFile"){
+    const f=t.files&&t.files[0]; if(!f) return; t.value="";
+    const r=new FileReader(); r.onload=()=>{ if(!state.art)state.art={}; state.art.notan={data:r.result}; render(); setTimeout(artNotanPaint,80); }; r.readAsDataURL(f);
+  } else if(t.id==="mbFile"){
+    const files=t.files?[...t.files]:[]; if(!files.length) return;
+    (async()=>{ let added=0;
+      for(const f of files){ try{ const {url,ar}=await mbFileToDataURL(f); const w=180, h=Math.max(100,Math.min(260,Math.round(180/ar)));
+        const ox=24+Math.floor(Math.random()*70), oy=24+Math.floor(Math.random()*60);
+        await setSent(n=>({...n,artBoard:[...(n.artBoard||[]),{id:aid("b"),type:"img",url,x:ox,y:oy,w,h}]})); added++;
+      }catch(e){} }
+      t.value=""; if(added)toast(added+" image"+(added>1?"s":"")+" on the board 🖼️"); render();
+    })();
+  } else if(t.id==="artGType"){ if(!state.art)state.art={}; state.art.gType=t.value; render();
+  } else if(t.id==="artSpokes"){ if(!state.art)state.art={}; state.art.gSpokes=parseInt(t.value)||12; render();
+  } else if(t.id==="artBase"){ if(!state.art)state.art={}; state.art.pBase=t.value; render();
+  } else if(t.dataset && t.dataset.mbnote){ const idn=t.dataset.mbnote;
+    setSent(n=>({...n,artBoard:(n.artBoard||[]).map(c=>c.id===idn?{...c,text:t.value}:c)})).catch(()=>{});
   } else if(t.id==="moneyYear"){ const g=id=>{const e=$("#"+id);return e?e.value:"";};
     state.moneyDraft={date:g("mn_date")||TODAY,amount:g("mn_amount"),desc:g("mn_desc")};
     state.moneyYear=t.value; render();
@@ -3881,6 +4426,50 @@ document.addEventListener("change",e=>{
 window._lastPtr="mouse"; document.addEventListener("pointerdown",e=>{ window._lastPtr=e.pointerType||"mouse"; },true);   // pen/touch must not trigger native HTML5 drags
 document.addEventListener("click",async e=>{ const el=e.target.closest("[data-act]"); if(!el)return; const fn=H[el.dataset.act];
   if(fn){ try{ await fn(el); }catch(err){ console.error(err); toast("hmm, try again"); } } });
+/* ===== 🎨 mood-board: freeform drag + resize of cards (Milanote-style) ===== */
+(function(){
+  let mbDrag=null, mbRz=null;
+  document.addEventListener("pointerdown",e=>{
+    const rzh=e.target.closest("[data-mbrz]");
+    if(rzh){ const card=rzh.closest(".mb-card"); if(!card)return; mbRz={id:rzh.getAttribute("data-mbrz"),card,sx:e.clientX,sy:e.clientY,w:card.offsetWidth,h:card.offsetHeight}; try{rzh.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); e.stopPropagation(); return; }
+    if(e.target.closest("textarea,button,.mb-hex"))return;
+    const card=e.target.closest(".mb-card"); if(!card)return;
+    const board=document.getElementById("moodBoard"); if(!board)return; const br=board.getBoundingClientRect(), cr=card.getBoundingClientRect();
+    mbDrag={id:card.getAttribute("data-mb"),card,br,ox:e.clientX-cr.left,oy:e.clientY-cr.top};
+    card.style.zIndex=60; try{card.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault();
+  },true);
+  document.addEventListener("pointermove",e=>{
+    if(mbRz){ const w=Math.max(56,mbRz.w+(e.clientX-mbRz.sx)), h=Math.max(44,mbRz.h+(e.clientY-mbRz.sy)); mbRz.card.style.width=w+"px"; mbRz.card.style.height=h+"px"; return; }
+    if(!mbDrag)return; let x=e.clientX-mbDrag.br.left-mbDrag.ox, y=e.clientY-mbDrag.br.top-mbDrag.oy; x=Math.max(0,Math.min(x,mbDrag.br.width-28)); y=Math.max(0,Math.min(y,mbDrag.br.height-18)); mbDrag.card.style.left=x+"px"; mbDrag.card.style.top=y+"px";
+  },true);
+  document.addEventListener("pointerup",async()=>{
+    if(mbRz){ const id=mbRz.id,w=parseInt(mbRz.card.style.width)||mbRz.card.offsetWidth,h=parseInt(mbRz.card.style.height)||mbRz.card.offsetHeight; mbRz=null; try{await mbUpdate(id,{w,h});}catch(_){} render(); return; }
+    if(!mbDrag)return; const id=mbDrag.id,x=parseInt(mbDrag.card.style.left)||0,y=parseInt(mbDrag.card.style.top)||0; mbDrag=null; try{await mbUpdate(id,{x,y});}catch(_){} render(); return;
+  },true);
+  document.addEventListener("pointercancel",()=>{ if(!mbDrag&&!mbRz)return; mbDrag=null; mbRz=null; try{render();}catch(_){} },true);
+})();
+/* ===== 📚 tools & tutorials: drag rows to reorder ===== */
+(function(){
+  let rr=null;
+  document.addEventListener("pointerdown",e=>{
+    const g=e.target.closest("[data-resgrip]"); if(!g)return;
+    const row=g.closest("[data-resid]"), list=document.getElementById("artResList"); if(!row||!list)return;
+    rr={row,list}; row.style.opacity=".55"; row.style.boxShadow="0 6px 18px rgba(90,100,150,.25)"; try{g.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault();
+  },true);
+  document.addEventListener("pointermove",e=>{
+    if(!rr)return; const rows=[...rr.list.querySelectorAll("[data-resid]")];
+    const after=rows.find(r=>{ if(r===rr.row)return false; const b=r.getBoundingClientRect(); return e.clientY < b.top+b.height/2; });
+    if(after){ if(after!==rr.row.nextSibling) rr.list.insertBefore(rr.row,after); } else rr.list.appendChild(rr.row);
+  },true);
+  document.addEventListener("pointerup",async()=>{
+    if(!rr)return; const order=[...rr.list.querySelectorAll("[data-resid]")].map(r=>r.getAttribute("data-resid"));
+    rr.row.style.opacity=""; rr.row.style.boxShadow=""; rr=null;
+    try{ await setSent(n=>{ const cur=(n.artResources&&n.artResources.length)?n.artResources:DEFAULT_ART_RES; const by={}; cur.forEach(x=>by[x.id]=x);
+      const next=order.map(id=>by[id]).filter(Boolean); cur.forEach(x=>{ if(!next.includes(x))next.push(x); }); return {...n,artResources:next}; }); }catch(_){}
+    render();
+  },true);
+  document.addEventListener("pointercancel",()=>{ if(rr){ rr.row.style.opacity=""; rr.row.style.boxShadow=""; rr=null; } },true);
+})();
 // global undo — Ctrl+Z / ⌘Z rolls back the last data change, unless you're typing in a field (native undo wins there)
 document.addEventListener("keydown",e=>{
   if((e.key==="z"||e.key==="Z") && (e.ctrlKey||e.metaKey) && !e.shiftKey && !e.altKey){
@@ -4296,7 +4885,11 @@ function kikoDataSummary(){
       if(epL.length) L.push("EVENT PREP still open — "+epL.join(" | ")); }catch(_){}
     try{ const bpL=Object.entries(s.bdayPrep||{}).map(([k,p])=>{ if(p&&p.skipped)return null; const open=((p&&p.items)||[]).filter(i=>!i.done); const b=(s.birthdays||[]).find(x=>k.startsWith(x.id+"-")); return (b&&open.length)?`${b.name}: ${open.map(i=>i.text).join(", ")}`:null; }).filter(Boolean);
       if(bpL.length) L.push("BIRTHDAY PREP still open — "+bpL.join(" | ")); }catch(_){}
-    const la2=(s.artLog||[]).slice(-1)[0]; if(la2) L.push("ART: last made "+fmtDate(la2.date)+" ("+daysBetween(la2.date,TODAY)+"d ago); vault has "+((s.inspoVault||[]).length)+" inspirations"+((s.inspoVault||[]).length?" — e.g. "+(s.inspoVault||[]).slice(-4).map(v=>v.text||v.url||"a reference image").join("; "):""));
+    try{ const wk2=artMonday(TODAY); const alog=(s.artLog||[]); const la2=alog.slice(-1)[0];
+      const wkMin=alog.filter(e=>e.date>=wk2).reduce((a2,e)=>a2+Number(e.min||0),0);
+      const ch2=artChallengeState(s); const cnt2=s.artCount||{label:"heads",n:0,goal:100};
+      L.push("ART STUDIO: "+(la2?("last made "+fmtDate(la2.date)+" ("+daysBetween(la2.date,TODAY)+"d ago)"):"nothing logged yet")+"; "+wkMin+" min this week; vault "+((s.inspoVault||[]).length)+" sparks ("+((s.inspoVault||[]).filter(v=>!v.done).length)+" untried)"+((s.inspoVault||[]).length?" — e.g. "+(s.inspoVault||[]).slice(-4).map(v=>v.text||v.url||"a reference image").join("; "):"")+"; ideas dump "+((s.artIdeas||[]).length)+"; mood board "+((s.artBoard||[]).length)+" cards; 100-challenge "+(cnt2.n||0)+"/"+(cnt2.goal||100)+" "+cnt2.label+"; today's challenge \""+ch2.dayText+"\""+(ch2.dayDone?" (done ✓)":"")+"; week's \""+ch2.weekText+"\""+(ch2.weekDone?" (done ✓)":""));
+    }catch(e){}
     L.push("PREFS: calm "+(PREF.calm?"on":"off")+", focus "+(PREF.focus?"on":"off")+", larger-text "+(PREF.text?"on":"off")+", layout "+((function(){try{return localStorage.getItem("layout-locked")==="1"}catch(e){return false}})()?"locked":"unlocked")+", weight unit "+u+", weight display "+(CONFIG.weightDisplay||"soft"));
     const nb=s.kikoNotes||{}; const nbk=Object.keys(nb); if(nbk.length) L.push("YOUR NOTEBOOK notes: "+nbk.map(k=>`${k} (${String(nb[k]).length}ch)`).join(", ")+" — read with manage_memory");
     const tpAll=s.taxPrep||{}; const tpy=Object.keys(tpAll); if(tpy.length) L.push("TAX-PREP saved: "+tpy.map(y2=>`${y2} (${(tpAll[y2].items||[]).length} answers)`).join(", "));
@@ -4622,12 +5215,17 @@ async function execAgentAction(a){
       if(!TIMER.running) timerToggle(); else paintTimer();
       return "🍅 "+mins+" min together on “"+goal+"” — I'm right here, timer's running"; }
     if(T==="addInspo"){ if(!a.text&&!a.url)return null;
-      await setSent(n=>({...n,inspoVault:[...(n.inspoVault||[]),{id:"iv"+Date.now(),kind:a.url?"link":"idea",text:String(a.text||"").slice(0,200),url:String(a.url||"").slice(0,300)}].slice(-40)}));
+      await setSent(n=>({...n,inspoVault:[...(n.inspoVault||[]),{id:"iv"+Date.now(),kind:a.url?"link":"idea",text:String(a.text||"").slice(0,200),url:String(a.url||"").slice(0,300),done:false}].slice(-60)}));
       return "💡 parked in your inspiration vault"; }
-    if(T==="pickInspo"){ const v=(state.sentinel.inspoVault||[]); if(!v.length)return "💡 the vault's empty — park a few ideas first";
+    if(T==="pickInspo"){ const all=(state.sentinel.inspoVault||[]); const v=all.filter(x=>!x.done).length?all.filter(x=>!x.done):all; if(!v.length)return "💡 the vault's empty — park a few ideas first";
       const pick=v[Math.floor(Math.random()*v.length)]; state.inspoPicked=pick.id;
       return "🦊 picked for you: “"+((pick.text||pick.url||"a saved reference").slice(0,80))+"” — it's glowing on your Art page"; }
-    if(T==="logArt"){ await setSent(n=>{ const log=(n.artLog||[]).slice(); if(!log.some(x=>x.date===TODAY)) log.push({date:TODAY,note:String(a.note||"").slice(0,120)}); return {...n,artLog:log.slice(-120)}; }); return "🎨 art day logged — look at you ✨"; }
+    if(T==="logArt"){ const mn=Math.max(0,Math.min(720,Number(a.min)||0));
+      await setSent(n=>{ const log=(n.artLog||[]).slice(); if(mn) log.push({date:TODAY,min:mn,note:String(a.note||"").slice(0,120)||undefined}); else if(!log.some(x=>x.date===TODAY)) log.push({date:TODAY,note:String(a.note||"").slice(0,120)}); return {...n,artLog:log.slice(-200)}; });
+      return "🎨 "+(mn?mn+" min of art logged":"art day logged")+" — look at you ✨"; }
+    if(T==="addArtIdea"){ if(!a.text)return null;
+      await setSent(n=>({...n,artIdeas:[...(n.artIdeas||[]),{id:aid("i"),text:String(a.text).slice(0,200),added:TODAY}]}));
+      return "💡 parked in the ideas dump: "+String(a.text).slice(0,60); }
     if(T==="logStress"){ const v=Number(a.value); if(isNaN(v))return null; await setToday(n=>({...n,stress:Math.max(0,Math.min(5,v))})); return "🫨 stress "+Math.max(0,Math.min(5,v))+"/5 logged"; }
     if(T==="tagDay"){ const tg=(Array.isArray(a.tags)?a.tags:[]).map(t=>String(t).trim().slice(0,24)).filter(Boolean).slice(0,6); if(!tg.length)return null;
       await setToday(n=>({...n,tags:[...new Set([...(n.tags||[]),...tg])]})); return "🏷️ tagged today: "+tg.join(", "); }
