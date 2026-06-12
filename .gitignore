@@ -2,6 +2,7 @@
 .supabase-token
 .mifu-secrets.json
 *.ps1
+*.bat
 supabase/
 HOW TO PUBLISH.md
 REMINDERS-EMAIL-SETUP.md
