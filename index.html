@@ -401,7 +401,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-10.8";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-12.1";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -2085,6 +2085,7 @@ function viewSettings(){
   <section class="panel">
     <div class="label" style="margin-bottom:8px">📜 Changelog — how your OS grew</div>
     <details class="acc"><summary>The whole journey (newest first)</summary><div class="acc-body" style="font-size:12.5px;line-height:1.7">
+      <p><b>v3.1.1 · June 2026 — learning, polished</b> 🧠 Kiko's reflection no longer re-remembers what he already knows (✨ duplicates pruned for good, his auto-memory capped — yours is never touched) · his background learning can't slow the chat or overwrite itself anymore · venting isn't logging ("ugh, barely slept" gets warmth and an offer, not a silent 4-hour sleep entry) · per-med ticks now complete the Home meds habit when they're all done — and Kiko can see exactly which meds you've taken · "save that as my usual" now works by chat · the stream-week planner won't duplicate slots if you run it twice · and one journal nudge a day, never two.</p>
       <p><b>v3.1 · June 2026 — Deeper everywhere</b> 📋 a <b>doctor-ready health report</b> (Health → 📋 Doctor report, or ask Kiko) — a tidy 30-day summary of weight/body-comp, Mounjaro, PCOS &amp; cycle, wellbeing trends, meds adherence &amp; nutrition you can copy or print for an appointment · 💊 tick off <b>each medication</b> on the Food tab, with <b>refill dates</b> + gentle low-supply nudges · 🥄 the Planner now reads today's energy and <b>suggests how to pace your list</b> · ⭐ save <b>favorite meals</b> and re-log "the usual" in a tap · 🔴 Stream tab gains a <b>one-tap stream planner</b> (drafts this week's game beats into your schedule), <b>sponsor deadline tracking</b> with reminders, and a quick <b>post-stream debrief</b> Kiko remembers · plus Kiko can drive all of it by chat.</p>
       <p><b>v3.0 · June 2026 — Kiko learns &amp; anticipates</b> 🦊 Built on deep research into the best AI assistants. Kiko now <b>learns your preferences on its own</b> — it quietly reflects on your chats and remembers how you like things (no more repeating yourself), and you can see &amp; wipe "what Kiko's learned about you" in settings · 🗒️ it keeps an <b>episodic log</b> of what it did for you, so "what did you change?" and undo just work · 🤝 <b>act-then-tell</b>: it does the safe things itself and tells you after, but always asks before deleting anything · 🌅 a new <b>proactivity dial</b> (Quiet / Gentle / Active) and a noticing engine that surfaces <i>one</i> well-timed, data-grounded observation — a correlation ("nausea's higher on low-water days"), a slipping streak, a dose day, a game update worth streaming · ✅ and it's honest now — if an action didn't take, it says so instead of a fake ✓.</p>
       <p><b>v2.9 · June 2026 — Kiko's bigger brain</b> 🧠 Kiko now shows you what he's doing while he works ("🔎 searched the web ✓ · 🗂 reading through your logs…") instead of a frozen "thinking" · 🗂 he can read your <b>entire history</b> on demand — any date range, any metric ("how was my sleep in March?", "compare nausea after each dose change") — not just the recent summary · 📓 he keeps his own organised notebook now (people, preferences, ideas) on top of quick facts · 📖 he can open and read actual web pages, not just search snippets · 💪 "use your smart brain" now genuinely switches him to Anthropic's Opus-class model with deeper reasoning · 🌙 a new optional <b>nightly spotter</b> can send one gentle push if a pattern in your last 3 weeks deserves a soft heads-up (high bar, never alarmist — see the setup doc) · under the hood: guaranteed-valid replies (no more "whiskers twitched" parse fumbles), prompt caching (~90% cheaper repeat context, snappier), and adaptive thinking.</p>
@@ -2842,7 +2843,10 @@ const H={
   async medToggle(el){ const part=el.dataset.v;   // 'am' | 'pm' — both done ⇒ home "meds" habit ticks too
     await setToday(n=>{ const meds={...(n.meds||{})}; meds[part]=!meds[part]; const habits={...(n.habits||{})}; habits.h_meds=!!(meds.am&&meds.pm); return {...n,meds,habits}; }); render(); },
   async medTake(el){ const id=el.dataset.v;   // per-medication daily check-off
-    await setToday(n=>({...n,medsTaken:{...(n.medsTaken||{}),[id]:!(n.medsTaken||{})[id]}})); render(); },
+    const meds=(state.sentinel.medsList||[]);
+    await setToday(n=>{ const mt={...(n.medsTaken||{}),[id]:!(n.medsTaken||{})[id]}; const ex={};
+      if(meds.length&&meds.every(m=>mt[m.id])){ ex.habits={...(n.habits||{}),h_meds:true}; ex.meds={am:true,pm:true}; }   // all ticked → Home habit + AM/PM follow
+      return {...n,medsTaken:mt,...ex}; }); render(); },
 
   async saveHelps(){ const t=$("#helpsNote").value; await setSent(n=>({...n,helps:t})); toast("saved 💗"); },
 
@@ -3240,9 +3244,9 @@ const H={
         const acts=(d&&Array.isArray(d.actions))?d.actions:[];
         const done=[], failed=[];
         for(const a of acts){ const r=await execAgentAction(a); if(r) done.push(r); else if(a&&a.type) failed.push(a.type); }
-        if(done.length){ didActions=true; ans+="\n\n"+done.map(x=>"✓ "+x).join("\n"); await logKikoActions(done); }
+        if(done.length){ didActions=true; ans+="\n\n"+done.map(x=>"✓ "+x).join("\n"); logKikoActions(done); }   // queued in the background — never on the hot path
         if(failed.length){ ans+="\n\n(heads up — I couldn't apply "+failed.length+" thing"+(failed.length>1?"s":"")+": "+failed.join(", ")+". Mind rephrasing, or check the name matches? 🌧️)"; }
-        KIKO.sinceReflect=(KIKO.sinceReflect||0)+1; if(KIKO.sinceReflect>=10){ KIKO.sinceReflect=0; kikoReflect(); }   // learn her preferences periodically
+        KIKO.sinceReflect=(KIKO.sinceReflect||0)+1; if(KIKO.sinceReflect>=10){ KIKO.sinceReflect=0; setTimeout(()=>{ try{ kikoReflect(); }catch(_){} },1200); }   // learn AFTER her reply lands — never on the hot path
       }
     }catch(e){ ans="aw, I couldn't reach the server — "+(e.message||"try again")+" 🌧️"; }
     KIKO.status=null;
@@ -3262,7 +3266,6 @@ const H={
     rec.onerror=()=>{ KIKO.mic=false; paintKiko(); };
     KIKO.mic=true; paintKiko(); try{ rec.start(); }catch(e){ KIKO.mic=false; paintKiko(); } },
   kikoVoiceToggle(){ const v=localStorage.getItem("kiko-voice")==="1"?"0":"1"; localStorage.setItem("kiko-voice",v); if(v!=="1"){ try{speechSynthesis.cancel();}catch(e){} } toast(v==="1"?"Kiko will speak 🔊":"quiet mode 🤫"); render(); },
-  kikoProactiveToggle(){ const v=localStorage.getItem("kiko-proactive")==="0"?"1":"0"; localStorage.setItem("kiko-proactive",v); toast(v==="0"?"check-ins & greetings off 🤫":"check-ins & greetings on 🌅"); render(); },
   kikoProLevel(el){ const v=el.dataset.v||"gentle"; localStorage.setItem("kiko-prolevel",v); localStorage.setItem("kiko-proactive",v==="quiet"?"0":"1");
     toast(v==="quiet"?"Kiko will wait to be asked 🤫":v==="active"?"Kiko will keep a closer eye out ✨":"Kiko will check in gently 🌸"); render(); },
   kikoClearChat(){ try{ kikoReflect(); }catch(_){}   // learn from the chat before clearing it
@@ -3308,8 +3311,9 @@ const H={
     const ge=(state.sentinel.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; });
     if(!ge.length){ toast("no game beats this week 🌸"); return; }
     await setWeekSlots(wk,arr=>{ const out=arr.slice();
-      ge.forEach(e=>{ const wd=DOW_ORDER[(new Date(e.date+"T00:00").getDay()+6)%7]; out.push({id:"sc"+Date.now()+Math.floor(Math.random()*1000),day:wd,show:e.title,time:STREAM_TIME_DEFAULT}); }); return out; });
-    toast("drafted "+ge.length+" stream"+(ge.length>1?"s":"")+" 📅"); state.tab="home"; state.schedEdit=true; render(); },
+      ge.forEach(e=>{ const wd=DOW_ORDER[(new Date(e.date+"T00:00").getDay()+6)%7]; if(out.some(r=>r.day===wd&&(r.show||"")===e.title))return;   // already drafted — never duplicate
+        out.push({id:"sc"+Date.now()+Math.floor(Math.random()*1000),day:wd,show:e.title,time:STREAM_TIME_DEFAULT}); }); return out; });
+    toast("drafted streams 📅"); state.tab="home"; state.schedEdit=true; render(); },
   async saveDebrief(){ const g=id=>{const e=$("#"+id);return e?e.value.trim():"";}; const game=g("db_game"), note=g("db_note"), vibe=Number(g("db_vibe"))||null;
     if(!game&&!note){ toast("add a word or two first 🌸"); return; }
     await setSent(n=>({...n,streamLog:[...(n.streamLog||[]),{id:"sl"+Date.now(),date:TODAY,game,vibe,note}].slice(-40)})); toast("debrief saved 🎬"); render(); },
@@ -3676,25 +3680,37 @@ function kikoSetupDrag(){
 }
 function kikoInputEl(){ return document.getElementById("kikoTabInput")||document.getElementById("kikoInput"); }
 // compact, real numbers for the agent's DATA SNAPSHOT — lets Kiko answer "how's my…" accurately
+/* background sentinel writes (episodic log, reflection) flow through ONE queue — two read-merge-write
+   saves racing each other were clobbering data (the v3.0 learning bug). Serial = safe. */
+let KIKO_WQ=Promise.resolve();
+function queueSent(fn){ KIKO_WQ=KIKO_WQ.then(()=>setSent(fn)).catch(()=>{}); return KIKO_WQ; }
 /* episodic memory — a rolling log of what Kiko actually did, so it can answer "what did you change?" and learn */
 async function logKikoActions(summaries){
   try{ if(!summaries||!summaries.length)return;
     const stamp=new Date().toLocaleDateString("en-CA");
     const entries=summaries.map(t=>({date:stamp,text:String(t).replace(/^[^\w]+/,"").slice(0,140)}));
-    await setSent(n=>({...n,kikoActions:[...(n.kikoActions||[]),...entries].slice(-60)}));
+    await queueSent(n=>({...n,kikoActions:[...(n.kikoActions||[]),...entries].slice(-60)}));
   }catch(e){}
 }
-/* reflection — Kiko quietly learns Mifu's durable preferences from the conversation (no retraining) */
+/* reflection — Kiko quietly learns Mifu's durable preferences from the conversation (no retraining).
+   He's shown what he ALREADY remembers so he never re-learns it; auto-facts are fuzzy-deduped and capped. */
 async function kikoReflect(){
   try{ if(DEMO||!SB) return; const hist=KIKO.log.slice(-24).map(m=>({role:m.role,text:String(m.text||"").slice(0,400)}));
     if(hist.filter(h=>h.role==="me").length<2) return;   // need a little to learn from
-    const d=await aiCall("reflect",{history:hist, userModel:(state.sentinel.kikoUserModel||"")});
+    const known=(state.sentinel.kikoMemory||[]).slice(-40).map(m=>String(m.text||""));
+    const d=await aiCall("reflect",{history:hist, userModel:(state.sentinel.kikoUserModel||""), known});
     if(!d||d.error) return;
-    await setSent(n=>{ const upd={...n};
-      if(d.changed && typeof d.userModel==="string" && d.userModel.trim()) upd.kikoUserModel=d.userModel.trim();
-      if(Array.isArray(d.remember) && d.remember.length){ const have=(n.kikoMemory||[]).map(m=>String(m.text||"").toLowerCase());
-        const add=d.remember.filter(t=>t&&!have.includes(String(t).toLowerCase())).map(t=>({id:"km"+Date.now()+Math.floor(Math.random()*1000),text:t,date:TODAY,auto:true}));
-        if(add.length) upd.kikoMemory=[...(n.kikoMemory||[]),...add]; }
+    const norm=t=>String(t||"").toLowerCase().replace(/[^\w\s]/g,"").replace(/\s+/g," ").trim();
+    await queueSent(n=>{ const upd={...n};
+      if(d.changed && typeof d.userModel==="string" && d.userModel.trim()) upd.kikoUserModel=d.userModel.trim().slice(0,2400);
+      if(Array.isArray(d.remember) && d.remember.length){
+        const have=(n.kikoMemory||[]).map(m=>norm(m.text));
+        const add=d.remember.filter(t=>{ const q=norm(t); return q && !have.some(h=>h.includes(q)||q.includes(h)); })   // near-duplicates don't get re-learned
+          .map(t=>({id:"km"+Date.now()+Math.floor(Math.random()*1000),text:String(t).slice(0,200),date:TODAY,auto:true}));
+        if(add.length){ let mem=[...(n.kikoMemory||[]),...add];
+          const autos=mem.filter(m=>m.auto);
+          if(autos.length>25){ const drop=new Set(autos.slice(0,autos.length-25).map(m=>m.id)); mem=mem.filter(m=>!drop.has(m.id)); }   // cap HIS facts; hers are never pruned
+          upd.kikoMemory=mem; } }
       return upd; });
   }catch(e){}
 }
@@ -3795,6 +3811,7 @@ function kikoDataSummary(){
     const games=(s.gameTopics&&s.gameTopics.length)?s.gameTopics:DEFAULT_GAMES; L.push("GAMES tracked: "+games.join(", "));
     const meds=(s.medsList||[]); if(meds.length) L.push("MEDS: "+meds.map(x=>`${x.name}${x.dose?" "+x.dose:""}${x.time?" ("+x.time+")":""}`).join(", "));
     const med2=t.meds||{}; if(med2.am!=null||med2.pm!=null) L.push(`MEDS today: AM ${med2.am?"✓":"✗"}, PM ${med2.pm?"✓":"✗"}`);
+    const mt=t.medsTaken||{}; if(meds.length&&Object.keys(mt).length) L.push("MEDS BY NAME today: "+meds.map(x=>`${x.name} ${mt[x.id]?"✓":"✗"}`).join(", "));
     const rem=activeReminders(); if(rem.length) L.push(`REMINDERS active (${rem.length}): `+rem.slice(0,8).map(r=>`${r.text}${r.time?" @"+fmt12(r.time):""}${r.repeat&&r.repeat!=="none"?" ("+r.repeat+")":""}`).join("; "));
     const je=(s.journalEntries||[]); L.push(`JOURNAL: ${je.length} entries${je.some(e=>e.date===TODAY)?", journaled today ✓":", not yet today"}`);
     const je2=je.slice(-1)[0]; if(je2&&je2.text) L.push("LATEST JOURNAL ("+fmtDate(je2.date)+"): "+String(je2.text).replace(/\s+/g," ").slice(0,160)+(String(je2.text).length>160?"…":""));
@@ -3870,7 +3887,9 @@ async function execAgentAction(a){
     if(T==="setProactivity"){ const v=["quiet","gentle","active"].includes(a.level)?a.level:"gentle"; localStorage.setItem("kiko-prolevel",v); localStorage.setItem("kiko-proactive",v==="quiet"?"0":"1"); return "🌅 proactivity set to "+v; }
     if(T==="healthReport"){ state.tab="health"; setTimeout(()=>{ try{showHealthReport();}catch(e){} },60); return "📋 opened your doctor-ready health report"; }
     if(T==="markMed"){ const meds=(state.sentinel.medsList||[]); const i=findByText(meds,a.name,"name"); if(i<0)return null; const on=a.on!=null?!!a.on:true;
-      await setToday(n=>({...n,medsTaken:{...(n.medsTaken||{}),[meds[i].id]:on}})); return (on?"💊 took ":"↩️ unmarked ")+meds[i].name; }
+      await setToday(n=>{ const mt={...(n.medsTaken||{}),[meds[i].id]:on}; const ex={};
+        if(on&&meds.length&&meds.every(m=>mt[m.id])){ ex.habits={...(n.habits||{}),h_meds:true}; ex.meds={am:true,pm:true}; }   // all ticked → the Home habit + AM/PM follow
+        return {...n,medsTaken:mt,...ex}; }); return (on?"💊 took ":"↩️ unmarked ")+meds[i].name; }
     if(T==="setMedRefill"){ const meds=(state.sentinel.medsList||[]); const i=findByText(meds,a.name,"name"); if(i<0||!/^\d{4}-\d{2}-\d{2}$/.test(a.date||""))return null;
       await setSent(n=>({...n,medsList:(n.medsList||[]).map(m=>m.id===meds[i].id?{...m,refill:a.date}:m)})); return "💊 "+meds[i].name+" refill by "+fmtDate(a.date); }
     if(T==="logDebrief"){ if(!a.game&&!a.note)return null;
@@ -3880,8 +3899,14 @@ async function execAgentAction(a){
     if(T==="draftStreamWeek"){ const wk=weekStartISO(0);
       const ge=(state.sentinel.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; });
       if(!ge.length)return "no game beats on the calendar this week to draft from";
-      await setWeekSlots(wk,arr=>{ const out=arr.slice(); ge.forEach(e=>{ const wd=DOW_ORDER[(new Date(e.date+"T00:00").getDay()+6)%7]; out.push({id:"sc"+Date.now()+Math.floor(Math.random()*1000),day:wd,show:e.title,time:STREAM_TIME_DEFAULT}); }); return out; });
-      return "📅 drafted "+ge.length+" stream slot"+(ge.length>1?"s":"")+" from this week's game beats"; }
+      let added=0;
+      await setWeekSlots(wk,arr=>{ const out=arr.slice(); ge.forEach(e=>{ const wd=DOW_ORDER[(new Date(e.date+"T00:00").getDay()+6)%7]; if(out.some(r=>r.day===wd&&(r.show||"")===e.title))return; added++;
+        out.push({id:"sc"+Date.now()+Math.floor(Math.random()*1000),day:wd,show:e.title,time:STREAM_TIME_DEFAULT}); }); return out; });
+      return added?("📅 drafted "+added+" stream slot"+(added>1?"s":"")+" from this week's game beats"):"📅 this week's game beats are already on your schedule"; }
+    if(T==="saveFavorite"){ const foods=(state.today.food||[]); const i=findByText(foods,a.name,"name"); if(i<0)return null; const x=foods[i];
+      await setSent(n=>{ const faves=(n.foodFaves||[]).slice(); if(faves.some(f=>f.name.toLowerCase()===x.name.toLowerCase()))return n;
+        faves.push({id:"fav"+Date.now(),name:x.name,serving:x.serving||"",kcal:x.kcal||0,protein:x.protein||0,carbs:x.carbs||0,fiber:x.fiber||0,fat:x.fat||0}); return {...n,foodFaves:faves.slice(-24)}; });
+      return "⭐ saved as a favorite: "+x.name; }
     if(T==="logFavorite"){ const faves=(state.sentinel.foodFaves||[]); const i=findByText(faves,a.name,"name"); if(i<0)return null; const f=faves[i];
       const item={id:"fd"+Date.now(),name:f.name,serving:f.serving||"",kcal:f.kcal||0,protein:f.protein||0,carbs:f.carbs||0,fiber:f.fiber||0,fat:f.fat||0,time:new Date().toISOString()};
       await setToday(n=>({...n,food:[...(n.food||[]),item]})); return "🍽️ logged your usual: "+f.name; }
@@ -4297,7 +4322,7 @@ function kikoProactive(){
     } else if(lvl==="active" && h>=12 && h<18 && !localStorage.getItem("kiko-mid-"+TODAY)){
       const notice=kikoNotice();   // active mode: one fresh midday observation if something's genuinely up
       if(notice){ show(notice.text); localStorage.setItem("kiko-noticed-"+notice.key+"-"+TODAY,"1"); localStorage.setItem("kiko-mid-"+TODAY,"1"); }
-    } else if(h>=19 && !localStorage.getItem("kiko-nudge-"+TODAY) && !(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY)){
+    } else if(h>=19 && !localStorage.getItem("kiko-nudge-"+TODAY) && !localStorage.getItem("kiko-noticed-journal-"+TODAY) && !(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY)){   // one journal nudge per day, not two
       show("🌙 cozy hour… want to journal today together? tap me 📓");
       localStorage.setItem("kiko-nudge-"+TODAY,"1");
     }
