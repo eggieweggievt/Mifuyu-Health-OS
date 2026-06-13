@@ -508,7 +508,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-12.7";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-12.8";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -1049,7 +1049,7 @@ function cardWeightTrend(){ const wl=(state.sentinel.weightLog||[]).slice().sort
    she tells it — no pretend integrations). Glance: deterministic Kiko Noticed + Suggested Focus — every
    line traceable to a check-in or a stored number. The two OSes never leak into each other. */
 const CI_DEFS={
-  creator:[["streamed","📺","Streamed Today"],["ytVideo","▶️","Uploaded YouTube Video"],["ytShort","🎬","Uploaded YouTube Short"],["madeArt","🎨","Made Art"],["coverSong","🎤","Worked on Cover Song"],["journaled","📓","Journaled"],["emails","✉️","Replied to Emails"],["sponsors","🤝","Worked on Sponsorships"]],
+  creator:[["streamed","📺","Streamed Today"],["ytVideo","▶️","Uploaded YouTube Video"],["ytShort","🎬","Uploaded YouTube Short"],["madeArt","🎨","Made Art"],["coverSong","🎤","Worked on Cover Song"],["emails","✉️","Replied to Emails"],["sponsors","🤝","Worked on Sponsorships"]],
   health:[["medsAM","💊","Took Meds AM"],["medsPM","💊","Took Meds PM"],["weighed","⚖️","Weighed In"],["journaled","📓","Journaled"],["gym","🏋️","Went to Gym"],["walk","🚶","Walked a Bit"],["water","💧","Drank Water"],["sleep","😴","Slept Well"]]
 };
 /* some check-ins can be derived from data she already logs elsewhere — those light up on their own */
