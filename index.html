@@ -508,7 +508,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-13.1";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-13.2";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -2276,7 +2276,9 @@ function viewWeight(){
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
         ${wcon?`<button class="btn btn-grad" data-act="withingsSync">↻ Sync from scale</button>${lastSync?`<span class="soft" style="font-size:11px">last sync ${esc(new Date(lastSync*1000).toLocaleDateString())}</span>`:''}`
           :`<button class="btn btn-grad" data-act="withingsConnect">🔗 Connect Withings</button><span class="soft" style="font-size:11px">links your scale so weigh-ins sync automatically</span>`}
+        <button class="btn" data-act="withingsDebug" title="check exactly where syncing is breaking">🔍 Diagnose</button>
       </div>
+      <div id="withingsDiag"></div>
       ${tiles?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">${tiles}</div>`:'<p class="soft" style="font-size:12.5px">No body-comp data yet — connect your scale or log some below. ❄️</p>'}
       <details class="acc" style="margin-top:12px"><summary>✍️ Log metrics by hand</summary><div class="acc-body">
         <p class="soft" style="font-size:11.5px;margin:0 0 8px">Fill in any you like and save — they update today's entry, no need to fill them all.</p>
@@ -4029,6 +4031,14 @@ const H={
     try{ const d=await aiCall("withingsSync",{}); if(d&&d.error){ toast(d.error); return; }
       await loadData(); render(); toast(`synced ${d&&d.days||0} day(s) ❄️`); }
     catch(e){ toast("sync hiccup — try again 🌧️"); } },
+  async withingsDebug(){
+    if(DEMO||!SB){ toast("connect to the server first ❄️"); return; }
+    const host=$("#withingsDiag"); if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px">🔍 running diagnostics… ❄️</div>`;
+    try{ const d=await aiCall("withingsDebug",{});
+      const steps=(d&&d.steps)||["(no response)"];
+      const env=d&&d.env?`<div class="soft" style="font-size:10.5px;margin-top:6px">callback URL the server expects:<br><code style="font-size:10px;word-break:break-all">${esc(d.env.redirectUri||"")}</code><br>this must EXACTLY match the callback URL in your Withings developer app.</div>`:"";
+      if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px;line-height:1.6"><b>🔍 Withings diagnostic</b><div style="margin-top:6px">${steps.map(s=>`<div>${esc(s)}</div>`).join("")}</div>${env}</div>`;
+    }catch(e){ if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px;color:var(--sakura-deep)">couldn't reach the diagnostic — is the <b>ai</b> function deployed with the latest update? (run update-ai.ps1)</div>`; } },
   // --- weight chart options (keep a half-typed weigh-in across re-renders) ---
   wtMetric(el){ const wi=$("#wInput"); if(wi) state.wDraft=wi.value;
     const k=el.dataset.v; let arr=(state.wtMetrics||["w"]).slice(); if(arr.includes(k)){ if(arr.length>1)arr=arr.filter(x=>x!==k); } else arr.push(k); state.wtMetrics=arr; render(); },
