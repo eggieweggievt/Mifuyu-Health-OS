@@ -508,7 +508,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-13.2";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-13.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -3206,7 +3206,7 @@ async function setTaskStatusById(id,st){
 }
 
 /* ===================== OPTIMIZE (calls the "ai" Edge Function brain) ===================== */
-const OPT_FORMATS=[["long","Long form"],["short","Short form"],["twitter","Community / X post"]];
+const OPT_FORMATS=[["long","Long form"],["short","Short form"]];   /* X/Twitter posts moved to the ✍️ Script tab */
 const OPT_PLATFORMS=[["youtube","YouTube"],["tiktok","TikTok"],["instagram","Instagram"],["twitter","X"],["twitch","Twitch"]];
 const oval=id=>{ const e=document.getElementById(id); return e?e.value.trim():""; };
 async function aiCall(mode,input,vidiq){
@@ -3319,29 +3319,34 @@ let RECOG=null, scrRecOn=false;
 function viewScript(){
   const sent=state.sentinel||{}; const saved=sent.scripts||[];
   if(!state.script) state.script={kind:"short",title:"",references:"",raw:"",out:null};
-  const s=state.script, kind=s.kind||"short";
-  const seg=`<div class="seg">${[["short","📲 Short"],["long","🎬 Long-form"]].map(([k,l])=>`<button data-act="scriptKind" data-v="${k}" class="${kind===k?'on':''}">${l}</button>`).join("")}</div>`;
+  const s=state.script, kind=s.kind||"short"; const tw=kind==="twitter";
+  const kindWord=tw?"X post":kind==="long"?"long-form":"short";
+  const bodyLabel=tw?"post":"script";
+  const seg=`<div class="seg">${[["short","📲 Short"],["long","🎬 Long-form"],["twitter","🐦 X / Twitter"]].map(([k,l])=>`<button data-act="scriptKind" data-v="${k}" class="${kind===k?'on':''}">${l}</button>`).join("")}</div>`;
   const out=s.out;
+  const chars=tw&&out&&out.script?String(out.script).length:0;
   const outHtml = out ? `<div class="soft-card" style="margin-top:10px">
-      ${(out.hooks&&out.hooks.length)?`<div class="label">hook options</div>${out.hooks.map(h=>`<div style="display:flex;gap:8px;align-items:flex-start;margin:4px 0"><span class="grow" style="font-size:12.5px">${esc(h)}</span><button class="btn" data-act="scrCopyHook" data-t="${esc(h)}" style="padding:2px 8px">copy</button></div>`).join("")}`:""}
-      <div class="label" style="margin-top:10px">script${out.title?` · <span class="soft">${esc(out.title)}</span>`:""} <button class="btn" data-act="scrCopyScript" style="padding:2px 8px;margin-left:6px">copy script</button></div>
+      ${(out.hooks&&out.hooks.length)?`<div class="label">${tw?'opening-line options':'hook options'}</div>${out.hooks.map(h=>`<div style="display:flex;gap:8px;align-items:flex-start;margin:4px 0"><span class="grow" style="font-size:12.5px">${esc(h)}</span><button class="btn" data-act="scrCopyHook" data-t="${esc(h)}" style="padding:2px 8px">copy</button></div>`).join("")}`:""}
+      <div class="label" style="margin-top:10px">${bodyLabel}${out.title?` · <span class="soft">${esc(out.title)}</span>`:""}${tw?` <span class="soft" style="font-weight:500">· ${chars} char${chars===1?'':'s'}${chars>280?' (thread)':''}</span>`:""} <button class="btn" data-act="scrCopyScript" style="padding:2px 8px;margin-left:6px">copy ${bodyLabel}</button></div>
       <div id="scrScript" style="white-space:pre-wrap;font-size:13px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:4px;background:#fff">${esc(out.script||"")}</div>
-      ${out.cta?`<div class="label" style="margin-top:8px">CTA</div><div class="soft" style="font-size:12.5px">${esc(out.cta)}</div>`:""}
+      ${(out.hashtags&&out.hashtags.length)?`<div class="label" style="margin-top:10px">hashtags <span class="soft" style="font-weight:500">· 1 small · 2 medium · 2 large</span> <button class="btn" data-act="scrCopyTags" data-t="${esc(out.hashtags.join(' '))}" style="padding:2px 8px;margin-left:6px">copy</button></div><div style="font-size:12.5px;margin-top:4px">${out.hashtags.map(esc).join(" ")}</div>`:""}
+      ${out.cta?`<div class="label" style="margin-top:8px">${tw?'closing line':'CTA'}</div><div class="soft" style="font-size:12.5px">${esc(out.cta)}</div>`:""}
     </div>` : "";
-  const savedHtml = saved.length?`<section class="panel"><div class="card-head"><span class="label">📁 saved drafts</span></div>${saved.slice().reverse().map(d=>`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="pill ${d.kind==='long'?'pill-lav':'pill-sak'}">${d.kind==='long'?'LF':'SF'}</span><span class="grow" style="font-size:12.5px">${esc(d.title||"(untitled)")}</span><button class="btn" data-act="loadScript" data-id="${d.id}">open</button><button class="x" data-act="delScript" data-id="${d.id}" title="remove">✕</button></div>`).join("")}</section>`:"";
+  const kpill=k=>k==='long'?['pill-lav','LF']:k==='twitter'?['pill-ice','X']:['pill-sak','SF'];
+  const savedHtml = saved.length?`<section class="panel"><div class="card-head"><span class="label">📁 saved drafts</span></div>${saved.slice().reverse().map(d=>{const kp=kpill(d.kind);return `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="pill ${kp[0]}">${kp[1]}</span><span class="grow" style="font-size:12.5px">${esc(d.title||"(untitled)")}</span><button class="btn" data-act="loadScript" data-id="${d.id}">open</button><button class="x" data-act="delScript" data-id="${d.id}" title="remove">✕</button></div>`;}).join("")}</section>`:"";
   return `<div style="max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
     <section class="panel">
       <div class="card-head"><h2 style="font-size:18px">✍️ Script writer</h2>${seg}</div>
-      <p class="soft" style="font-size:12.5px;margin:0 0 12px">Drop in your research, then just talk it out — I'll shape your own words into your ${kind==='long'?'long-form':'short'} format, in your voice. ❄️🦊${DEMO?` <b>(Deploy the ai function &amp; turn demo off to format.)</b>`:""}</p>
+      <p class="soft" style="font-size:12.5px;margin:0 0 12px">${tw?"Talk out your idea (or paste notes) — I'll shape it into an X/Twitter post in your voice, with opening-line options and hashtags (1 small · 2 medium · 2 large). ❄️🦊":`Drop in your research, then just talk it out — I'll shape your own words into your ${kindWord} format, in your voice. ❄️🦊`}${DEMO?` <b>(Deploy the ai function &amp; turn demo off to format.)</b>`:""}</p>
       <div class="label">Working title <span class="soft">· optional</span></div>
-      <input class="inp" id="scrTitle" value="${esc(s.title||"")}" placeholder="e.g. I tried cozy gaming on a $0 setup" />
+      <input class="inp" id="scrTitle" value="${esc(s.title||"")}" placeholder="${tw?'e.g. one year of being a little snowfox 🦊':'e.g. I tried cozy gaming on a $0 setup'}" />
       <div class="label" style="margin-top:10px">Research / references <span class="soft">· paste facts, links, notes</span></div>
       <textarea class="inp" id="scrRefs" rows="4" placeholder="paste your sources, bullet points, key facts…">${esc(s.references||"")}</textarea>
       <div class="card-head" style="margin-top:12px"><div class="label">🎙️ Your words <span class="soft">· talk, it types for you</span></div>
         <div style="display:flex;gap:6px"><button class="btn" id="recBtn" data-act="recToggle">🎙️ Record</button><button class="btn" data-act="scrClearRaw">clear</button></div></div>
-      <textarea class="inp" id="scrRaw" rows="7" placeholder="hit Record and just talk — or type. Don't worry about being tidy, I'll clean it up. ❄️">${esc(s.raw||"")}</textarea>
+      <textarea class="inp" id="scrRaw" rows="7" placeholder="${tw?'what do you want to post about? talk or type — I’ll tidy it. ❄️':'hit Record and just talk — or type. Don’t worry about being tidy, I’ll clean it up. ❄️'}">${esc(s.raw||"")}</textarea>
       <div id="recHint" class="soft" style="font-size:11.5px;margin-top:4px"></div>
-      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-grad" data-act="formatScript">✨ format into a ${kind==='long'?'long-form':'short'} script</button><button class="btn" data-act="saveScript">💾 save draft</button><button class="btn" data-act="teachVoice" data-v="script" title="paste your own writing so scripts sound like you">🎓 teach my voice${voiceExamples("script").length?` · ${voiceExamples("script").length}`:""}</button></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-grad" data-act="formatScript">✨ ${tw?'write the X post':'format into a '+kindWord+' script'}</button><button class="btn" data-act="saveScript">💾 save draft</button><button class="btn" data-act="teachVoice" data-v="${tw?'twitter':'script'}" title="paste your own writing so it sounds like you">🎓 teach my voice${voiceExamples(tw?'twitter':'script').length?` · ${voiceExamples(tw?'twitter':'script').length}`:""}</button></div>
       <div id="scrOut">${outHtml}</div>
     </section>
     ${savedHtml}
@@ -3365,8 +3370,9 @@ async function scrFormat(){
   scrCapture(); if(scrRecOn)scrRecToggle(); const out=document.getElementById("scrOut"); if(!out)return;
   if(DEMO||!SB){ out.innerHTML=`<div class="soft-card" style="font-size:12.5px;margin-top:10px">✨ Runs once the ai function is deployed and demo is off ❄️</div>`; return; }
   if(!(state.script.raw||"").trim() && !(state.script.references||"").trim()){ toast("Add some words or research first 🌸"); return; }
-  out.innerHTML=`<div class="label" style="margin-top:10px">shaping your script… ❄️🦊</div>`;
-  try{ const r=await aiCall("script",{kind:state.script.kind,title:state.script.title,references:state.script.references,raw:state.script.raw,voice:voiceExamples("script")}); if(r&&r.error){ out.innerHTML=`<div class="soft" style="color:var(--sakura-deep);font-size:12.5px;margin-top:10px">${esc(r.error)}</div>`; return; } state.script.out=r; render(); }
+  const tw=state.script.kind==="twitter";
+  out.innerHTML=`<div class="label" style="margin-top:10px">${tw?'writing your post… ❄️🦊':'shaping your script… ❄️🦊'}</div>`;
+  try{ const r=await aiCall("script",{kind:state.script.kind,title:state.script.title,references:state.script.references,raw:state.script.raw,voice:voiceExamples(tw?"twitter":"script")}); if(r&&r.error){ out.innerHTML=`<div class="soft" style="color:var(--sakura-deep);font-size:12.5px;margin-top:10px">${esc(r.error)}</div>`; return; } state.script.out=r; render(); }
   catch(e){ out.innerHTML=`<div class="soft" style="color:var(--sakura-deep);font-size:12.5px;margin-top:10px">${esc(e.message||e)}</div>`; }
 }
 async function scrSaveDraft(){
@@ -4246,7 +4252,8 @@ const H={
     toast("Kiko learned your voice 🎓💗"); teachModal(kind); },
   async delVoice(el){ const id=el.dataset.v; await setSent(n=>({...n,eqVoice:(n.eqVoice||[]).filter(e=>e.id!==id)})); teachModal("script"); },
   scrCopyHook(el){ const t=el.dataset.t||""; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("copied 💗"); },
-  scrCopyScript(){ const el2=document.getElementById("scrScript"); if(el2&&navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(el2.innerText); toast("copied script 💗"); },
+  scrCopyScript(){ const el2=document.getElementById("scrScript"); if(el2&&navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(el2.innerText); toast("copied 💗"); },
+  scrCopyTags(el){ const t=el.dataset.t||""; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("hashtags copied 💗"); },
   // --- birthdays + reminders ---
   scrollAgenda(){ const p=$("#agendaPanel"); if(p) p.scrollIntoView({behavior:"smooth",block:"center"}); },
   async addBirthday(){ const name=($("#bdayName").value||"").trim(); const dv=$("#bdayDate").value;
@@ -5318,9 +5325,9 @@ async function execAgentAction(a){
       return "🎂 "+(a.name||"friend")+"'s birthday — "+fmtDate(new Date().getFullYear()+"-"+String(M).padStart(2,"0")+"-"+String(D).padStart(2,"0")); }
     if(T==="addGameTopic"){ if(!a.name)return null; await gameTopicAdd(a.name); return "🎮 now tracking "+a.name; }
     if(T==="removeGameTopic"){ if(!a.name)return null; await gameTopicRemove(a.name); return "🎮 stopped tracking "+a.name; }
-    if(T==="startScript"){ state.script={kind:(a.kind==="long"?"long":"short"),title:a.title||"",references:a.references||"",raw:a.raw||"",out:null}; state.tab="script";
+    if(T==="startScript"){ const sk=["long","twitter"].includes(a.kind)?a.kind:"short"; state.script={kind:sk,title:a.title||"",references:a.references||"",raw:a.raw||"",out:null}; state.tab="script";
       if(a.format && (state.script.raw||state.script.references)){ setTimeout(()=>{ try{scrFormat();}catch(e){} },150); }
-      return "✍️ started a "+(a.kind==="long"?"long-form":"short")+" script"+(a.title?" — “"+a.title+"”":""); }
+      return "✍️ started a "+(sk==="long"?"long-form":sk==="twitter"?"X post":"short")+(sk==="twitter"?"":" script")+(a.title?" — “"+a.title+"”":""); }
     /* stream schedule — the UI shows per-week plans (schedWeeks); the old flat `schedule` only acts as the
        default for an un-edited current week. Write BOTH so what Kiko says matches what she sees:
        the week on screen updates now, and the "usual week" default carries it into future weeks. */
