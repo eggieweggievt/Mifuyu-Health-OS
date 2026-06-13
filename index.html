@@ -508,7 +508,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-12.8";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-13.1";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -757,8 +757,8 @@ const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null
 
 const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
 /* ===== one app, two minds — Creator OS 🎀 / Health OS ❄️ (tap the logo to swap) ===== */
-const CREATOR_TABS=["home","kiko","planner","calendar","events","script","optimize","money","art","toolbox","settings"];
-const HEALTH_TABS=["home","kiko","food","care","trends","health","journal","settings"];
+const CREATOR_TABS=["home","kiko","planner","calendar","events","script","optimize","money","art","toolbox"];
+const HEALTH_TABS=["home","kiko","food","care","trends","health","journal"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
 let OS_MODE=(function(){ try{ return localStorage.getItem("mifu-mode")==="health"?"health":"creator"; }catch(e){ return "creator"; } })();   // default: Creator OS
 function modeTabs(){ return OS_MODE==="health"?HEALTH_TABS:CREATOR_TABS; }
 function modeSwapAnim(){ const v=$("#view"); if(!v)return; v.classList.remove("mode-anim"); void v.offsetWidth; v.classList.add("mode-anim");
@@ -5014,8 +5014,16 @@ function kikoDataSummary(){
     const med2=t.meds||{}; if(med2.am!=null||med2.pm!=null) L.push(`MEDS today: AM ${med2.am?"✓":"✗"}, PM ${med2.pm?"✓":"✗"}`);
     const mt=t.medsTaken||{}; if(meds.length&&Object.keys(mt).length) L.push("MEDS BY NAME today: "+meds.map(x=>`${x.name} ${mt[x.id]?"✓":"✗"}`).join(", "));
     const rem=activeReminders(); if(rem.length) L.push(`REMINDERS active (${rem.length}): `+rem.slice(0,8).map(r=>`${r.text}${r.time?" @"+fmt12(r.time):""}${r.repeat&&r.repeat!=="none"?" ("+r.repeat+")":""}`).join("; "));
-    const je=(s.journalEntries||[]); L.push(`JOURNAL: ${je.length} entries${je.some(e=>e.date===TODAY)?", journaled today ✓":", not yet today"}`);
-    const je2=je.slice(-1)[0]; if(je2&&je2.text) L.push("LATEST JOURNAL ("+fmtDate(je2.date)+"): "+String(je2.text).replace(/\s+/g," ").slice(0,160)+(String(je2.text).length>160?"…":""));
+    // JOURNAL — combine the journaling-TAB entries (stored on each day row as notes.journal) with Kiko's guided diary (journalEntries)
+    const jrDays={}; (state.range||[]).forEach(r=>{ if(r&&r.notes&&r.notes.journal&&String(r.notes.journal).trim()) jrDays[r.date]=String(r.notes.journal); });
+    if(t.journal&&String(t.journal).trim()) jrDays[TODAY]=String(t.journal);
+    const je=(s.journalEntries||[]);
+    const jrDates=new Set([...Object.keys(jrDays), ...je.filter(e=>e.text&&e.date).map(e=>e.date)]);
+    const journaledToday=!!jrDays[TODAY]||je.some(e=>e.date===TODAY);
+    L.push(`JOURNAL: ${jrDates.size} day(s) with entries${journaledToday?", journaled today ✓":", not yet today"}`);
+    let jLatest=null; Object.keys(jrDays).forEach(d=>{ if(!jLatest||d>jLatest.date) jLatest={date:d,text:jrDays[d]}; });
+    const jeLast=je.filter(e=>e.text&&e.date).slice(-1)[0]; if(jeLast&&(!jLatest||jeLast.date>=jLatest.date)) jLatest={date:jeLast.date,text:jeLast.text};
+    if(jLatest&&jLatest.text) L.push("LATEST JOURNAL ("+fmtDate(jLatest.date)+"): "+String(jLatest.text).replace(/\s+/g," ").slice(0,200)+(String(jLatest.text).length>200?"…":""));
 
     // ===== EVERYTHING ELSE — so Kiko truly knows the whole hub =====
     const bd=(s.birthdays||[]); if(bd.length) L.push("BIRTHDAYS: "+bd.map(b=>`${b.name} (${String(b.month).padStart(2,"0")}-${String(b.day).padStart(2,"0")})`).join(", "));
@@ -5606,7 +5614,9 @@ function kikoNotice(){
     (s.sponsors||[]).forEach(sp=>{ if(sp.due&&sp.status!=="done"){ const dd=daysBetween(TODAY,sp.due); if(dd>=0&&dd<=3) ins.push({key:"sponsor-"+sp.id,pri:7,text:"💜 your "+sp.name+" deliverable is "+(dd===0?"due today":dd===1?"due tomorrow":"due in "+dd+" days")+" — want a reminder or to block stream time?"}); else if(dd<0) ins.push({key:"sponsorlate-"+sp.id,pri:8,text:"💜 the "+sp.name+" deliverable was due "+(-dd)+"d ago — want to sort it or push the date?"}); } });
     const wk=weekStartISO(0); const ge=(s.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; });
     if(ge.length) ins.push({key:"game-"+ge[0].date,pri:4,text:"🎮 "+ge[0].title+" lands this week — could be a fun stream! want it on your schedule?"});
-    const je=(s.journalEntries||[]); const lastJ=je.length?je[je.length-1].date:null;
+    const jrAllDates=[...(s.journalEntries||[]).filter(e=>e.date).map(e=>e.date), ...(state.range||[]).filter(r=>r&&r.notes&&r.notes.journal&&String(r.notes.journal).trim()).map(r=>r.date)];
+    if(state.today&&state.today.journal&&String(state.today.journal).trim()) jrAllDates.push(TODAY);
+    const lastJ=jrAllDates.length?jrAllDates.sort()[jrAllDates.length-1]:null;
     if(!lastJ||daysBetween(lastJ,TODAY)>=5) ins.push({key:"journal",pri:3,text:"📓 it's been a little while since we journaled — want to do a soft one together?"});
     const wl=(s.weightLog||[]).filter(x=>x.w!=null).sort((a,b)=>a.date<b.date?-1:1);
     if(wl.length>=4){ const r4=wl.slice(-4).map(x=>x.w); if(Math.max(...r4)-Math.min(...r4)<0.4) ins.push({key:"plateau",pri:2,text:"⚖️ the scale's been steady a few weeks — totally normal. want to do a little stall audit together? (your muscle, sleep & protein often tell the real story 🌱)"}); }
