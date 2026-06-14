@@ -479,6 +479,85 @@
   .jr-meta{font-size:9px;color:var(--ink-soft);line-height:1.3;display:flex;gap:4px;flex-wrap:wrap;}
   .jr-dot{display:inline-block;width:9px;height:9px;border-radius:3px;vertical-align:middle;margin-right:3px;}
   @media(max-width:640px){ .jr-cell{min-height:54px;padding:3px 4px;} .jr-meta{font-size:8px;} }
+  /* ============================================================
+     UI FOUNDATION 2.0 — additive layer: motion · focus · loading · polish · responsive.
+     Enhances existing classes, preserves the snowfox aesthetic. All motion auto-disables
+     under prefers-reduced-motion and body.calm (global rules above). 2026-06-14.
+     ============================================================ */
+  :root{
+    --dur-1:.12s; --dur-2:.2s; --dur-3:.34s;
+    --ease:cubic-bezier(.22,.61,.36,1);          /* gentle ease-out */
+    --ease-spring:cubic-bezier(.2,.8,.3,1);      /* soft overshoot */
+    --elev-1:0 4px 14px rgba(120,130,200,.14);
+    --elev-2:0 12px 30px rgba(120,130,200,.20);
+  }
+  /* ---- A11Y: visible keyboard focus on EVERY interactive element (was inputs-only) ---- */
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible,
+  select:focus-visible, summary:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible,
+  .tab:focus-visible, .chip:focus-visible, .btn:focus-visible, .btn-grad:focus-visible,
+  .chiptog:focus-visible, .sitebtn:focus-visible, .scale button:focus-visible, .seg button:focus-visible,
+  .focus-row:focus-visible, .ci-btn:focus-visible, .x:focus-visible{
+    outline:2.5px solid var(--peri-deep); outline-offset:2px;
+  }
+  :focus:not(:focus-visible){ outline:none; }            /* no ring on mouse/touch, only keyboard */
+  .inp:focus-visible{ outline:none; }                    /* inputs keep their own soft ring */
+  .sr-only{ position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+  /* ---- TACTILE POLISH — elevation on hover (transform stays owned by :active press-scale) ---- */
+  @media (hover:hover) and (pointer:fine){
+    .btn:hover{ box-shadow:var(--elev-1); }
+    .btn-grad:hover{ box-shadow:0 8px 20px rgba(150,120,200,.32); }
+    .panel.interactive:hover, .soft-card.interactive:hover, .focus-row:hover{ box-shadow:var(--elev-2); }
+    .focus-row:hover{ background:#fdf3fb; }
+    .ci-btn:hover{ box-shadow:var(--elev-1); }
+  }
+  .panel.interactive, .soft-card.interactive, .focus-row{ transition:box-shadow var(--dur-2) var(--ease), background var(--dur-2) var(--ease), transform var(--dur-1) var(--ease); }
+  /* gradient buttons get a soft one-shot sheen sweep on hover */
+  .btn-grad{ position:relative; overflow:hidden; isolation:isolate; }
+  .btn-grad::after{ content:""; position:absolute; inset:0; z-index:-1; transform:translateX(-130%);
+    background:linear-gradient(120deg,transparent 32%,rgba(255,255,255,.38) 50%,transparent 68%); transition:transform .6s var(--ease); }
+  @media (hover:hover){ .btn-grad:hover::after{ transform:translateX(130%); } }
+  /* toast: gentle slide-up + fade (was opacity only) */
+  .toast{ transform:translateX(-50%) translateY(10px); transition:opacity var(--dur-3) var(--ease), transform var(--dur-3) var(--ease-spring); }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+  /* ---- LOADING STATES ---- */
+  .skeleton{ position:relative; overflow:hidden; background:#eceaf4; border-radius:10px; }
+  .skeleton::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent); animation:skshimmer 1.25s ease-in-out infinite; }
+  @keyframes skshimmer{ 100%{ transform:translateX(100%);} }
+  .sk-line{ height:12px; margin:9px 0; border-radius:7px; }
+  .sk-title{ height:16px; width:55%; margin:0 0 14px; border-radius:8px; }
+  .sk-card{ padding:16px; }
+  .spinner{ display:inline-block; width:18px; height:18px; border-radius:50%;
+    border:2.5px solid rgba(117,138,198,.28); border-top-color:var(--peri-deep);
+    animation:spin .7s linear infinite; vertical-align:-3px; }
+  .spinner.lg{ width:30px; height:30px; border-width:3px; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  .loading-row{ display:inline-flex; align-items:center; gap:9px; color:var(--ink-soft); font-size:13px; }
+  /* keep a usable cue when motion is off */
+  @media (prefers-reduced-motion:reduce){ .skeleton{ background:#e7e4f0; } .spinner{ border-top-color:var(--peri-deep); opacity:.6; } }
+  body.calm .skeleton{ background:#e7e4f0; }
+  /* ---- EMPTY STATE ---- */
+  .empty{ text-align:center; padding:28px 18px; color:var(--ink-soft); }
+  .empty .empty-emoji{ font-size:30px; display:block; margin-bottom:8px; opacity:.92; }
+  .empty .empty-title{ font-family:var(--display); font-size:15px; color:var(--ink); margin-bottom:4px; }
+  .empty .empty-msg{ font-size:12.5px; max-width:34ch; margin:0 auto 12px; line-height:1.55; }
+  .boot-sk{ max-width:1320px; margin:0 auto; padding:18px; display:flex; flex-direction:column; gap:16px; }
+  /* ---- RESPONSIVE REFINEMENTS (mobile · tablet · desktop) ---- */
+  .hero-title h1{ font-size:clamp(20px,5vw,30px); }
+  @media (min-width:641px) and (max-width:1040px){ main{ padding:20px; } }   /* tablet breathing room */
+  @media (max-width:560px){
+    /* phone tab bar scrolls sideways instead of stacking into several rows */
+    #nav{ width:100%; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:2px; scroll-snap-type:x proximity; }
+    #nav::-webkit-scrollbar{ display:none; }
+    #nav .tab{ flex:0 0 auto; scroll-snap-align:start; }
+    #rail{ padding:8px 14px; } main{ padding:14px; } .panel{ padding:14px; }
+  }
+  @media (pointer:coarse){   /* generous touch targets for small controls */
+    .tab{ padding:8px 14px; }
+    .chip{ min-height:34px; display:inline-flex; align-items:center; }
+    .x{ min-width:34px; min-height:34px; display:inline-flex; align-items:center; justify-content:center; }
+    .seg button{ padding:8px 13px; }
+  }
 </style>
 </head>
 <body>
@@ -494,8 +573,11 @@
     <span class="avatar"><img src="AYAYA.png" alt="Mifu" /></span>
   </div>
 </div>
-<main id="view"></main>
-<div id="toast" class="toast"></div>
+<main id="view"><div class="boot-sk" aria-busy="true" aria-label="Loading your space">
+  <div class="panel sk-card"><div class="skeleton sk-title"></div><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div><div class="skeleton sk-line" style="width:68%"></div></div>
+  <div class="panel sk-card"><div class="skeleton sk-title"></div><div class="skeleton sk-line"></div><div class="skeleton sk-line" style="width:55%"></div></div>
+</div></main>
+<div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 <div id="modal"></div>
 <div id="stickyLayer"></div>
 <button id="addStickyBtn" data-act="addSticky" title="New sticky note">🗒️+</button>
@@ -509,7 +591,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.12";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.13";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -564,6 +646,49 @@ function stripMd(t){ return String(t==null?"":t)
   .trim(); }
 function greeting(){ const h=new Date().getHours(); return h<5?"Late night":h<12?"Good morning":h<18?"Good afternoon":"Good evening"; }
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1700); }
+/* ============================================================================
+   UI — reusable, accessible component helpers (vanilla; each returns an HTML string).
+   "Props" are a single options object. The CSS Foundation lifts existing markup
+   automatically; these standardise loading/empty states and new controls.
+   Docs: UI-COMPONENTS.md at the project root.
+   ============================================================================ */
+const _dataAttrs = d => d ? Object.entries(d).map(([k,v])=>` data-${esc(k)}="${esc(String(v))}"`).join("") : "";
+const UI = {
+  /* spinner({size:'sm'|'lg', label?}) — inline, announced to screen readers */
+  spinner({ size, label } = {}) {
+    return `<span class="loading-row" role="status" aria-live="polite"><span class="spinner${size==="lg"?" lg":""}" aria-hidden="true"></span>${label?`<span>${esc(label)}</span>`:`<span class="sr-only">Loading</span>`}</span>`;
+  },
+  /* skeleton({lines=3, width?}) — shimmer placeholder lines */
+  skeleton({ lines = 3, width } = {}) {
+    let h = ""; for (let i=0;i<lines;i++){ const w = i===lines-1 ? "70%" : (width||"100%"); h += `<div class="skeleton sk-line" style="width:${w}"></div>`; }
+    return `<div aria-hidden="true">${h}</div>`;
+  },
+  /* skeletonCard({lines=3}) — a panel-shaped loading placeholder */
+  skeletonCard({ lines = 3 } = {}) {
+    return `<div class="panel sk-card" aria-busy="true" aria-hidden="true"><div class="skeleton sk-title"></div>${UI.skeleton({ lines })}</div>`;
+  },
+  /* empty({emoji,title,msg?,action?:{label,act,data?,variant?}}) — friendly empty state */
+  empty({ emoji = "❄️", title = "Nothing here yet", msg = "", action } = {}) {
+    const btn = action ? `<button class="btn${action.variant==="primary"?" btn-grad":""}" data-act="${esc(action.act)}"${_dataAttrs(action.data)}>${esc(action.label)}</button>` : "";
+    return `<div class="empty"><span class="empty-emoji" aria-hidden="true">${emoji}</span><div class="empty-title">${esc(title)}</div>${msg?`<div class="empty-msg">${esc(msg)}</div>`:""}${btn}</div>`;
+  },
+  /* button({label,variant:'primary'|'ghost',icon?,act?,data?,ariaLabel?,loading?,disabled?}) */
+  button({ label, variant = "ghost", icon, act, data, ariaLabel, loading, disabled } = {}) {
+    const cls = variant === "primary" ? "btn btn-grad" : "btn";
+    const inner = loading ? `<span class="spinner" aria-hidden="true"></span> ${esc(label||"")}` : `${icon?icon+" ":""}${esc(label||"")}`;
+    return `<button class="${cls}"${act?` data-act="${esc(act)}"`:""}${_dataAttrs(data)}${ariaLabel?` aria-label="${esc(ariaLabel)}"`:""}${disabled?" disabled aria-disabled=\"true\"":""}${loading?" aria-busy=\"true\"":""}>${inner}</button>`;
+  },
+  /* iconButton({icon,act,data?,ariaLabel,title?}) — icon-only control (label is required for a11y) */
+  iconButton({ icon, act, data, ariaLabel, title } = {}) {
+    return `<button class="x" data-act="${esc(act)}"${_dataAttrs(data)} aria-label="${esc(ariaLabel||title||"")}"${title?` title="${esc(title)}"`:""}>${icon}</button>`;
+  },
+  /* pill({text, tone:'peri'|'sak'|'lav'|'mint'|'ice'|'gray'}) */
+  pill({ text, tone = "gray" } = {}) { return `<span class="pill pill-${tone}">${esc(text)}</span>`; },
+  /* field({label,id?,control,hint?}) — labelled form-control wrapper */
+  field({ label, id, control, hint } = {}) {
+    return `<div class="field">${label?`<label class="label"${id?` for="${esc(id)}"`:""}>${esc(label)}</label>`:""}${control||""}${hint?`<div class="soft" style="font-size:11px;margin-top:4px">${esc(hint)}</div>`:""}</div>`;
+  },
+};
 
 /* ===================== DEMO STORE ===================== */
 function seedDemo(){
@@ -4352,7 +4477,7 @@ const H={
   async withingsDebug(){
     if(DEMO||!SB){ toast("connect to the server first ❄️"); return; }
     if(WITHINGS_BUSY){ toast("a sync is running — give it a few seconds, then try Diagnose ❄️"); return; }
-    const host=$("#withingsDiag"); if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px">🔍 running diagnostics… ❄️</div>`;
+    const host=$("#withingsDiag"); if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px">${UI.spinner({label:"running diagnostics… ❄️"})}</div>`;
     WITHINGS_BUSY=true;
     try{ const d=await aiCall("withingsDebug",{});
       const steps=(d&&d.steps)||["(no response)"];
