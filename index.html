@@ -618,7 +618,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.17";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.18";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -657,6 +657,7 @@ const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 const $ = s => document.querySelector(s);
 function dayAgo(n){const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString("en-CA");}
 function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+const cmpDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:0;   // ascending, total-order (stable for equal dates) — single source for the date sort duplicated app-wide
 function fmtDate(iso){ try{ return new Date(iso+"T00:00").toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return iso; } }
 /* strip Markdown so Kiko's chat shows clean plain text (keeps words + emojis) */
 function stripMd(t){ return String(t==null?"":t)
@@ -1194,7 +1195,7 @@ function cardGlance(){ const s=state.sentinel; const lastShot=(s.injectionLog||[
   </section>`; }
 /* a little data-driven, motivating health note linking hydration / muscle / fat / weight to how she feels */
 function healthInsight(){
-  const wl=(state.sentinel.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const wl=(state.sentinel.weightLog||[]).filter(x=>x).slice().sort(cmpDate);
   if(wl.length<2) return "";
   const unit=CONFIG.weightUnit||"kg";
   const pair=k=>{ const a=wl.filter(x=>x[k]!=null); return a.length>=2?[a[a.length-2],a[a.length-1]]:null; };
@@ -1207,7 +1208,7 @@ function healthInsight(){
   if(!msgs.length) return "Every weigh-in is just one dot — the line across the weeks is the real story, and you're building it. 💗";
   return msgs[parseInt(TODAY.replace(/-/g,""),10)%msgs.length];   // rotate daily so it stays fresh
 }
-function cardWeightTrend(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1).filter(x=>x.w!=null).slice(-26);
+function cardWeightTrend(){ const wl=(state.sentinel.weightLog||[]).slice().sort(cmpDate).filter(x=>x.w!=null).slice(-26);
   const vals=wl.map(x=>x.w), unit=CONFIG.weightUnit||"kg";
   let body='<p class="soft" style="font-size:12px">No weigh-ins yet.</p>';
   if(vals.length===1){
@@ -1423,17 +1424,17 @@ function kikoNoticed(mode){
     try{ const wkY=ciWeek("ytShort")+ciWeek("ytVideo"); if(wkY>=2) O.push({t:`You've uploaded ${wkY} times to YouTube this week — staying visible! ▶️`}); }catch(e){}
     try{ const gl=(state.sentinel.goalsWeek||[]); const done=gl.filter(g=>g&&g.done).length; if(gl.length&&done&&done>=Math.ceil(gl.length/2)) O.push({t:`You've cleared ${done}/${gl.length} weekly goals — over halfway. 🌷`}); }catch(e){}
   } else {
-    try{ const wl=(state.sentinel.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort((a,b)=>a.date<b.date?-1:1); const u=CONFIG.weightUnit||"kg";
+    try{ const wl=(state.sentinel.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort(cmpDate); const u=CONFIG.weightUnit||"kg";
       if(wl.length>=2){ const d2=wl[wl.length-1].w-wl[wl.length-2].w;
         if(d2>=0.3) O.push({t:`Your weight is up ${d2.toFixed(1)} ${u} since your last weigh-in — day-to-day wobble is completely normal. ⚖️`});
         else if(d2<=-0.3) O.push({t:`Down ${Math.abs(d2).toFixed(1)} ${u} since your last weigh-in. 🌱`}); } }catch(e){}
-    try{ const wl2=(state.sentinel.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1);
+    try{ const wl2=(state.sentinel.weightLog||[]).filter(x=>x).slice().sort(cmpDate);
       const mu=wl2.filter(x=>x.muscle!=null), fa=wl2.filter(x=>x.fat!=null);
       if(mu.length>=2&&mu[mu.length-1].muscle>mu[0].muscle+0.2) O.push({t:`Your muscle is trending up since ${fmtDate(mu[0].date)}. 💪`});
       if(fa.length>=2&&fa[fa.length-1].fat<fa[0].fat-0.3) O.push({t:`Your body-fat % is trending down — the work is showing. 🌱`}); }catch(e){}
     // anticipatory (Tier 3C down-payment): gentle forward-looking note from a robust pattern
     try{ if(sleepStreakUnder(7)>=2) O.push({t:`Two short nights in a row — your energy often runs lower the day after, so today's a kind, gentle-pace day. 🌙`}); }catch(e){}
-    try{ const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
+    try{ const inj=(state.sentinel.injectionLog||[]).slice().sort(cmpDate); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
       if(di===0) O.push({t:`Today is your Mounjaro day. 💉`});
       else if(di===1) O.push({t:`Your next Mounjaro shot is tomorrow. 💉`}); } }catch(e){}
     try{ const c=state.sentinel.cycle||{}; if(c.lastStart){ const dx=daysBetween(c.lastStart,TODAY); if(dx>=45) O.push({t:`${dx} days since your last period — common with PCOS, but worth a gentle note for your doctor. 🌙`}); } }catch(e){}
@@ -1500,7 +1501,7 @@ function suggestedFocus(mode){
     else { const s0=Number((state.today||{}).sleep); if(s0&&s0<7) push({t:"A short night — maybe an earlier wind-down tonight? 🌙",tab:"care",cat:"sleep"}); }
     const dW=ciDays("walk"); if(dW!=null&&dW>=3) push({t:"A tiny 10-minute walk today? It absolutely counts! 🚶",seed:"motivate me for a tiny 10-minute walk",cat:"walk"});
     try{ const avg=waterWeekAvg(); const goal=CUPS_PER_40OZ*2; if(avg!=null&&avg<goal*0.6) push({t:"Water's been low this week — a glass right now is a lovely start! 💧",tab:"food",cat:"water"}); }catch(e){}
-    try{ const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
+    try{ const inj=(state.sentinel.injectionLog||[]).slice().sort(cmpDate); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
       if(di===0) push({t:"It's your Mounjaro day — want a reminder for tonight and a fresh injection site? 💉",seed:"remind me to take my Mounjaro shot tonight",cat:"meds",urgent:true}); } }catch(e){}
     try{ const je=(state.sentinel.journalEntries||[]).map(e=>e.date); (state.range||[]).forEach(r=>{ if(r&&r.notes&&r.notes.journal&&String(r.notes.journal).trim())je.push(r.date); }); if((state.today||{}).journal&&String(state.today.journal).trim())je.push(TODAY);
       const lastJ=je.length?je.sort()[je.length-1]:null; const dj=lastJ?daysBetween(lastJ,TODAY):null;
@@ -1537,7 +1538,7 @@ function hsBar(l,v,p,grad){ p=Math.max(0,Math.min(1,p||0));
   return `<div class="hs-row"><span class="hs-l">${l}</span><span class="hs-v num">${v}</span><span class="hs-bar"><span style="width:${Math.round(p*100)}%;background:${grad}"></span></span></div>`; }
 function healthSnapshotCard(){
   const rows=[]; const u=CONFIG.weightUnit||"kg";
-  const wl=(state.sentinel.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const wl=(state.sentinel.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort(cmpDate);
   if(wl.length>=2){ const d2=wl[wl.length-1].w-wl[wl.length-2].w;
     rows.push(`<div class="hs-row"><span class="hs-l">Weight Trend</span><span class="hs-v" style="color:${d2>0.05?'#c0566a':d2<-0.05?'#2f9d79':'var(--ink-soft)'}">${Math.abs(d2)<0.05?"steady →":(d2>0?"Up ":"Down ")+Math.abs(d2).toFixed(1)+" "+u+(d2>0?" ↑":" ↓")}</span></div>`); }
   else if(wl.length===1) rows.push(`<div class="hs-row"><span class="hs-l">Weight</span><span class="hs-v">${wl[0].w} ${u}</span></div>`);
@@ -2149,7 +2150,7 @@ function jrDayColor(n,special){ if(special)return "#ece2fb"; const mo=n&&n.mind&
 function jrSymptomFlag(n){ if(!n)return false; const p=n.pcos||{},mj=n.mounjaro||{};
   return ["fatigue","bloating","acne","shedding","cravings"].some(k=>(p[k]||0)>=3)||["nausea","constipation","diarrhea","reflux","belly"].some(k=>(mj[k]||0)>=3); }
 function jrStats(rows){
-  const ds=Object.entries(rows||{}).map(([date,n])=>({date,n})).sort((a,b)=>a.date<b.date?-1:1);
+  const ds=Object.entries(rows||{}).map(([date,n])=>({date,n})).sort(cmpDate);
   const pick=(f)=>ds.map(d=>f(d.n)).filter(v=>v!=null);
   const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10:null;
   const moods=pick(n=>n.mind&&n.mind.mood), en=pick(n=>n.mind&&n.mind.energy), sl=pick(n=>n.sleep), fn=pick(n=>n.mounjaro&&n.mounjaro.foodnoise);
@@ -2345,7 +2346,7 @@ function buildHealthReport(){
   R.push(`This is a self-tracked summary to support a conversation with your clinician — it is not a medical record or advice.`);
   R.push("");
   // weight & body composition
-  const wl=withBMI((s.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1));
+  const wl=withBMI((s.weightLog||[]).filter(x=>x).slice().sort(cmpDate));
   const inRange=wl.filter(x=>x.date>=since);
   R.push("— WEIGHT & BODY COMPOSITION —");
   const wlw=wl.filter(x=>x.w!=null);
@@ -2357,7 +2358,7 @@ function buildHealthReport(){
   R.push("");
   // mounjaro
   R.push("— MOUNJARO (tirzepatide) —");
-  const cur=currentDose(); const inj=(s.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const cur=currentDose(); const inj=(s.injectionLog||[]).slice().sort(cmpDate);
   if(inj.length){ const li=inj[inj.length-1]; const start=inj[0].date; const weeks=Math.floor(daysBetween(start,TODAY)/7);
     R.push(`Current dose: ${cur?cur.dose:li.dose} mg · on treatment ~${weeks} weeks · ${inj.length} injections logged (last ${fmtDate(li.date)}${li.site?", "+li.site:""}).`); }
   else R.push("No injections logged.");
@@ -2495,8 +2496,8 @@ function viewMj(){
   const doses=CONFIG.mounjaro.doses, sites=CONFIG.mounjaro.sites;
   const unit=CONFIG.weightUnit||"kg";
   // journey weight trend: start = first weight on/after the first shot (else earliest weight) → latest
-  const wl=(state.sentinel.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort((a,b)=>a.date<b.date?-1:1);
-  const firstShot=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1)[0];
+  const wl=(state.sentinel.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort(cmpDate);
+  const firstShot=(state.sentinel.injectionLog||[]).slice().sort(cmpDate)[0];
   const journeyStart=firstShot?firstShot.date:(wl[0]?wl[0].date:null);
   const weeksOnMj=journeyStart?Math.floor(daysBetween(journeyStart,TODAY)/7):0;
   let startW=null; if(wl.length){ const after=wl.find(x=>!journeyStart||x.date>=journeyStart); startW=(after||wl[0]).w; }
@@ -2592,7 +2593,7 @@ function withBMI(wl){ // attach a derived bmi to entries that have weight + we k
 const WT_COLORS={w:"#ef9ccb",bmi:"#9b8cf0",fat:"#f0869b",muscle:"#5fc59a",bone:"#c8a8ca",water:"#5ba6e8",visceral:"#f0b057",hr:"#7d83e6"};
 function wtYRange(vs){ if(!vs.length)return null; let mn=Math.min(...vs),mx=Math.max(...vs); if(mn===mx){mn-=1;mx+=1;} const p=(mx-mn)*0.12||1; return {mn:mn-p,mx:mx+p}; }
 function buildWeightChartSVG(keys,type){
-  let wl=withBMI((state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1));
+  let wl=withBMI((state.sentinel.weightLog||[]).slice().sort(cmpDate));
   const r=state.wtRange||"all";
   if(r!=="all"){ const days=r==="30d"?30:r==="90d"?90:365; const cut=dayAgo(-days); wl=wl.filter(x=>x.date>=cut); }
   keys=(keys||["w"]).filter(k=>BODYCOMP.some(b=>b[0]===k)); if(!keys.length)keys=["w"];
@@ -2630,12 +2631,12 @@ function buildWeightChartSVG(keys,type){
   return `<svg class="trchart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${grid}${ylab}${body}${ticks}</svg>`;
 }
 function viewWeight(){
-  const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const wl=(state.sentinel.weightLog||[]).slice().sort(cmpDate);
   const vals=wl.map(x=>x.w), avg=rollingAvg(wl);
   const last=wl.slice(-1)[0], dueWeekly=!last||daysBetween(last.date,TODAY)>=7;
   const disp=CONFIG.weightDisplay, showNum=disp!=="hidden";
   const nsv=(state.sentinel.nsv||[]).slice().reverse();
-  const meas=(state.sentinel.measurements||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const meas=(state.sentinel.measurements||[]).slice().sort(cmpDate);
   const wtKeys=(state.wtMetrics&&state.wtMetrics.length)?state.wtMetrics:["w"];
   const wtType=state.wtType||"area";
   const availKeys=BODYCOMP.filter(([k])=> k==="w" || (k==="bmi"&&state.sentinel.heightCm) || (state.sentinel.weightLog||[]).some(x=>x[k]!=null));
@@ -2865,13 +2866,13 @@ async function saveJournalEntry(J){
 // gather Mifu's real data so the write-up can ground itself (never invents numbers)
 function journalWriteContext(){
   const sent=state.sentinel||{};
-  const inj=(sent.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const inj=(sent.injectionLog||[]).slice().sort(cmpDate);
   const mjStart=inj.length?inj[0].date:null; let mjDay=null,mjWeek=null;
   if(mjStart){ mjDay=Math.floor((new Date(TODAY+"T00:00")-new Date(mjStart+"T00:00"))/86400000)+1; mjWeek=Math.ceil(mjDay/7); }
-  const wl=(sent.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const wl=(sent.weightLog||[]).slice().sort(cmpDate);
   const latest=wl.length?wl[wl.length-1]:null, first=wl.length?wl[0]:null;
   const change=(latest&&first&&latest.date!==first.date)?Math.round((latest.w-first.w)*10)/10:null;
-  const meas=(sent.measurements||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const meas=(sent.measurements||[]).slice().sort(cmpDate);
   const m=(state.today&&state.today.mind)||{};
   const lastShot=inj.length?inj[inj.length-1]:null;
   const ev=(sent.calendarEvents||[]).filter(e=> e.date<=TODAY && TODAY<=(e.endDate||e.date)).map(e=>e.title).slice(0,8);
@@ -3837,7 +3838,7 @@ function sponsorBlock(){
 /* creator tools — draft streams from game events + a quick post-stream debrief */
 function creatorTools(){
   const s=state.sentinel||{}; const wk=weekStartISO(0);
-  const ge=(s.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; }).sort((a,b)=>a.date<b.date?-1:1);
+  const ge=(s.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; }).sort(cmpDate);
   const log=(s.streamLog||[]).slice().reverse();
   const draft=`<section class="panel">
     <div class="card-head"><span class="label">📅 Plan this week's streams</span></div>
@@ -4347,7 +4348,7 @@ const H={
       out.tags=tags; out.special=special; out.journal=text;
       return out; });
     if(w!=null){ await setSent(n=>{ const wl=(n.weightLog||[]).slice(); const i=wl.findIndex(x=>x.date===date);
-      if(i>=0)wl[i]={...wl[i],w,date}; else wl.push({date,w}); wl.sort((a,b)=>a.date<b.date?-1:1); return {...n,weightLog:wl}; }); }
+      if(i>=0)wl[i]={...wl[i],w,date}; else wl.push({date,w}); wl.sort(cmpDate); return {...n,weightLog:wl}; }); }
     $("#modal").innerHTML=""; toast("day saved 📓💗"); render(); },
   async jrSearch(){ const q=(($("#jrQ")&&$("#jrQ").value)||"").toLowerCase().trim();
     const mood=($("#jrMood")&&$("#jrMood").value)||""; const stream=!!($("#jrStream")&&$("#jrStream").checked); const sym=!!($("#jrSym")&&$("#jrSym").checked);
@@ -4546,7 +4547,7 @@ const H={
   async favDel(el){ const id=el.dataset.id; await setSent(n=>({...n,foodFaves:(n.foodFaves||[]).filter(f=>f.id!==id)})); render(); },
   async saveFoodTargets(){ const num=id=>{const el=$("#"+id);const n=el?parseFloat(el.value):NaN;return isNaN(n)?null:n;};
     await setSent(n=>({...n,foodTargets:{kcal:num("ft_kcal")||1500,protein:num("ft_protein")||110,fiber:num("ft_fiber")||28}})); toast("targets saved 🎯"); render(); },
-  revealNum(){ const wl=(state.sentinel.weightLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); const avg=rollingAvg(wl);
+  revealNum(){ const wl=(state.sentinel.weightLog||[]).slice().sort(cmpDate); const avg=rollingAvg(wl);
     const slot=$("#numSlot"); if(slot) slot.innerHTML=`<div class="label">Rolling weekly avg</div><div class="bignum">${avg!=null?avg.toFixed(1):'—'} <span class="soft" style="font-size:12px;font-family:var(--sans)">${CONFIG.weightUnit}</span></div>`; },
   async addNSV(){ const t=$("#nsvInput").value.trim(); if(!t)return; await setSent(n=>({...n,nsv:[...(n.nsv||[]),{id:"n"+Date.now(),t,date:TODAY}]})); toast("yay! 🌟"); render(); },
   async delNSV(el){ await setSent(n=>({...n,nsv:(n.nsv||[]).filter(x=>x.id!==el.dataset.v)})); render(); },
@@ -4934,7 +4935,7 @@ const H={
     state.moneyDraft=null;
     await setSent(n=>({...n,money:[...(n.money||[]),item]})); state.moneyYear=String(item.date).slice(0,4); toast("logged 💶"); render(); },
   async delMoney(el){ const id=el.dataset.v; await setSent(n=>({...n,money:(n.money||[]).filter(t=>t.id!==id)})); render(); },
-  exportMoneyCSV(){ const y=moneyYear(); const tx=moneyEntries(y).slice().sort((a,b)=>a.date<b.date?-1:1);
+  exportMoneyCSV(){ const y=moneyYear(); const tx=moneyEntries(y).slice().sort(cmpDate);
     const rows=[["date","direction","category","amount_eur","description"]].concat(tx.map(t=>[t.date,t.dir==="in"?"income":"expense",t.cat||"",(+t.amount||0).toFixed(2),t.desc||""]));
     downloadFile(`mifuyu-money-${y}.csv`, rows.map(r=>r.map(csvCell).join(",")).join("\n"), "text/csv"); toast("exported 💜"); },
   exportMoneySummary(){ const y=moneyYear(); downloadFile(`mifuyu-tax-summary-${y}.txt`, moneySummaryText(y), "text/plain"); toast("exported 💜"); },
@@ -5425,7 +5426,7 @@ function kikoDataSummary(){
     try{ const kg=(s.kikoGoals||[]).filter(g=>g&&g.status!=="done"); if(kg.length) L.push("GOALS KIKO IS TRACKING (follow through across sessions — gently check in when relevant, celebrate progress, never nag): "+kg.map(g=>`"${g.text}"${g.note?" — "+g.note:""} (since ${g.created})`).join(" · ")); }catch(e){}
 
     // ===== WEIGHT & FULL BODY COMPOSITION (Withings Body Smart + manual) =====
-    const wl=withBMI((s.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1));
+    const wl=withBMI((s.weightLog||[]).filter(x=>x).slice().sort(cmpDate));
     const bc=k=>{ const e=wl.filter(x=>x[k]!=null); if(!e.length)return null; const last=e[e.length-1],first=e[0],prev=e.length>1?e[e.length-2]:null;
       return { v:last[k], date:last.date, n:e.length, dPrev:prev?Math.round((last[k]-prev[k])*10)/10:null, dAll:e.length>1?Math.round((last[k]-first[k])*10)/10:null, from:first.date }; };
     const bcLines=[];
@@ -5436,7 +5437,7 @@ function kikoDataSummary(){
     else L.push("BODY: no weight/body-comp logged yet"+(wcon?" though Withings is linked":""));
 
     // ===== MOUNJARO =====
-    const inj=(s.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const inj=(s.injectionLog||[]).slice().sort(cmpDate);
     const cur=currentDose();
     const wlw=wl.filter(x=>x.w!=null);
     if(inj.length){ const li=inj[inj.length-1]; const nd=new Date(li.date+"T00:00"); nd.setDate(nd.getDate()+7);
@@ -5479,7 +5480,7 @@ function kikoDataSummary(){
     const fh=foodHistory(7).filter(h=>h.meals.length); if(fh.length){ const ap=avg(fh.map(h=>h.protein)), af=avg(fh.map(h=>h.fiber)); L.push(`FOOD 7-day avg (logged days): protein ${Math.round(ap)}g, fibre ${Math.round(af)}g`); }
 
     // ===== MEASUREMENTS & NSV =====
-    const meas=(s.measurements||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const meas=(s.measurements||[]).slice().sort(cmpDate);
     if(meas.length){ const last=meas[meas.length-1]; const mm=["bust","waist","hips","thighs","arms"].filter(k=>last[k]!=null).map(k=>`${k} ${last[k]}cm`); if(mm.length) L.push(`MEASUREMENTS (latest ${fmtDate(last.date)}): ${mm.join(", ")}`); }
     const nsv=(s.nsv||[]); if(nsv.length) L.push(`NON-SCALE WINS (${nsv.length}): `+nsv.slice(-4).map(v=>v.t).join("; "));
 
@@ -6111,7 +6112,7 @@ function kikoNotice(){
     const byDate={}; (state.range||[]).forEach(r=>byDate[r.date]=r.notes); byDate[TODAY]=state.today;
     const lastN=(path,n)=>{ const out=[]; for(let i=0;i<n;i++){ const d=dayAgo(-i); let v=byDate[d]; for(const k of path){ v=v&&v[k]; } if(v!=null)out.push(v); } return out; };
     const ins=[];
-    const inj=(s.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const inj=(s.injectionLog||[]).slice().sort(cmpDate);
     if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
       if(di===0) ins.push({key:"doseday",pri:9,text:"💉 today's your Mounjaro day — want me to set a reminder for tonight?"});
       else if(di===1) ins.push({key:"dosesoon",pri:6,text:"💉 your shot's tomorrow — rotate to a fresh site, and I can remind you ❄️"}); }
@@ -6143,7 +6144,7 @@ function kikoNotice(){
     if(state.today&&state.today.journal&&String(state.today.journal).trim()) jrAllDates.push(TODAY);
     const lastJ=jrAllDates.length?jrAllDates.sort()[jrAllDates.length-1]:null;
     if(!lastJ||daysBetween(lastJ,TODAY)>=5) ins.push({key:"journal",pri:3,text:"📓 it's been a little while since we journaled — want to do a soft one together?"});
-    const wl=(s.weightLog||[]).filter(x=>x.w!=null).sort((a,b)=>a.date<b.date?-1:1);
+    const wl=(s.weightLog||[]).filter(x=>x.w!=null).sort(cmpDate);
     if(wl.length>=4){ const r4=wl.slice(-4).map(x=>x.w); if(Math.max(...r4)-Math.min(...r4)<0.4) ins.push({key:"plateau",pri:2,text:"⚖️ the scale's been steady a few weeks — totally normal. want to do a little stall audit together? (your muscle, sleep & protein often tell the real story 🌱)"}); }
     ins.sort((a,b)=>b.pri-a.pri);
     for(const x of ins){ if(!localStorage.getItem("kiko-noticed-"+x.key+"-"+TODAY)) return x; }
@@ -6173,11 +6174,11 @@ function kikoProactive(){
       const notice=kikoNotice();   // active mode: one fresh midday observation if something's genuinely up
       if(notice){ show(notice.text); localStorage.setItem("kiko-noticed-"+notice.key+"-"+TODAY,"1"); localStorage.setItem("kiko-mid-"+TODAY,"1"); }
     } else if(h>=18 && !localStorage.getItem("kiko-shoteve-"+TODAY) && (function(){
-        const inj2=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(!inj2.length)return false;
+        const inj2=(state.sentinel.injectionLog||[]).slice().sort(cmpDate); if(!inj2.length)return false;
         const nd=new Date(inj2[inj2.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7);
         return daysBetween(TODAY,nd.toLocaleDateString("en-CA"))===1; })()){
       // evening-before shot forecast, from HER OWN last few shot days
-      const inj2=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+      const inj2=(state.sentinel.injectionLog||[]).slice().sort(cmpDate);
       const byD={}; (state.range||[]).forEach(r=>byD[r.date]=r.notes);
       const after=inj2.slice(-4).map(s2=>{ const n2=byD[s2.date]; return n2&&n2.mounjaro&&n2.mounjaro.nausea; }).filter(v=>v!=null);
       const avgN=after.length?after.reduce((a,b)=>a+b,0)/after.length:null;
