@@ -509,7 +509,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.10";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.11";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -3987,6 +3987,7 @@ function applyAppConfig(){ try{ const a=(state.sentinel&&state.sentinel.appConfi
   if(a.name)CONFIG.creator.name=a.name; if(a.greeting)CONFIG.creator.greeting=a.greeting;
   if(a.weightUnit)CONFIG.weightUnit=a.weightUnit; if(a.weightDisplay)CONFIG.weightDisplay=a.weightDisplay; }catch(e){} }
 let WITHINGS_AUTOSYNC_DONE=false;
+let WITHINGS_BUSY=false;   // one Withings call at a time — concurrent calls race the single-use refresh token
 async function loadData(){
   state.sentinel = await DB.daily(SENTINEL);
   applyAppConfig();
@@ -4002,10 +4003,12 @@ async function withingsAutoSync(){
   const w=(state.sentinel&&state.sentinel.withings)||null;
   if(!w||!w.refresh_token) return;                         // not connected → nothing to do
   const last=(w.lastSync||0)*1000; if(last && (Date.now()-last) < 3*3600*1000) return;   // synced recently
-  WITHINGS_AUTOSYNC_DONE=true;
+  if(WITHINGS_BUSY) return;
+  WITHINGS_AUTOSYNC_DONE=true; WITHINGS_BUSY=true;
   try{ const d=await aiCall("withingsSync",{});
     if(d&&!d.error&&(d.added||d.days)){ await loadData(); render(); if(d.added) toast(`📲 synced ${d.added} new weigh-in${d.added>1?"s":""} from your scale`); }
   }catch(e){}
+  finally{ WITHINGS_BUSY=false; }
 }
 async function setToday(merge){ state.today=await DB.saveDaily(TODAY,n=>merge(n)); }
 async function setSent(merge){ state.sentinel=await DB.saveDaily(SENTINEL,n=>merge(n)); }
@@ -4340,18 +4343,23 @@ const H={
     catch(e){ toast("couldn't reach the server 🌧️"); } },
   async withingsSync(){
     if(DEMO||!SB){ toast("connect to the server first ❄️"); return; }
-    toast("syncing from your scale… ↻");
+    if(WITHINGS_BUSY){ toast("already talking to your scale — one sec ❄️"); return; }
+    WITHINGS_BUSY=true; toast("syncing from your scale… ↻");
     try{ const d=await aiCall("withingsSync",{}); if(d&&d.error){ toast(d.error); return; }
       await loadData(); render(); toast(`synced ${d&&d.days||0} day(s) ❄️`); }
-    catch(e){ toast("sync hiccup — try again 🌧️"); } },
+    catch(e){ toast("sync hiccup — try again 🌧️"); }
+    finally{ WITHINGS_BUSY=false; } },
   async withingsDebug(){
     if(DEMO||!SB){ toast("connect to the server first ❄️"); return; }
+    if(WITHINGS_BUSY){ toast("a sync is running — give it a few seconds, then try Diagnose ❄️"); return; }
     const host=$("#withingsDiag"); if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px">🔍 running diagnostics… ❄️</div>`;
+    WITHINGS_BUSY=true;
     try{ const d=await aiCall("withingsDebug",{});
       const steps=(d&&d.steps)||["(no response)"];
       const env=d&&d.env?`<div class="soft" style="font-size:10.5px;margin-top:6px">callback URL the server expects:<br><code style="font-size:10px;word-break:break-all">${esc(d.env.redirectUri||"")}</code><br>this must EXACTLY match the callback URL in your Withings developer app.</div>`:"";
       if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px;line-height:1.6"><b>🔍 Withings diagnostic</b><div style="margin-top:6px">${steps.map(s=>`<div>${esc(s)}</div>`).join("")}</div>${env}</div>`;
-    }catch(e){ if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px;color:var(--sakura-deep)">couldn't reach the diagnostic — is the <b>ai</b> function deployed with the latest update? (run update-ai.ps1)</div>`; } },
+    }catch(e){ if(host) host.innerHTML=`<div class="soft-card" style="font-size:12px;color:var(--sakura-deep)">couldn't reach the diagnostic — is the <b>ai</b> function deployed with the latest update? (run update-ai.ps1)</div>`; }
+    finally{ WITHINGS_BUSY=false; } },
   // --- weight chart options (keep a half-typed weigh-in across re-renders) ---
   wtMetric(el){ const wi=$("#wInput"); if(wi) state.wDraft=wi.value;
     const k=el.dataset.v; let arr=(state.wtMetrics||["w"]).slice(); if(arr.includes(k)){ if(arr.length>1)arr=arr.filter(x=>x!==k); } else arr.push(k); state.wtMetrics=arr; render(); },
