@@ -509,7 +509,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.8";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.9";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -5253,6 +5253,8 @@ function kikoDataSummary(){
     const byDate={}; (state.range||[]).forEach(r=>byDate[r.date]=r.notes); byDate[TODAY]=t;
     const span=state.trendDays===30?30:14; const days=[]; for(let i=span-1;i>=0;i--)days.push(dayAgo(-i));
     const pick=(d,path)=>{ let v=byDate[d]; for(const k of path){ v=v&&v[k]; } return v==null?null:v; };
+    // ===== GOALS KIKO IS TRACKING across sessions (3A) =====
+    try{ const kg=(s.kikoGoals||[]).filter(g=>g&&g.status!=="done"); if(kg.length) L.push("GOALS KIKO IS TRACKING (follow through across sessions — gently check in when relevant, celebrate progress, never nag): "+kg.map(g=>`"${g.text}"${g.note?" — "+g.note:""} (since ${g.created})`).join(" · ")); }catch(e){}
 
     // ===== WEIGHT & FULL BODY COMPOSITION (Withings Body Smart + manual) =====
     const wl=withBMI((s.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1));
@@ -5468,6 +5470,17 @@ async function execAgentAction(a){
       if(k==="madeArt"&&on) await setSent(n=>{ const log=(n.artLog||[]).slice(); if(!log.some(x=>x.date===TODAY))log.push({date:TODAY,note:""}); return {...n,artLog:log.slice(-200)}; });
       if(k==="medsAM"||k==="medsPM") await setToday(n=>({...n,meds:{...(n.meds||{}),[k==="medsAM"?"am":"pm"]:on}}));
       return (on?"✅ ":"◻️ ")+k+" check-in "+(on?"marked":"cleared")+" for today"; }
+    /* 3A: ongoing goals Kiko tracks and follows through on across sessions (distinct from weekly goalsWeek) */
+    if(T==="trackGoal"){ const txt=String(a.text||a.goal||"").trim(); if(!txt)return null;
+      await setSent(n=>{ const g=(n.kikoGoals||[]).slice(); if(g.some(x=>x.status!=="done"&&String(x.text||"").toLowerCase()===txt.toLowerCase()))return n;
+        g.push({id:"kg"+Date.now(),text:txt.slice(0,160),created:TODAY,touched:TODAY,status:"open",note:String(a.note||"")}); return {...n,kikoGoals:g.slice(-40)}; });
+      return "🎯 I'll keep an eye on this with you: "+txt; }
+    if(T==="progressGoal"){ const gs=(state.sentinel.kikoGoals||[]).filter(g=>g&&g.status!=="done"); const i=findByText(gs,a.name||a.text,"text"); if(i<0)return null;
+      await setSent(n=>({...n,kikoGoals:(n.kikoGoals||[]).map(g=>g.id===gs[i].id?{...g,touched:TODAY,note:String(a.note||g.note||"")}:g)})); return "📝 noted where that stands: "+gs[i].text; }
+    if(T==="finishGoal"){ const gs=(state.sentinel.kikoGoals||[]).filter(g=>g&&g.status!=="done"); const i=findByText(gs,a.name||a.text,"text"); if(i<0)return null;
+      await setSent(n=>({...n,kikoGoals:(n.kikoGoals||[]).map(g=>g.id===gs[i].id?{...g,status:"done",touched:TODAY}:g)})); return "🌟 that's done — so proud of you: "+gs[i].text; }
+    if(T==="dropGoal"){ const gs=(state.sentinel.kikoGoals||[]).filter(g=>g&&g.status!=="done"); const i=findByText(gs,a.name||a.text,"text"); if(i<0)return null;
+      await setSent(n=>({...n,kikoGoals:(n.kikoGoals||[]).filter(g=>g.id!==gs[i].id)})); return "🌱 let that one go, no guilt: "+gs[i].text; }
     if(T==="markMed"){ const meds=(state.sentinel.medsList||[]); const i=findByText(meds,a.name,"name"); if(i<0)return null; const on=a.on!=null?!!a.on:true;
       await setToday(n=>{ const mt={...(n.medsTaken||{}),[meds[i].id]:on}; const ex={};
         if(on&&meds.length&&meds.every(m=>mt[m.id])){ ex.habits={...(n.habits||{}),h_meds:true}; ex.meds={am:true,pm:true}; }   // all ticked → the Home habit + AM/PM follow
