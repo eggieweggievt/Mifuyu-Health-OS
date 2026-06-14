@@ -509,7 +509,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.5";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.8";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -1279,6 +1279,8 @@ function kikoNoticed(mode){
       const mu=wl2.filter(x=>x.muscle!=null), fa=wl2.filter(x=>x.fat!=null);
       if(mu.length>=2&&mu[mu.length-1].muscle>mu[0].muscle+0.2) O.push({t:`Your muscle is trending up since ${fmtDate(mu[0].date)}. 💪`});
       if(fa.length>=2&&fa[fa.length-1].fat<fa[0].fat-0.3) O.push({t:`Your body-fat % is trending down — the work is showing. 🌱`}); }catch(e){}
+    // anticipatory (Tier 3C down-payment): gentle forward-looking note from a robust pattern
+    try{ if(sleepStreakUnder(7)>=2) O.push({t:`Two short nights in a row — your energy often runs lower the day after, so today's a kind, gentle-pace day. 🌙`}); }catch(e){}
     try{ const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
       if(di===0) O.push({t:`Today is your Mounjaro day. 💉`});
       else if(di===1) O.push({t:`Your next Mounjaro shot is tomorrow. 💉`}); } }catch(e){}
@@ -1292,20 +1294,30 @@ function kikoNoticed(mode){
    Grounded in the Growth Playbook: X rewards replies/conversation, short-form clips that
    travel, sponsor outreach, collabs, pinned posts. Rotates daily so it stays fresh. */
 const EVERGREEN_CREATOR=[
-  {t:"Spend 5 minutes drafting an X post — replies and conversations are what the algorithm rewards now. 🐦",seed:"help me draft a quick, engaging X/Twitter post for today"},
-  {t:"Spend 5 minutes drafting a short script from a recent stream moment. 🎬",seed:"help me draft a 30-second short script from a recent stream moment"},
-  {t:"Spend 5 minutes hunting for one new sponsor to reach out to. 🤝",seed:"help me find one new sponsor to reach out to and draft a short pitch"},
-  {t:"Reply to a few people on X for 5 minutes — returning fans bring the most traction. 💬",seed:"give me a quick 5-minute X engagement plan for today"},
-  {t:"Reach out to one creator about a possible collab. 💜",seed:"help me draft a friendly collab message to another VTuber"},
-  {t:"Refresh a pinned post or your tip menu. 📌",seed:"help me refresh my pinned posts and tip menu"},
-  {t:"Draft one clip idea that would travel beyond VTuber circles. ✂️",seed:"brainstorm a clip idea that would land with people who've never heard of VTubing"},
-  {t:"Check in with your editors or reply to a couple of emails. ✉️",seed:"help me draft a quick check-in to my editors"},
-  {t:"Peek at the Growth Playbook for one fresh idea to try. 🌱",link:"https://creatorhub.eggieweggie.ca/growth.html"},
+  {t:"Spend 5 minutes drafting an X post — replies and conversations are what the algorithm rewards now. 🐦",seed:"help me draft a quick, engaging X/Twitter post for today",cat:"x-post"},
+  {t:"Spend 5 minutes drafting a short script from a recent stream moment. 🎬",seed:"help me draft a 30-second short script from a recent stream moment",cat:"short-script"},
+  {t:"Spend 5 minutes hunting for one new sponsor to reach out to. 🤝",seed:"help me find one new sponsor to reach out to and draft a short pitch",cat:"sponsors"},
+  {t:"Reply to a few people on X for 5 minutes — returning fans bring the most traction. 💬",seed:"give me a quick 5-minute X engagement plan for today",cat:"x-engage"},
+  {t:"Reach out to one creator about a possible collab. 💜",seed:"help me draft a friendly collab message to another VTuber",cat:"collab"},
+  {t:"Refresh a pinned post or your tip menu. 📌",seed:"help me refresh my pinned posts and tip menu",cat:"pinned"},
+  {t:"Draft one clip idea that would travel beyond VTuber circles. ✂️",seed:"brainstorm a clip idea that would land with people who've never heard of VTubing",cat:"clip"},
+  {t:"Check in with your editors or reply to a couple of emails. ✉️",seed:"help me draft a quick check-in to my editors",cat:"email"},
+  {t:"Peek at the Growth Playbook for one fresh idea to try. 🌱",link:"https://creatorhub.eggieweggie.ca/growth.html",cat:"playbook"},
 ];
+/* ── behavioural learning: Kiko watches which focus categories Mifu actually taps and
+   floats those up over time (recency-weighted). No labels, no retraining — just what she
+   does. (Tier 1B from KIKO-INTELLIGENCE-RESEARCH-2026-06-14.md.) ── */
+function focusAff(){ return (state.sentinel&&state.sentinel.focusAffinity)||{}; }
+function focusScore(cat){ if(!cat)return 0; const a=focusAff()[cat]; if(!a)return 0;
+  const n=a.n||0; const d=a.last?Math.max(0,daysBetween(a.last,TODAY)):999;
+  const rec=d<=3?1.6:d<=10?1.3:d<=30?1:0.7;   // recent taps weigh more than old ones
+  return n*rec; }
 function evergreenCreatorFocus(n, existing){
-  const have=new Set((existing||[]).map(o=>o&&o.t)); const out=[]; const len=EVERGREEN_CREATOR.length;
-  const doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/86400000);
-  for(let i=0;i<len&&out.length<n;i++){ const item=EVERGREEN_CREATOR[(doy+i)%len]; if(!have.has(item.t)){ out.push(item); have.add(item.t); } }
+  const have=new Set((existing||[]).map(o=>o&&o.t)); const out=[];
+  const doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/86400000), len=EVERGREEN_CREATOR.length;
+  // her most-engaged content types first; among ties rotate by day so it stays fresh
+  const pool=EVERGREEN_CREATOR.map((it,idx)=>({it,idx})).sort((a,b)=> focusScore(b.it.cat)-focusScore(a.it.cat) || ((a.idx+doy)%len)-((b.idx+doy)%len));
+  for(const p of pool){ if(out.length>=n)break; if(!have.has(p.it.t)){ out.push(p.it); have.add(p.it.t); } }
   return out;
 }
 /* ── Suggested focus: actionable nudges from trends & gaps (content + health) ── */
@@ -1313,44 +1325,46 @@ function suggestedFocus(mode){
   const prio=[], F=[]; const push=f=>{ if(f&&f.t)F.push(f); };
   if(mode==="creator"){
     // game pre-farm beats live only in the Game Updates box — content work goes here
-    const dArt=ciDays("madeArt"); if(dArt!=null&&dArt>=7) push({t:"You haven't drawn in a while — maybe it's time to make some art together! 🎨",tab:"art"});
-    const dYt=ciDays("ytVideo"); if(dYt!=null&&dYt>=7) push({t:"It's been a while since a YouTube upload — want to check in with your editors? 🎥",seed:"help me draft a check-in message to my YouTube editors"});
-    const dSh=ciDays("ytShort"); if(dSh!=null&&dSh>=7) push({t:"Shorts have been quiet — one clip from a recent VOD could be plenty! 🎬",tab:"script"});
-    const dCv=ciDays("coverSong"); if(dCv!=null&&dCv>=7) push({t:"30 gentle minutes of cover-song progress today? 🎤",seed:"help me plan a 30-minute cover song session for today"});
-    const dStr=ciDays("streamed"); if(dStr!=null&&dStr>=4) push({t:"It's been a few days since a stream — want to review this week's plans? 📺",tab:"optimize"});
-    const dEm=ciDays("emails"); if(dEm!=null&&dEm>=5) push({t:"You haven't replied to emails in a while — a gentle 15-minute triage? ✉️",seed:"help me do a gentle 15-minute email triage"});
-    const dSp=ciDays("sponsors"); if(dSp!=null&&dSp>=7) push({t:"A quick look at sponsor opportunities? 🤝",tab:"money"});
+    const dArt=ciDays("madeArt"); if(dArt!=null&&dArt>=7) push({t:"You haven't drawn in a while — maybe it's time to make some art together! 🎨",tab:"art",cat:"art"});
+    const dYt=ciDays("ytVideo"); if(dYt!=null&&dYt>=7) push({t:"It's been a while since a YouTube upload — want to check in with your editors? 🎥",seed:"help me draft a check-in message to my YouTube editors",cat:"youtube"});
+    const dSh=ciDays("ytShort"); if(dSh!=null&&dSh>=7) push({t:"Shorts have been quiet — one clip from a recent VOD could be plenty! 🎬",tab:"script",cat:"shorts"});
+    const dCv=ciDays("coverSong"); if(dCv!=null&&dCv>=7) push({t:"30 gentle minutes of cover-song progress today? 🎤",seed:"help me plan a 30-minute cover song session for today",cat:"music"});
+    const dStr=ciDays("streamed"); if(dStr!=null&&dStr>=4) push({t:"It's been a few days since a stream — want to review this week's plans? 📺",tab:"optimize",cat:"stream"});
+    const dEm=ciDays("emails"); if(dEm!=null&&dEm>=5) push({t:"You haven't replied to emails in a while — a gentle 15-minute triage? ✉️",seed:"help me do a gentle 15-minute email triage",cat:"email"});
+    const dSp=ciDays("sponsors"); if(dSp!=null&&dSp>=7) push({t:"A quick look at sponsor opportunities? 🤝",tab:"money",cat:"sponsors"});
     try{ (state.sentinel.sponsors||[]).forEach(sp=>{ const nm=sp.name||sp.brand||"a sponsor"; if(sp.due&&sp.status!=="done"){ const dd=daysBetween(TODAY,sp.due);
-      if(dd<0) push({t:`The ${nm} deliverable is overdue — want to sort it or push the date? 💼`,tab:"events"});
-      else if(dd<=3) push({t:`A ${nm} deliverable is coming up — block a little time? 💼`,tab:"events"}); } }); }catch(e){}
-    try{ const gw=(state.sentinel.goalsWeek||[]).filter(g=>!g.done); if(gw.length) push({t:`You've got ${gw.length} weekly goal${gw.length>1?"s":""} open — pick one tiny next step? 🌷`,tab:"planner"}); }catch(e){}
+      if(dd<0) push({t:`The ${nm} deliverable is overdue — want to sort it or push the date? 💼`,tab:"events",cat:"sponsors",urgent:true});
+      else if(dd<=3) push({t:`A ${nm} deliverable is coming up — block a little time? 💼`,tab:"events",cat:"sponsors",urgent:true}); } }); }catch(e){}
+    try{ const gw=(state.sentinel.goalsWeek||[]).filter(g=>!g.done); if(gw.length) push({t:`You've got ${gw.length} weekly goal${gw.length>1?"s":""} open — pick one tiny next step? 🌷`,tab:"planner",cat:"goals"}); }catch(e){}
   } else {
     try{ const tg=foodTargets(); const tt=foodTotals(); const y=rangeRow(dayAgo(-1));
       const yp=y&&Array.isArray(y.food)&&y.food.length?y.food.reduce((a,f)=>a+Number(f.protein||0),0):null;
-      if(foodToday().length&&tt.protein<tg.protein&&yp!=null&&yp<tg.protein) push({t:"Protein's been low a couple of days — try adding more protein-rich meals today! 🥣",tab:"food"});
-      else if(foodToday().length&&tt.protein<tg.protein*0.6) push({t:"Protein's running low today — a protein-y snack could help! 🥣",tab:"food"});
+      if(foodToday().length&&tt.protein<tg.protein&&yp!=null&&yp<tg.protein) push({t:"Protein's been low a couple of days — try adding more protein-rich meals today! 🥣",tab:"food",cat:"protein"});
+      else if(foodToday().length&&tt.protein<tg.protein*0.6) push({t:"Protein's running low today — a protein-y snack could help! 🥣",tab:"food",cat:"protein"});
     }catch(e){}
-    const dG=ciDays("gym"); if(dG!=null&&dG>=3) push({t:"It's been a few days since the gym — how about a quick workout today? 💪",seed:"suggest a gentle quick workout for today"});
+    const dG=ciDays("gym"); if(dG!=null&&dG>=3) push({t:"It's been a few days since the gym — how about a quick workout today? 💪",seed:"suggest a gentle quick workout for today",cat:"gym"});
     const sl=sleepStreakUnder(7);
-    if(sl>=2) push({t:"Your sleep's been under 7 hours — try winding down a bit earlier tonight. 🌙",tab:"care"});
-    else { const s0=Number((state.today||{}).sleep); if(s0&&s0<7) push({t:"A short night — maybe an earlier wind-down tonight? 🌙",tab:"care"}); }
-    const dW=ciDays("walk"); if(dW!=null&&dW>=3) push({t:"A tiny 10-minute walk today? It absolutely counts! 🚶",seed:"motivate me for a tiny 10-minute walk"});
-    try{ const avg=waterWeekAvg(); const goal=CUPS_PER_40OZ*2; if(avg!=null&&avg<goal*0.6) push({t:"Water's been low this week — a glass right now is a lovely start! 💧",tab:"food"}); }catch(e){}
+    if(sl>=2) push({t:"Your sleep's been under 7 hours — try winding down a bit earlier tonight. 🌙",tab:"care",cat:"sleep"});
+    else { const s0=Number((state.today||{}).sleep); if(s0&&s0<7) push({t:"A short night — maybe an earlier wind-down tonight? 🌙",tab:"care",cat:"sleep"}); }
+    const dW=ciDays("walk"); if(dW!=null&&dW>=3) push({t:"A tiny 10-minute walk today? It absolutely counts! 🚶",seed:"motivate me for a tiny 10-minute walk",cat:"walk"});
+    try{ const avg=waterWeekAvg(); const goal=CUPS_PER_40OZ*2; if(avg!=null&&avg<goal*0.6) push({t:"Water's been low this week — a glass right now is a lovely start! 💧",tab:"food",cat:"water"}); }catch(e){}
     try{ const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
-      if(di===0) push({t:"It's your Mounjaro day — want a reminder for tonight and a fresh injection site? 💉",seed:"remind me to take my Mounjaro shot tonight"}); } }catch(e){}
+      if(di===0) push({t:"It's your Mounjaro day — want a reminder for tonight and a fresh injection site? 💉",seed:"remind me to take my Mounjaro shot tonight",cat:"meds",urgent:true}); } }catch(e){}
     try{ const je=(state.sentinel.journalEntries||[]).map(e=>e.date); (state.range||[]).forEach(r=>{ if(r&&r.notes&&r.notes.journal&&String(r.notes.journal).trim())je.push(r.date); }); if((state.today||{}).journal&&String(state.today.journal).trim())je.push(TODAY);
       const lastJ=je.length?je.sort()[je.length-1]:null; const dj=lastJ?daysBetween(lastJ,TODAY):null;
-      if(dj==null||dj>=5) push({t:"A soft journal entry might feel nice — want to do one with Kiko? 📓",seed:"let's journal"}); }catch(e){}
-    try{ const tg=foodTargets(), tt=foodTotals(); if(foodToday().length&&tt.fiber<tg.fiber*0.5) push({t:"Fibre's running low today — psyllium or some veggies could help. 🌿",tab:"food"}); }catch(e){}
-    try{ (state.sentinel.medsList||[]).forEach(m=>{ if(m.refill){ const dd=daysBetween(TODAY,m.refill); if(dd>=0&&dd<=5) push({t:`Your ${m.name} refill is coming up — worth sorting before you run low. 💊`,tab:"settings"}); } }); }catch(e){}
+      if(dj==null||dj>=5) push({t:"A soft journal entry might feel nice — want to do one with Kiko? 📓",seed:"let's journal",cat:"journal"}); }catch(e){}
+    try{ const tg=foodTargets(), tt=foodTotals(); if(foodToday().length&&tt.fiber<tg.fiber*0.5) push({t:"Fibre's running low today — psyllium or some veggies could help. 🌿",tab:"food",cat:"fiber"}); }catch(e){}
+    try{ (state.sentinel.medsList||[]).forEach(m=>{ if(m.refill){ const dd=daysBetween(TODAY,m.refill); if(dd>=0&&dd<=5) push({t:`Your ${m.name} refill is coming up — worth sorting before you run low. 💊`,tab:"settings",cat:"meds",urgent:true}); } }); }catch(e){}
   }
-  try{ memoryNudges(mode).forEach(o=>{ if(o&&o.focus)prio.push(o.focus); }); }catch(e){}
-  let out=[...prio,...F];
+  try{ memoryNudges(mode).forEach(o=>{ if(o&&o.focus)prio.push({...o.focus,cat:"memory"}); }); }catch(e){}
+  // learn from what she taps: float her engaged categories up; urgent/time-sensitive stay first
+  const Fr=F.map((f,i)=>({f,i})).sort((a,b)=> (a.f.urgent?0:1)-(b.f.urgent?0:1) || focusScore(b.f.cat)-focusScore(a.f.cat) || a.i-b.i).map(x=>x.f);
+  let out=[...prio,...Fr];
   // creator: top up with evergreen 5-minute content ideas so there's always real work here
   if(mode==="creator"&&out.length<3){ try{ evergreenCreatorFocus(3-out.length,out).forEach(f=>out.push(f)); }catch(e){} }
   out=out.slice(0,3);
   // never leave Suggested focus empty — anchor to today's open work
-  if(!out.length){ try{ const a=anchorFocus(mode); if(a&&a.focus)out.push(a.focus); }catch(e){} }
+  if(!out.length){ try{ const a=anchorFocus(mode); if(a&&a.focus)out.push({...a.focus,cat:"anchor"}); }catch(e){} }
   return out;
 }
 function glanceHeader(){ const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
@@ -1360,7 +1374,7 @@ function noticedCard(N){ return `<div class="gcard"><div class="sec-label">✨ K
 function focusCard(F){ F=(F||[]).slice(0,3);
   if(!F.length) return `<div class="gcard"><div class="sec-label">🌸 Suggested focus</div><p class="soft" style="font-size:12.5px;margin:0">No nudges today — follow your joy. ✨</p></div>`;
   return `<div class="gcard"><div class="sec-label">🌸 Suggested focus</div>
-    ${F.map(o=>`<button class="focus-row" data-act="focusGo" ${o.tab?`data-tab="${o.tab}"`:""} ${o.seed?`data-seed="${esc(o.seed)}"`:""} ${o.link?`data-link="${esc(o.link)}"`:""}><span class="kn-dot"></span><span class="grow" style="text-align:left">${esc(o.t)}</span><span class="fr-chev">›</span></button>`).join("")}</div>`; }
+    ${F.map(o=>`<button class="focus-row" data-act="focusGo" ${o.tab?`data-tab="${o.tab}"`:""} ${o.seed?`data-seed="${esc(o.seed)}"`:""} ${o.link?`data-link="${esc(o.link)}"`:""} ${o.cat?`data-cat="${esc(o.cat)}"`:""}><span class="kn-dot"></span><span class="grow" style="text-align:left">${esc(o.t)}</span><span class="fr-chev">›</span></button>`).join("")}</div>`; }
 function gameUpdatesCard(){
   const evs=(state.sentinel.calendarEvents||[]).filter(gameSrc).map(e=>({...e,days:daysBetween(TODAY,e.date)})).filter(e=>e.days>=0&&e.days<=14).sort((a,b)=>a.days-b.days).slice(0,6);
   return `<div class="gcard"><div class="sec-label">🎮 Game updates</div>
@@ -2694,6 +2708,7 @@ async function saveJournalEntry(J){
   if(!log.length) return;
   const entry={ id:"jr"+Date.now(), date:TODAY, ts:new Date().toISOString(), mode:J.mode||"ai", log };
   try{ await setSent(n=>({...n,journalEntries:[...(n.journalEntries||[]),entry]})); }catch(e){ console.error(e); }
+  try{ memPush("journal", log.filter(x=>x.who==="Mifu").map(x=>x.text).join(" "), 6); }catch(e){}
 }
 // gather Mifu's real data so the write-up can ground itself (never invents numbers)
 function journalWriteContext(){
@@ -4031,7 +4046,8 @@ const H={
         return {...n,mounjaro,medsTaken:mt}; }); }
     if(k==="sleep") await setToday(n=>({...n,sleep:on?8:0}));   // "slept well" = log 8h on the chart
     if(on)toast("checked in ✨"); render(); },
-  focusGo(el){ const s=el.dataset.seed, t=el.dataset.tab, l=el.dataset.link;
+  focusGo(el){ const s=el.dataset.seed, t=el.dataset.tab, l=el.dataset.link, c=el.dataset.cat;
+    if(c){ try{ setSent(n=>{ const fa={...(n.focusAffinity||{})}; const cur=fa[c]||{n:0}; fa[c]={n:(cur.n||0)+1,last:TODAY}; return {...n,focusAffinity:fa}; }); }catch(e){} }   // learn what she taps
     if(l){ window.open(l,"_blank","noopener"); return; }
     if(s){ H.kikoSeedAsk({dataset:{seed:s}}); return; }
     if(t){ setTab(t); } },
@@ -4477,7 +4493,7 @@ const H={
   async delGoal(el){ const key=el.dataset.p==='week'?'goalsWeek':'goalsMonth', id=el.dataset.v;
     const gw=$("#goalWeek"),gm=$("#goalMonth"); state.goalDraft={week:gw?gw.value:"",month:gm?gm.value:""};
     await setSent(n=>({...n,[key]:(n[key]||[]).filter(g=>g.id!==id)})); render(); },
-  async saveJournal(){ const t=$("#journalInput").value; await setToday(n=>({...n,journal:t})); toast("saved 🌙"); },
+  async saveJournal(){ const t=$("#journalInput").value; await setToday(n=>({...n,journal:t})); memPush("journal",t,6); toast("saved 🌙"); },
   schedEdit(){ state.schedEdit=!state.schedEdit; render(); },
   async addSched(){ const wk=weekStartISO(state.schedWeekOff||0); await setWeekSlots(wk,arr=>[...arr,{id:'sc'+Date.now(),day:'Mon',show:'',time:STREAM_TIME_DEFAULT}]); render(); },
   async delSched(el){ const id=el.dataset.v, wk=weekStartISO(state.schedWeekOff||0); await setWeekSlots(wk,arr=>arr.filter(r=>r.id!==id)); render(); },
@@ -5201,11 +5217,16 @@ async function logKikoActions(summaries){
 }
 /* reflection — Kiko quietly learns Mifu's durable preferences from the conversation (no retraining).
    He's shown what he ALREADY remembers so he never re-learns it; auto-facts are fuzzy-deduped and capped. */
+/* Tier 1A: push a piece of text into Kiko's semantic memory (best-effort, off the hot path).
+   Inert unless the server has OPENAI_API_KEY + the pgvector migration. */
+async function memPush(kind,text,importance){ try{ if(DEMO||!SB) return; const t=String(text||"").trim(); if(t.length<6) return; aiCall("memWrite",{kind:kind||"note",text:t.slice(0,2000),importance:importance||5}); }catch(e){} }
 async function kikoReflect(){
   try{ if(DEMO||!SB) return; const hist=KIKO.log.slice(-24).map(m=>({role:m.role,text:String(m.text||"").slice(0,400)}));
     if(hist.filter(h=>h.role==="me").length<2) return;   // need a little to learn from
     const known=(state.sentinel.kikoMemory||[]).slice(-40).map(m=>String(m.text||""));
-    const d=await aiCall("reflect",{history:hist, userModel:(state.sentinel.kikoUserModel||""), known});
+    let engagement="";   // what she actually taps on her dashboard — behaviour, not words (Tier 1B)
+    try{ const fa=state.sentinel.focusAffinity||{}; engagement=Object.entries(fa).map(([cat,a])=>({cat,n:(a&&a.n)||0,last:a&&a.last})).filter(e=>e.n>0).sort((x,y)=>y.n-x.n).slice(0,6).map(e=>`${e.cat} ×${e.n}${e.last&&daysBetween(e.last,TODAY)<=7?" (recent)":""}`).join(", "); }catch(_){}
+    const d=await aiCall("reflect",{history:hist, userModel:(state.sentinel.kikoUserModel||""), known, engagement});
     if(!d||d.error) return;
     const norm=t=>String(t||"").toLowerCase().replace(/[^\w\s]/g,"").replace(/\s+/g," ").trim();
     await queueSent(n=>{ const upd={...n};
@@ -5986,7 +6007,7 @@ setInterval(kikoProactive, 20*60*1000);
     if(!w) return;
     history.replaceState(null,"",location.pathname);
     if(w==="ok"){ setTimeout(async()=>{ try{ toast("Withings linked ❄️ pulling your measurements…"); const d=await aiCall("withingsSync",{}); if(d&&!d.error){ await loadData(); render(); toast(`synced ${d.days||0} day(s) 💗`); } else if(d&&d.error){ toast(d.error); } }catch(e){} }, 3500); }
-    else if(w==="err"){ setTimeout(()=>toast("Withings link didn't complete — try again 🌧️"),3000); }
+    else if(w==="err"){ const reason=p.get("reason"); setTimeout(()=>toast("Withings link didn't complete"+(reason?" — "+reason:"")+" 🌧️ (try the 🔍 Diagnose button on the Body page)"),3000); }
   }catch(e){}
 })();
 
