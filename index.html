@@ -18,6 +18,7 @@
   Self-tracking, not diagnosis — her care team's plan always comes first.
 ========================================================================== -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet" />
 <!-- Supabase is loaded lazily at boot, and only when CONFIG keys are set (see start() at the bottom). -->
 <style>
@@ -639,10 +640,16 @@ let demo = DEMO ? seedDemo() : null;
 
 /* ===================== UNDO (Ctrl/⌘+Z rolls back the last data change — persists across reloads) ===================== */
 let UNDO=[]; const UNDO_MAX=50; let UNDO_RESTORING=false; const UNDO_KEY="mifu-undo";
-function saveUndo(){ try{ let arr=UNDO.slice(-25);   // keep recent history small enough for localStorage
+function _saveUndoNow(){ try{ let arr=UNDO.slice(-25);   // keep recent history small enough for localStorage
   while(arr.length){ try{ localStorage.setItem(UNDO_KEY,JSON.stringify(arr)); return; }catch(e){ arr=arr.slice(1); } }
   localStorage.removeItem(UNDO_KEY);
 }catch(e){} }
+// PERF: each action used to JSON.stringify the whole 25-snapshot undo stack synchronously — heavy and
+// growing with her data. Coalesce those writes onto a short debounce (undo still works instantly in
+// memory), and flush on pagehide so nothing is lost when the tab/app closes.
+let _undoSaveT=null;
+function saveUndo(){ if(_undoSaveT) return; _undoSaveT=setTimeout(()=>{ _undoSaveT=null; _saveUndoNow(); },400); }
+addEventListener("pagehide",()=>{ if(_undoSaveT){ clearTimeout(_undoSaveT); _undoSaveT=null; } _saveUndoNow(); });
 function loadUndo(){ try{ const s=localStorage.getItem(UNDO_KEY); if(s){ const a=JSON.parse(s); if(Array.isArray(a)) UNDO=a; } }catch(e){} }
 loadUndo();
 async function undoLast(){
@@ -670,8 +677,20 @@ const DB = {
     return (data&&data.notes)||{};
   },
   async saveDaily(date,merge){
-    const cur=await DB.daily(date); const next=merge({...cur});
-    if(!UNDO_RESTORING){ try{ UNDO.push({date, prev:JSON.parse(JSON.stringify(cur||{}))}); if(UNDO.length>UNDO_MAX) UNDO.shift(); saveUndo(); }catch(e){} }
+    // PERF: the two hot rows (sentinel + today) are always kept current in memory, and any
+    // external write (Kiko agent, scale sync) triggers a full loadData(). So for those we merge
+    // against the cached copy instead of doing a network SELECT before every save — that removes
+    // one round-trip from every toggle/log. We clone first so a mutating merge can't corrupt
+    // state, and snapshot `prev` BEFORE merging so undo always captures the pre-change value.
+    const cached = (!DEMO && SB) ? (date===SENTINEL ? state.sentinel : (date===TODAY ? state.today : null)) : null;
+    const cur = cached ? JSON.parse(JSON.stringify(cached||{})) : await DB.daily(date);
+    const prev = JSON.parse(JSON.stringify(cur||{}));
+    const next=merge({...cur});
+    if(!UNDO_RESTORING){ try{ UNDO.push({date, prev}); if(UNDO.length>UNDO_MAX) UNDO.shift(); saveUndo(); }catch(e){} }
+    // Keep the in-memory copy of the two hot rows current so back-to-back saves (e.g. an agent
+    // running several actions) always merge against the latest value — not just the callers that
+    // remember to assign the return. This is what makes the cache-as-base path above safe.
+    if(date===SENTINEL) state.sentinel=next; else if(date===TODAY) state.today=next;
     if(DEMO){ demo[date]=next; return next; }
     if(!SB) return next;
     await SB.from("daily_logs").upsert({user_id:UID,date,notes:next},{onConflict:"user_id,date"});
@@ -3836,9 +3855,9 @@ function wireCalDnD(){
       const eid=dragEid||(e.dataTransfer&&e.dataTransfer.getData("text/plain"));
       const date=cell.dataset.date;
       if(!eid||!date)return;
-      await DB.saveDaily(SENTINEL,n=>{ const evs=(n.calendarEvents||[]).slice(); const t=evs.find(x=>x.id===eid);
+      state.sentinel=await DB.saveDaily(SENTINEL,n=>{ const evs=(n.calendarEvents||[]).slice(); const t=evs.find(x=>x.id===eid);
         if(t){ if(t.endDate&&t.endDate>t.date){ const delta=daysBetween(t.date,date); t.endDate=calShift(t.endDate,delta); } t.date=date; } return {...n,calendarEvents:evs}; });
-      state.sentinel=await DB.daily(SENTINEL); render();
+      render();
     });
   });
 }
@@ -4393,13 +4412,13 @@ const H={
     const endRaw=$("#calEndDate").value||null, time=$("#calTime").value, tz=$("#calTz").value, note=($("#calNote").value||"").trim(), url=($("#calUrl").value||"").trim();
     if(!title){ toast("give it a name 🌸"); return; }
     const endDate=(endRaw&&endRaw>date)?endRaw:null;
-    await DB.saveDaily(SENTINEL,n=>{ const evs=(n.calendarEvents||[]).slice();
+    state.sentinel=await DB.saveDaily(SENTINEL,n=>{ const evs=(n.calendarEvents||[]).slice();
       if(eid){ const t=evs.find(x=>x.id===eid); if(t){ t.title=title;t.date=date;t.endDate=endDate;t.color=CAL_COLOR;t.time=time;t.tz=tz;t.note=note;t.url=url; } }
       else { evs.push({id:uid(),title,date,endDate,color:CAL_COLOR,time,tz,note,url}); }
       return {...n,calendarEvents:evs}; });
-    state.sentinel=await DB.daily(SENTINEL); $("#modal").innerHTML=""; toast("saved 💗"); render();
+    $("#modal").innerHTML=""; toast("saved 💗"); render();
   },
-  async delCalEvent(el){ const eid=el.dataset.eid; await DB.saveDaily(SENTINEL,n=>({...n,calendarEvents:(n.calendarEvents||[]).filter(x=>x.id!==eid)})); state.sentinel=await DB.daily(SENTINEL); $("#modal").innerHTML=""; toast("removed"); render(); },
+  async delCalEvent(el){ const eid=el.dataset.eid; state.sentinel=await DB.saveDaily(SENTINEL,n=>({...n,calendarEvents:(n.calendarEvents||[]).filter(x=>x.id!==eid)})); $("#modal").innerHTML=""; toast("removed"); render(); },
   async setGameColor(el){ await setSent(n=>({...n,gameColor:el.dataset.v})); toast("colour set 🎮"); render(); },
   calToggleStreams(){ state.calShowStreams = !(state.calShowStreams!==false); render(); },
   calToggleGames(){ state.calShowGames = !(state.calShowGames!==false); render(); },
