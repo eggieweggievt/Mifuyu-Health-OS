@@ -527,9 +527,10 @@
   .spinner.lg{ width:30px; height:30px; border-width:3px; }
   @keyframes spin{ to{ transform:rotate(360deg);} }
   .loading-row{ display:inline-flex; align-items:center; gap:9px; color:var(--ink-soft); font-size:13px; }
-  /* keep a usable cue when motion is off */
-  @media (prefers-reduced-motion:reduce){ .skeleton{ background:#e7e4f0; } .spinner{ border-top-color:var(--peri-deep); opacity:.6; } }
+  /* keep a usable, non-"frozen-mid-spin" cue when motion is off — a uniform faint ring */
+  @media (prefers-reduced-motion:reduce){ .skeleton{ background:#e7e4f0; } .spinner{ border-color:rgba(117,138,198,.5); opacity:.75; } }
   body.calm .skeleton{ background:#e7e4f0; }
+  body.calm .spinner{ border-color:rgba(117,138,198,.5); }
   /* ---- EMPTY STATE ---- */
   .empty{ text-align:center; padding:28px 18px; color:var(--ink-soft); }
   .empty .empty-emoji{ font-size:30px; display:block; margin-bottom:8px; opacity:.92; }
@@ -577,6 +578,7 @@
   #view.mode-anim{ animation:modeSwap .26s var(--ease) both; }
   /* ---- Kiko chat: free corner resize, sticky-note style (desktop/iPad — mobile is a bottom sheet) ---- */
   #kikoChat .kiko-log{ height:auto; max-height:none; }   /* let the log flex so the window's real height is the size */
+  @media (min-width:641px){ #kikoChat{ max-height:none; } }   /* desktop/iPad: the inline free-resized height controls the size (mobile keeps its sheet cap) */
   .kchat-grip{ position:absolute; left:0; top:0; width:30px; height:30px; z-index:6; cursor:nwse-resize;
     touch-action:none; -webkit-touch-callout:none; border-radius:18px 0 0 0;
     background:linear-gradient(135deg, rgba(95,116,180,.34) 46%, transparent 46%); }
@@ -616,7 +618,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.14";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.16";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -5208,6 +5210,7 @@ async function endResize(){ window.removeEventListener('pointermove',onResize); 
   const el=resizeInfo.el, id=resizeInfo.id, w=el.offsetWidth, h=el.offsetHeight;
   await persistStickies((state.sentinel.stickies||[]).map(s=>s.id===id?{...s,w,h}:s)); resizeInfo=null; }
 window.addEventListener('resize',()=>renderStickies());
+window.addEventListener('resize',()=>{ try{ const c=$("#kikoChat"); if(c&&!c.classList.contains("hidden")){ applyKikoChatSize(c); positionKikoUI(); } }catch(e){} });   // keep the free-resized chat within the viewport on rotate/resize
 
 /* ===================== FLOATING TIMER (rest + pomodoro focus, pop-out) ===================== */
 const TIMER={ open:false, mode:"rest", running:false, iv:null, secs:300, total:300,
@@ -5309,7 +5312,7 @@ function positionKikoUI(){
   const k=$("#kiko"); if(k){ k.style.left=Math.round(kikoX)+"px"; k.style.bottom=Math.round(14+kikoY)+"px"; }
   const topY=Math.round(14+kikoY+KSPRH+8);
   const chat=$("#kikoChat");
-  if(chat && !chat.classList.contains("hidden")){ const cw=Math.min(Math.max(240,Number(localStorage.getItem("kiko-chat-w"))||310),window.innerWidth-16);   // her size, remembered
+  if(chat && !chat.classList.contains("hidden")){ const cw=(window.innerWidth>640&&chat.offsetWidth)?chat.offsetWidth:Math.min(Math.max(240,Number(localStorage.getItem("kiko-chat-w"))||310),window.innerWidth-16);   // desktop: actual free-resized width; mobile: original
     let cl=Math.round(kikoX-cw/2+KSPRW/2); cl=Math.max(8,Math.min(cl,window.innerWidth-cw-8));
     chat.style.left=cl+"px"; chat.style.right="auto"; chat.style.bottom=topY+"px"; }
   const bub=$("#kikoBubble");
@@ -5595,7 +5598,7 @@ function applyKikoChatSize(c){
   c=c||$("#kikoChat"); if(!c) return;
   if(window.innerWidth<=640){ c.style.width=""; c.style.height=""; return; }   // bottom sheet keeps its CSS size
   const w=Math.min(Math.max(260,Number(localStorage.getItem("kiko-chat-w"))||320),Math.round(window.innerWidth*0.94));
-  const h=Math.min(Math.max(300,Number(localStorage.getItem("kiko-chat-h"))||440),Math.round(window.innerHeight*0.86));
+  const h=Math.min(Math.max(300,Number(localStorage.getItem("kiko-chat-h2"))||440),Math.round(window.innerHeight*0.86));   // -h2: new key — the old "kiko-chat-h" stored LOG height, not window height
   c.style.width=w+"px"; c.style.height=h+"px";
 }
 /* sticky-note-style free corner resize (top-left grip; the window is bottom-anchored above Kiko, so it grows up & out) */
@@ -5610,7 +5613,7 @@ function wireKikoChatResize(c){
       const w=Math.min(Math.max(260, sw+(sx-ev.clientX)), Math.round(window.innerWidth*0.94));   // drag left → wider
       const h=Math.min(Math.max(300, sh+(sy-ev.clientY)), Math.round(window.innerHeight*0.86));   // drag up → taller
       c.style.width=w+"px"; c.style.height=h+"px";
-      localStorage.setItem("kiko-chat-w",String(Math.round(w))); localStorage.setItem("kiko-chat-h",String(Math.round(h)));
+      localStorage.setItem("kiko-chat-w",String(Math.round(w))); localStorage.setItem("kiko-chat-h2",String(Math.round(h)));
       positionKikoUI();
     };
     const up=()=>{ try{ g.releasePointerCapture(e.pointerId); }catch(_){} g.removeEventListener("pointermove",move); g.removeEventListener("pointerup",up); g.removeEventListener("pointercancel",up); };
