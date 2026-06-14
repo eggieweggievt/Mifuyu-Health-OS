@@ -502,22 +502,16 @@
   :focus:not(:focus-visible){ outline:none; }            /* no ring on mouse/touch, only keyboard */
   .inp:focus-visible{ outline:none; }                    /* inputs keep their own soft ring */
   .sr-only{ position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
-  /* ---- TACTILE POLISH — elevation on hover (transform stays owned by :active press-scale) ---- */
+  /* ---- TACTILE POLISH — whisper-subtle elevation on hover (iOS-minimal, no sheen) ---- */
   @media (hover:hover) and (pointer:fine){
     .btn:hover{ box-shadow:var(--elev-1); }
-    .btn-grad:hover{ box-shadow:0 8px 20px rgba(150,120,200,.32); }
-    .panel.interactive:hover, .soft-card.interactive:hover, .focus-row:hover{ box-shadow:var(--elev-2); }
-    .focus-row:hover{ background:#fdf3fb; }
-    .ci-btn:hover{ box-shadow:var(--elev-1); }
+    .btn-grad:hover{ box-shadow:0 3px 10px rgba(150,120,200,.18); }
+    .panel.interactive:hover, .soft-card.interactive:hover, .focus-row:hover{ box-shadow:var(--elev-1); }
+    .focus-row:hover{ background:#fdf6fb; }
   }
-  .panel.interactive, .soft-card.interactive, .focus-row{ transition:box-shadow var(--dur-2) var(--ease), background var(--dur-2) var(--ease), transform var(--dur-1) var(--ease); }
-  /* gradient buttons get a soft one-shot sheen sweep on hover */
-  .btn-grad{ position:relative; overflow:hidden; isolation:isolate; }
-  .btn-grad::after{ content:""; position:absolute; inset:0; z-index:-1; transform:translateX(-130%);
-    background:linear-gradient(120deg,transparent 32%,rgba(255,255,255,.38) 50%,transparent 68%); transition:transform .6s var(--ease); }
-  @media (hover:hover){ .btn-grad:hover::after{ transform:translateX(130%); } }
-  /* toast: gentle slide-up + fade (was opacity only) */
-  .toast{ transform:translateX(-50%) translateY(10px); transition:opacity var(--dur-3) var(--ease), transform var(--dur-3) var(--ease-spring); }
+  .panel.interactive, .soft-card.interactive, .focus-row{ transition:box-shadow var(--dur-2) var(--ease), background var(--dur-2) var(--ease); }
+  /* toast: small, smooth slide-up + fade — no spring/overshoot */
+  .toast{ transform:translateX(-50%) translateY(6px); transition:opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); }
   .toast.show{ transform:translateX(-50%) translateY(0); }
   /* ---- LOADING STATES ---- */
   .skeleton{ position:relative; overflow:hidden; background:#eceaf4; border-radius:10px; }
@@ -558,6 +552,37 @@
     .x{ min-width:34px; min-height:34px; display:inline-flex; align-items:center; justify-content:center; }
     .seg button{ padding:8px 13px; }
   }
+  /* ---- iPHONE-MINIMAL MOTION (overrides the bolder entrance/press animations above):
+     small distances, quick, smooth ease-out — no overshoot, no big stagger. Redefining
+     these keyframes by name replaces the earlier versions globally. ---- */
+  @keyframes viewFade{ from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+  @keyframes panelIn{ from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+  @keyframes softPop{ from{opacity:0;transform:translateY(3px) scale(.99)} to{opacity:1;transform:none} }
+  #view.anim{ animation:viewFade .24s var(--ease) both; }
+  #view.anim>*{ animation:panelIn .26s var(--ease) both; }
+  #view.anim>*:nth-child(2){ animation-delay:.02s }
+  #view.anim>*:nth-child(3){ animation-delay:.04s }
+  #view.anim>*:nth-child(4){ animation-delay:.05s }
+  #view.anim>*:nth-child(n+5){ animation-delay:.06s }
+  .modal{ animation:softPop .2s var(--ease); }
+  #kikoChat:not(.hidden){ animation:softPop .2s var(--ease); }
+  .modal-bg{ animation:fadeIn .14s ease; }
+  /* gentler, quicker press feedback (was scale .95–.96) */
+  .btn:active,.btn-grad:active{ transform:scale(.98); }
+  .tab:active{ transform:scale(.97); }
+  .scale button:active,.chiptog:active,.sitebtn:active{ transform:scale(.97); }
+  .pill{ transition:none; }
+  /* mode swap: smaller, quicker fade (was a 10px slide + scale over .45s) */
+  @keyframes modeSwap{ from{opacity:0;transform:translateY(5px);} to{opacity:1;transform:none;} }
+  #view.mode-anim{ animation:modeSwap .26s var(--ease) both; }
+  /* ---- Kiko chat: free corner resize, sticky-note style (desktop/iPad — mobile is a bottom sheet) ---- */
+  #kikoChat .kiko-log{ height:auto; max-height:none; }   /* let the log flex so the window's real height is the size */
+  .kchat-grip{ position:absolute; left:0; top:0; width:30px; height:30px; z-index:6; cursor:nwse-resize;
+    touch-action:none; -webkit-touch-callout:none; border-radius:18px 0 0 0;
+    background:linear-gradient(135deg, rgba(95,116,180,.34) 46%, transparent 46%); }
+  .kchat-grip::after{ content:"⤡"; position:absolute; left:5px; top:3px; font-size:11px; color:#fff; opacity:.95; }
+  @media (hover:hover){ .kchat-grip:hover{ background:linear-gradient(135deg, rgba(95,116,180,.58) 46%, transparent 46%); } }
+  @media (max-width:640px){ .kchat-grip{ display:none; } }
 </style>
 </head>
 <body>
@@ -591,7 +616,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.13";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.14";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -5555,9 +5580,9 @@ function paintKiko(){
   if(KIKO.log.length){ const li=KIKO.log.length-1, last=KIKO.log[li];
     if(last.role==="pet" && KIKO._spoken!==li){ KIKO._spoken=li; speakKiko(stripMd(last.text)); } }
   const c=$("#kikoChat");
-  if(c){ c.innerHTML=`<div id="kikoChatGrip" title="drag to resize">⤡</div><div class="kiko-head"><div class="kiko-av"></div><div style="flex:1;padding-left:14px"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoMaximize" title="open Ask Kiko">⤢</button><button class="x" data-act="kikoToggle" title="close">✕</button></div>
+  if(c){ c.innerHTML=`<div class="kchat-grip" data-kresize="1" title="drag to resize" aria-label="Resize chat" role="separator"></div><div class="kiko-head"><div class="kiko-av"></div><div style="flex:1;padding-left:14px"><div style="font-family:var(--display);font-size:14px">Kiko ❄️</div><div class="label">your snowfox helper</div></div><button class="x" data-act="kikoMaximize" title="open Ask Kiko">⤢</button><button class="x" data-act="kikoToggle" title="close">✕</button></div>
     ${kikoChatInner("kikoInput","kikoFile","kikoLog")}`;
-    c.style.setProperty("--kchat-h",Math.min(Math.max(200,Number(localStorage.getItem("kiko-chat-h"))||300),Math.round(window.innerHeight*0.72))+"px");
+    applyKikoChatSize(c);
     wireKikoChatResize(c); }
   const tc=$("#kikoTabChat"); if(tc){ tc.innerHTML=kikoChatInner("kikoTabInput","kikoTabFile","kikoTabLog"); }
   const log=$("#kikoLog"); if(log) log.scrollTop=log.scrollHeight;
@@ -5565,19 +5590,30 @@ function paintKiko(){
   const inp=kikoInputEl(); if(inp&&!KIKO.busy&&window.matchMedia&&matchMedia("(pointer:fine)").matches) try{ inp.focus(); }catch(_){}   // don't pop the phone keyboard on every repaint
 }
 /* drag the ⤡ on the floating chat to resize it — size remembered per device */
+/* apply the remembered free size to the chat window (desktop/iPad only — mobile is a fixed bottom sheet) */
+function applyKikoChatSize(c){
+  c=c||$("#kikoChat"); if(!c) return;
+  if(window.innerWidth<=640){ c.style.width=""; c.style.height=""; return; }   // bottom sheet keeps its CSS size
+  const w=Math.min(Math.max(260,Number(localStorage.getItem("kiko-chat-w"))||320),Math.round(window.innerWidth*0.94));
+  const h=Math.min(Math.max(300,Number(localStorage.getItem("kiko-chat-h"))||440),Math.round(window.innerHeight*0.86));
+  c.style.width=w+"px"; c.style.height=h+"px";
+}
+/* sticky-note-style free corner resize (top-left grip; the window is bottom-anchored above Kiko, so it grows up & out) */
 function wireKikoChatResize(c){
-  const g=c.querySelector("#kikoChatGrip"); if(!g||g._wired)return; g._wired=true;
+  if(window.innerWidth<=640) return;                       // mobile bottom sheet → no free resize
+  const g=c.querySelector("[data-kresize]"); if(!g||g._wired) return; g._wired=true;
   g.addEventListener("pointerdown",e=>{
     e.preventDefault(); e.stopPropagation();
-    const sx=e.clientX, sy=e.clientY;
-    const sw=Math.max(240,Number(localStorage.getItem("kiko-chat-w"))||310);
-    const sh=Math.max(200,Number(localStorage.getItem("kiko-chat-h"))||300);
+    const sx=e.clientX, sy=e.clientY, sw=c.offsetWidth, sh=c.offsetHeight;
     try{ g.setPointerCapture(e.pointerId); }catch(_){}
-    const move=ev=>{ const w=Math.min(Math.max(240,sw+(sx-ev.clientX)),Math.round(window.innerWidth*0.92));
-      const h=Math.min(Math.max(200,sh+(sy-ev.clientY)),Math.round(window.innerHeight*0.72));
+    const move=ev=>{
+      const w=Math.min(Math.max(260, sw+(sx-ev.clientX)), Math.round(window.innerWidth*0.94));   // drag left → wider
+      const h=Math.min(Math.max(300, sh+(sy-ev.clientY)), Math.round(window.innerHeight*0.86));   // drag up → taller
+      c.style.width=w+"px"; c.style.height=h+"px";
       localStorage.setItem("kiko-chat-w",String(Math.round(w))); localStorage.setItem("kiko-chat-h",String(Math.round(h)));
-      c.style.setProperty("--kchat-h",Math.round(h)+"px"); positionKikoUI(); };
-    const up=()=>{ g.removeEventListener("pointermove",move); g.removeEventListener("pointerup",up); g.removeEventListener("pointercancel",up); };
+      positionKikoUI();
+    };
+    const up=()=>{ try{ g.releasePointerCapture(e.pointerId); }catch(_){} g.removeEventListener("pointermove",move); g.removeEventListener("pointerup",up); g.removeEventListener("pointercancel",up); };
     g.addEventListener("pointermove",move); g.addEventListener("pointerup",up); g.addEventListener("pointercancel",up);
   });
 }
