@@ -509,7 +509,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.4";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -1195,74 +1195,147 @@ function anchorFocus(mode){
     return {t:`Every habit's done today — rest is productive too. 🌙`,focus:{t:`You're all caught up — a slow, kind evening counts as a win. 🌙`,seed:"suggest a gentle relaxing way to wind down tonight"}};
   }
 }
-function kikoObservations(mode){
-  const O=[];
-  const prio=[];
-  if(mode==="creator"){
-    try{ gameDeadlineObs().forEach(o=>prio.push(o)); }catch(e){}
-    const dArt=ciDays("madeArt"); if(dArt!=null&&dArt>=7) O.push({t:`You haven't drawn in ${dArt} days. 🎨`,focus:{t:"Kiko noticed you haven't drawn in a while. Maybe it's time to make some art together! 🎨",tab:"art"}});
-    const dYt=ciDays("ytVideo"); if(dYt!=null&&dYt>=7) O.push({t:`Your last YouTube upload was ${dYt} days ago. 🎥`,focus:{t:"Kiko noticed you haven't uploaded to YouTube recently. Did you check in with your editors? 🎥",seed:"help me draft a check-in message to my YouTube editors"}});
-    const dSh=ciDays("ytShort"); if(dSh!=null&&dSh>=7) O.push({t:`No Shorts upload in ${dSh} days. 🎬`,focus:{t:"Kiko noticed Shorts have been quiet — one clip from a recent VOD could be plenty! 🎬",tab:"script"}});
-    const dCv=ciDays("coverSong"); if(dCv!=null&&dCv>=7) O.push({t:`You haven't worked on your cover song recently. 🎤`,focus:{t:"Kiko suggests 30 gentle minutes of cover-song progress today. 🎤",seed:"help me plan a 30-minute cover song session for today"}});
-    const wkS=ciWeek("streamed"); const dStr=ciDays("streamed");
-    if(wkS>=3) O.push({t:`You've streamed ${wkS} days this week! 💜`});
-    else if(dStr!=null&&dStr>=4) O.push({t:`You haven't streamed in ${dStr} days. 📺`,focus:{t:"Kiko noticed a stream gap. Want to review this week's stream plans? 📺",tab:"optimize"}});
-    const dEm=ciDays("emails"); if(dEm!=null&&dEm>=5) O.push({t:`You haven't replied to emails in a while. ✉️`,focus:{t:"Kiko noticed you haven't replied to emails in a while. Maybe it's time to check in! ✉️",seed:"help me do a gentle 15-minute email triage"}});
-    const dSp=ciDays("sponsors"); if(dSp!=null&&dSp>=7) O.push({t:`Sponsorships haven't been touched in ${dSp} days. 🤝`,focus:{t:"Kiko suggests a quick look at sponsor opportunities. 🤝",tab:"money"}});
-    // ── deeper signals from the rest of her hub ──
-    try{ (state.sentinel.sponsors||[]).forEach(sp=>{ const nm=sp.name||sp.brand||"a sponsor"; if(sp.due&&sp.status!=="done"){ const dd=daysBetween(TODAY,sp.due);
-      if(dd<0) O.push({t:`${nm} deliverable was due ${-dd}d ago. 💼`,focus:{t:`The ${nm} deliverable is overdue — want to sort it or push the date? 💼`,tab:"events"}});
-      else if(dd<=3) O.push({t:`${nm} deliverable due ${dd===0?"today":dd===1?"tomorrow":"in "+dd+"d"}. 💼`,focus:{t:`A sponsor deliverable is coming up — block a little time? 💼`,tab:"events"}}); } }); }catch(e){}
-    try{ const gl=gachaList(), gc=(state.today||{}).gacha||{}; const left=gl.filter(g=>!gc[g.id]); if(gl.length&&left.length&&left.length<=3) O.push({t:`${left.length} gacha daily${left.length>1?"s":""} left: ${left.map(g=>g.name).join(", ")}. 🎮`}); }catch(e){}
-    try{ const wk=weekStartISO(0); const ge=(state.sentinel.calendarEvents||[]).filter(gameSrc).filter(e=>{const df=daysBetween(wk,e.date);return df>=0&&df<7&&e.date>=TODAY;}); if(ge.length) O.push({t:`${ge[0].title} this week — a fun stream? 🎮`,focus:{t:`${ge[0].title} lands this week — want it on your stream schedule? 🎮`,tab:"optimize"}}); }catch(e){}
-    try{ const gw=(state.sentinel.goalsWeek||[]).filter(g=>!g.done); if(gw.length) O.push({t:`${gw.length} weekly goal${gw.length>1?"s":""} still open. 🌷`,focus:{t:`You've got ${gw.length} weekly goal${gw.length>1?"s":""} open — pick one tiny next step? 🌷`,tab:"planner"}}); }catch(e){}
+/* ── correlation engine: genuine relationships Kiko spots in her own logs ──
+   Pearson over date-aligned daily metrics. Observations only (patterns, not proof,
+   never causal) — these are the heart of "Kiko noticed". */
+function kikoPearson(pairs){ const n=pairs.length; if(n<5) return null;
+  let sx=0,sy=0,sxx=0,syy=0,sxy=0; for(const p of pairs){ const x=p[0],y=p[1]; sx+=x;sy+=y;sxx+=x*x;syy+=y*y;sxy+=x*y; }
+  const cov=sxy-sx*sy/n, vx=sxx-sx*sx/n, vy=syy-sy*sy/n; if(vx<=1e-9||vy<=1e-9) return null;
+  return cov/Math.sqrt(vx*vy); }
+/* build one row per tracked day with every numeric signal aligned by date */
+function kikoCorrData(days){
+  const byDate={}; (state.range||[]).forEach(r=>{ if(r&&r.date)byDate[r.date]=r.notes||{}; }); byDate[TODAY]=state.today||{};
+  const wByDate={}; (state.sentinel.weightLog||[]).forEach(w=>{ if(w&&w.date&&w.w!=null)wByDate[w.date]=w; });
+  const setOf=k=>new Set(((state.sentinel.checkinLog||{})[k]||[]));
+  const streamSet=setOf("streamed"), artSet=setOf("madeArt");
+  (state.sentinel.artLog||[]).forEach(e=>{ if(e&&e.date)artSet.add(e.date); });
+  const rows=[];
+  for(let i=days-1;i>=0;i--){ const d=dayAgo(-i); const n=byDate[d]; if(!n)continue;
+    const food=(n.food||[]); const hasFood=food.length>0;
+    const protein=food.reduce((a,f)=>a+(+f.protein||0),0), fiber=food.reduce((a,f)=>a+(+f.fiber||0),0);
+    const w=wByDate[d];
+    rows.push({
+      water: n.mounjaro&&n.mounjaro.water!=null?+n.mounjaro.water:null,
+      nausea: n.mounjaro&&n.mounjaro.nausea!=null?+n.mounjaro.nausea:null,
+      sleep: n.sleep!=null?+n.sleep:null,
+      mood: n.mind&&n.mind.mood!=null?+n.mind.mood:null,
+      anxiety: n.mind&&n.mind.anxiety!=null?+n.mind.anxiety:null,
+      energy: n.mind&&n.mind.energy!=null?+n.mind.energy:null,
+      cravings: n.pcos&&n.pcos.cravings!=null?+n.pcos.cravings:null,
+      protein: hasFood?protein:null,
+      fiber: hasFood?fiber:null,
+      weight: w?+w.w:null,
+      streamed: streamSet.has(d)?1:0,
+      madeArt: artSet.has(d)?1:0,
+    });
+  }
+  return rows;
+}
+function kikoCorrelations(mode){
+  let rows; try{ rows=kikoCorrData(45); }catch(e){ return []; }
+  if(rows.length<5) return [];
+  const col=k=>rows.map(r=>r[k]);
+  const C=[];
+  const add=(a,b,opt)=>{ const A=col(a),B=col(b),pairs=[]; for(let i=0;i<rows.length;i++){ if(A[i]!=null&&B[i]!=null)pairs.push([A[i],B[i]]); }
+    const minN=opt.minN||5, thr=opt.thr||0.45; if(pairs.length<minN) return;
+    const r=kikoPearson(pairs); if(r==null) return;
+    if(r>=thr&&opt.pos) C.push({score:Math.abs(r),t:opt.pos});
+    else if(r<=-thr&&opt.neg) C.push({score:Math.abs(r),t:opt.neg}); };
+  if(mode!=="creator"){
+    add("water","weight",{pos:"💧 Your water and weight tend to rise and fall together — day-to-day water weight, completely harmless. ⚖️"});
+    add("water","nausea",{neg:"🥤 On your higher-water days, nausea tends to run lower."});
+    add("protein","nausea",{neg:"🍳 Protein-heavier days tend to come with less nausea for you."});
+    add("sleep","mood",{pos:"😴 Your longer-sleep nights tend to land with gentler moods."});
+    add("sleep","energy",{pos:"⚡ More sleep tends to show up as more energy the same day."});
+    add("anxiety","mood",{neg:"🌧️ Higher-anxiety days tend to dip your mood — those may deserve extra softness."});
+    add("water","energy",{pos:"💧 Your energy tends to be brighter on well-hydrated days."});
+    add("cravings","sleep",{neg:"🍩 Your cravings tend to be quieter after longer-sleep nights."});
+    add("fiber","cravings",{neg:"🌿 Higher-fibre days tend to come with quieter cravings."});
   } else {
-    try{ const tg=foodTargets(); const tt=foodTotals(); const y=rangeRow(dayAgo(-1));
-      const yp=y&&Array.isArray(y.food)&&y.food.length?y.food.reduce((a,f)=>a+Number(f.protein||0),0):null;
-      if(foodToday().length&&tt.protein<tg.protein&&yp!=null&&yp<tg.protein) O.push({t:`You haven't hit your protein goal the past 2 days. 🥣`,focus:{t:"Kiko noticed your protein has been low. Try adding more protein-rich meals today! 🥣",tab:"food"}});
-      else if(foodToday().length&&tt.protein<tg.protein*0.6) O.push({t:`Protein is at ${Math.round(tt.protein)}g of ${tg.protein}g so far today. 🥣`,focus:{t:"Kiko noticed protein is running low today — a protein-y snack could help! 🥣",tab:"food"}});
-    }catch(e){}
+    add("energy","streamed",{pos:"⚡ You tend to stream on your higher-energy days."});
+    add("mood","streamed",{pos:"💜 Your streams tend to land on your gentler-mood days."});
+    add("energy","madeArt",{pos:"🎨 Your art tends to happen on your higher-energy days."});
+    add("sleep","streamed",{pos:"😴 Your better-slept days tend to be your streaming days."});
+  }
+  C.sort((a,b)=>b.score-a.score);
+  return C.slice(0,3).map(c=>({t:c.t}));
+}
+/* ── Kiko noticed: trends, correlations & observations (NOT to-dos) ── */
+function kikoNoticed(mode){
+  const prio=[], O=[];
+  try{ kikoCorrelations(mode).forEach(o=>prio.push(o)); }catch(e){}
+  if(mode==="creator"){
+    try{ gameDeadlineObs().forEach(o=>{ if(o&&o.t)O.push({t:o.t}); }); }catch(e){}
+    try{ const wkS=ciWeek("streamed"); if(wkS>=3) O.push({t:`You've streamed ${wkS} days this week — lovely momentum! 💜`}); }catch(e){}
+    try{ const gl=(state.sentinel.goalsWeek||[]); const done=gl.filter(g=>g&&g.done).length; if(gl.length&&done&&done>=Math.ceil(gl.length/2)) O.push({t:`You've cleared ${done}/${gl.length} weekly goals — over halfway. 🌷`}); }catch(e){}
+    try{ const wk=weekStartISO(0); const ge=(state.sentinel.calendarEvents||[]).filter(gameSrc).filter(e=>{const df=daysBetween(wk,e.date);return df>=0&&df<7&&e.date>=TODAY;}); if(ge.length) O.push({t:`${ge[0].title} lands this week. 🎮`}); }catch(e){}
+  } else {
     try{ const wl=(state.sentinel.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort((a,b)=>a.date<b.date?-1:1); const u=CONFIG.weightUnit||"kg";
       if(wl.length>=2){ const d2=wl[wl.length-1].w-wl[wl.length-2].w;
         if(d2>=0.3) O.push({t:`Your weight is up ${d2.toFixed(1)} ${u} since your last weigh-in — day-to-day wobble is completely normal. ⚖️`});
         else if(d2<=-0.3) O.push({t:`Down ${Math.abs(d2).toFixed(1)} ${u} since your last weigh-in. 🌱`}); } }catch(e){}
-    const dG=ciDays("gym"); if(dG!=null&&dG>=3) O.push({t:`You haven't gone to the gym in ${dG} days. 💪`,focus:{t:"Kiko noticed you haven't been to the gym in a few days. How about a quick workout today? 💪",seed:"suggest a gentle quick workout for today"}});
-    const sl=sleepStreakUnder(7);
-    if(sl>=2) O.push({t:`Your sleep has been under 7 hours for ${sl} days. 😴`,focus:{t:"Kiko noticed your sleep has been under 7 hours. Try winding down a bit earlier tonight. 🌙",tab:"care"}});
-    else { const s0=Number((state.today||{}).sleep); if(s0&&s0<7) O.push({t:`You slept ${fmtSleep(s0)} last night. 😴`,focus:{t:"Kiko noticed a short night — maybe an earlier wind-down tonight? 🌙",tab:"care"}}); }
-    const dW=ciDays("walk"); if(dW!=null&&dW>=3) O.push({t:`No walks logged in ${dW} days. 🚶`,focus:{t:"Kiko suggests a tiny 10-minute walk today — it absolutely counts! 🚶",seed:"motivate me for a tiny 10-minute walk"}});
-    try{ const avg=waterWeekAvg(); const goal=CUPS_PER_40OZ*2; if(avg!=null&&avg<goal*0.6) O.push({t:`You've been drinking less water this week. 💧`,focus:{t:"Kiko noticed water has been low this week — a glass right now is a lovely start! 💧",tab:"food"}}); }catch(e){}
-    // ── deeper signals from the rest of her hub ──
-    try{ const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
-      if(di===0) O.push({t:`Today is your Mounjaro day. 💉`,focus:{t:"It's your Mounjaro day — want a reminder for tonight and a fresh injection site? 💉",seed:"remind me to take my Mounjaro shot tonight"}});
-      else if(di===1) O.push({t:`Your next Mounjaro shot is tomorrow. 💉`}); } }catch(e){}
     try{ const wl2=(state.sentinel.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1);
       const mu=wl2.filter(x=>x.muscle!=null), fa=wl2.filter(x=>x.fat!=null);
       if(mu.length>=2&&mu[mu.length-1].muscle>mu[0].muscle+0.2) O.push({t:`Your muscle is trending up since ${fmtDate(mu[0].date)}. 💪`});
       if(fa.length>=2&&fa[fa.length-1].fat<fa[0].fat-0.3) O.push({t:`Your body-fat % is trending down — the work is showing. 🌱`}); }catch(e){}
-    try{ const je=(state.sentinel.journalEntries||[]).map(e=>e.date); (state.range||[]).forEach(r=>{ if(r&&r.notes&&r.notes.journal&&String(r.notes.journal).trim())je.push(r.date); }); if((state.today||{}).journal&&String(state.today.journal).trim())je.push(TODAY);
-      const lastJ=je.length?je.sort()[je.length-1]:null; const dj=lastJ?daysBetween(lastJ,TODAY):null;
-      if(dj==null||dj>=5) O.push({t:`It's been a while since you journaled. 📓`,focus:{t:"A soft journal entry might feel nice — want to do one with Kiko? 📓",seed:"let's journal"}}); }catch(e){}
-    try{ const tg=foodTargets(), tt=foodTotals(); if(foodToday().length&&tt.fiber<tg.fiber*0.5) O.push({t:`Fibre is at ${Math.round(tt.fiber)}g of ${tg.fiber}g today. 🌿`,focus:{t:"Fibre's running low today — psyllium or some veggies could help. 🌿",tab:"food"}}); }catch(e){}
-    try{ (state.sentinel.medsList||[]).forEach(m=>{ if(m.refill){ const dd=daysBetween(TODAY,m.refill); if(dd>=0&&dd<=5) O.push({t:`${m.name} refill is ${dd===0?"today":"in "+dd+"d"}. 💊`,focus:{t:`Your ${m.name} refill is coming up — worth sorting before you run low. 💊`,tab:"settings"}}); } }); }catch(e){}
+    try{ const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
+      if(di===0) O.push({t:`Today is your Mounjaro day. 💉`});
+      else if(di===1) O.push({t:`Your next Mounjaro shot is tomorrow. 💉`}); } }catch(e){}
     try{ const c=state.sentinel.cycle||{}; if(c.lastStart){ const dx=daysBetween(c.lastStart,TODAY); if(dx>=45) O.push({t:`${dx} days since your last period — common with PCOS, but worth a gentle note for your doctor. 🌙`}); } }catch(e){}
     try{ const hl=habitsList(), hc=(state.today||{}).habits||{}; if(hl.length&&hl.every(h=>hc[h.id])) O.push({t:`All your daily habits are done today — lovely. ✨`}); }catch(e){}
   }
-  try{ memoryNudges(mode).forEach(o=>prio.push(o)); }catch(e){}
-  // user-priority signals (game deadlines + Kiko's notebook) lead, then the rest
-  let out=[...prio,...O].slice(0,8);
-  // never leave Suggested focus or Kiko noticed empty — anchor to today's open work
-  if(!out.some(o=>o&&o.focus)){ try{ const a=anchorFocus(mode); if(a)out.push(a); }catch(e){} }
+  return [...prio,...O].slice(0,6);
+}
+/* ── Suggested focus: actionable nudges from trends & gaps (content + health) ── */
+function suggestedFocus(mode){
+  const prio=[], F=[]; const push=f=>{ if(f&&f.t)F.push(f); };
+  if(mode==="creator"){
+    try{ gameDeadlineObs().forEach(o=>{ if(o&&o.focus)prio.push(o.focus); }); }catch(e){}
+    const dArt=ciDays("madeArt"); if(dArt!=null&&dArt>=7) push({t:"You haven't drawn in a while — maybe it's time to make some art together! 🎨",tab:"art"});
+    const dYt=ciDays("ytVideo"); if(dYt!=null&&dYt>=7) push({t:"It's been a while since a YouTube upload — want to check in with your editors? 🎥",seed:"help me draft a check-in message to my YouTube editors"});
+    const dSh=ciDays("ytShort"); if(dSh!=null&&dSh>=7) push({t:"Shorts have been quiet — one clip from a recent VOD could be plenty! 🎬",tab:"script"});
+    const dCv=ciDays("coverSong"); if(dCv!=null&&dCv>=7) push({t:"30 gentle minutes of cover-song progress today? 🎤",seed:"help me plan a 30-minute cover song session for today"});
+    const dStr=ciDays("streamed"); if(dStr!=null&&dStr>=4) push({t:"It's been a few days since a stream — want to review this week's plans? 📺",tab:"optimize"});
+    const dEm=ciDays("emails"); if(dEm!=null&&dEm>=5) push({t:"You haven't replied to emails in a while — a gentle 15-minute triage? ✉️",seed:"help me do a gentle 15-minute email triage"});
+    const dSp=ciDays("sponsors"); if(dSp!=null&&dSp>=7) push({t:"A quick look at sponsor opportunities? 🤝",tab:"money"});
+    try{ (state.sentinel.sponsors||[]).forEach(sp=>{ const nm=sp.name||sp.brand||"a sponsor"; if(sp.due&&sp.status!=="done"){ const dd=daysBetween(TODAY,sp.due);
+      if(dd<0) push({t:`The ${nm} deliverable is overdue — want to sort it or push the date? 💼`,tab:"events"});
+      else if(dd<=3) push({t:`A ${nm} deliverable is coming up — block a little time? 💼`,tab:"events"}); } }); }catch(e){}
+    try{ const gw=(state.sentinel.goalsWeek||[]).filter(g=>!g.done); if(gw.length) push({t:`You've got ${gw.length} weekly goal${gw.length>1?"s":""} open — pick one tiny next step? 🌷`,tab:"planner"}); }catch(e){}
+  } else {
+    try{ const tg=foodTargets(); const tt=foodTotals(); const y=rangeRow(dayAgo(-1));
+      const yp=y&&Array.isArray(y.food)&&y.food.length?y.food.reduce((a,f)=>a+Number(f.protein||0),0):null;
+      if(foodToday().length&&tt.protein<tg.protein&&yp!=null&&yp<tg.protein) push({t:"Protein's been low a couple of days — try adding more protein-rich meals today! 🥣",tab:"food"});
+      else if(foodToday().length&&tt.protein<tg.protein*0.6) push({t:"Protein's running low today — a protein-y snack could help! 🥣",tab:"food"});
+    }catch(e){}
+    const dG=ciDays("gym"); if(dG!=null&&dG>=3) push({t:"It's been a few days since the gym — how about a quick workout today? 💪",seed:"suggest a gentle quick workout for today"});
+    const sl=sleepStreakUnder(7);
+    if(sl>=2) push({t:"Your sleep's been under 7 hours — try winding down a bit earlier tonight. 🌙",tab:"care"});
+    else { const s0=Number((state.today||{}).sleep); if(s0&&s0<7) push({t:"A short night — maybe an earlier wind-down tonight? 🌙",tab:"care"}); }
+    const dW=ciDays("walk"); if(dW!=null&&dW>=3) push({t:"A tiny 10-minute walk today? It absolutely counts! 🚶",seed:"motivate me for a tiny 10-minute walk"});
+    try{ const avg=waterWeekAvg(); const goal=CUPS_PER_40OZ*2; if(avg!=null&&avg<goal*0.6) push({t:"Water's been low this week — a glass right now is a lovely start! 💧",tab:"food"}); }catch(e){}
+    try{ const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
+      if(di===0) push({t:"It's your Mounjaro day — want a reminder for tonight and a fresh injection site? 💉",seed:"remind me to take my Mounjaro shot tonight"}); } }catch(e){}
+    try{ const je=(state.sentinel.journalEntries||[]).map(e=>e.date); (state.range||[]).forEach(r=>{ if(r&&r.notes&&r.notes.journal&&String(r.notes.journal).trim())je.push(r.date); }); if((state.today||{}).journal&&String(state.today.journal).trim())je.push(TODAY);
+      const lastJ=je.length?je.sort()[je.length-1]:null; const dj=lastJ?daysBetween(lastJ,TODAY):null;
+      if(dj==null||dj>=5) push({t:"A soft journal entry might feel nice — want to do one with Kiko? 📓",seed:"let's journal"}); }catch(e){}
+    try{ const tg=foodTargets(), tt=foodTotals(); if(foodToday().length&&tt.fiber<tg.fiber*0.5) push({t:"Fibre's running low today — psyllium or some veggies could help. 🌿",tab:"food"}); }catch(e){}
+    try{ (state.sentinel.medsList||[]).forEach(m=>{ if(m.refill){ const dd=daysBetween(TODAY,m.refill); if(dd>=0&&dd<=5) push({t:`Your ${m.name} refill is coming up — worth sorting before you run low. 💊`,tab:"settings"}); } }); }catch(e){}
+  }
+  try{ memoryNudges(mode).forEach(o=>{ if(o&&o.focus)prio.push(o.focus); }); }catch(e){}
+  let out=[...prio,...F].slice(0,3);
+  // never leave Suggested focus empty — anchor to today's open work
+  if(!out.length){ try{ const a=anchorFocus(mode); if(a&&a.focus)out.push(a.focus); }catch(e){} }
   return out;
 }
 function glanceHeader(){ const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
   return `<div class="glance-head"><span class="glance-fox">🦊</span><div><h2>${greeting()}, ${esc(CONFIG.creator.name)}! 🌸</h2><div class="label" style="margin-top:3px">${d} • Today at a Glance</div></div></div>`; }
-function noticedCard(O){ return `<div class="gcard"><div class="sec-label">✨ Kiko noticed</div>
-  ${O.length?O.map(o=>`<div class="kn-row"><span class="kn-dot"></span><span>${esc(o.t)}</span></div>`).join(""):`<p class="soft" style="font-size:12.5px;margin:0">Nothing to flag — you're all caught up across everything Kiko can see. ❄️</p>`}</div>`; }
-function focusCard(O){ const F=O.filter(o=>o.focus).slice(0,3);
+function noticedCard(N){ return `<div class="gcard"><div class="sec-label">✨ Kiko noticed</div>
+  ${N.length?N.map(o=>`<div class="kn-row"><span class="kn-dot"></span><span>${esc(o.t)}</span></div>`).join(""):`<p class="soft" style="font-size:12.5px;margin:0">No clear patterns yet — a few more tracked days and Kiko will start spotting trends and connections for you. ❄️</p>`}</div>`; }
+function focusCard(F){ F=(F||[]).slice(0,3);
   if(!F.length) return `<div class="gcard"><div class="sec-label">🌸 Suggested focus</div><p class="soft" style="font-size:12.5px;margin:0">No nudges today — follow your joy. ✨</p></div>`;
   return `<div class="gcard"><div class="sec-label">🌸 Suggested focus</div>
-    ${F.map(o=>`<button class="focus-row" data-act="focusGo" ${o.focus.tab?`data-tab="${o.focus.tab}"`:""} ${o.focus.seed?`data-seed="${esc(o.focus.seed)}"`:""}><span class="kn-dot"></span><span class="grow" style="text-align:left">${esc(o.focus.t)}</span><span class="fr-chev">›</span></button>`).join("")}</div>`; }
+    ${F.map(o=>`<button class="focus-row" data-act="focusGo" ${o.tab?`data-tab="${o.tab}"`:""} ${o.seed?`data-seed="${esc(o.seed)}"`:""}><span class="kn-dot"></span><span class="grow" style="text-align:left">${esc(o.t)}</span><span class="fr-chev">›</span></button>`).join("")}</div>`; }
 function gameUpdatesCard(){
   const evs=(state.sentinel.calendarEvents||[]).filter(gameSrc).map(e=>({...e,days:daysBetween(TODAY,e.date)})).filter(e=>e.days>=0&&e.days<=14).sort((a,b)=>a.days-b.days).slice(0,6);
   return `<div class="gcard"><div class="sec-label">🎮 Game updates</div>
@@ -1302,11 +1375,12 @@ function viewHome(){
     </div>${DISCLAIMER}`;
   }
   const creator=OS_MODE!=="health";
-  const O=kikoObservations(creator?"creator":"health");
+  const _md=creator?"creator":"health";
+  const N=kikoNoticed(_md), F=suggestedFocus(_md);
   const glance=`<section class="panel">
     ${glanceHeader()}
-    <div class="glance-cols">${creator?gameUpdatesCard():healthSnapshotCard()}${noticedCard(O)}</div>
-    <div style="margin-top:12px">${focusCard(O)}</div>
+    <div class="glance-cols">${creator?gameUpdatesCard():healthSnapshotCard()}${noticedCard(N)}</div>
+    <div style="margin-top:12px">${focusCard(F)}</div>
     <p class="got-this">You've got this, ${esc(CONFIG.creator.name)}! ✨</p>
   </section>`;
   const items=creator?[
