@@ -508,7 +508,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-13.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.1";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -1052,6 +1052,12 @@ const CI_DEFS={
   creator:[["streamed","📺","Streamed Today"],["ytVideo","▶️","Uploaded YouTube Video"],["ytShort","🎬","Uploaded YouTube Short"],["madeArt","🎨","Made Art"],["coverSong","🎤","Worked on Cover Song"],["emails","✉️","Replied to Emails"],["sponsors","🤝","Worked on Sponsorships"]],
   health:[["medsAM","💊","Took Meds AM"],["medsPM","💊","Took Meds PM"],["weighed","⚖️","Weighed In"],["journaled","📓","Journaled"],["gym","🏋️","Went to Gym"],["walk","🚶","Walked a Bit"],["water","💧","Drank Water"],["sleep","😴","Slept Well"]]
 };
+/* meds classified AM vs PM by their time text — drives the AM/PM check-in linking */
+function medPeriod(m){ const t=String((m&&m.time)||"").toLowerCase();
+  if(/\b(pm|night|evening|dinner|bed|bedtime|nighttime|supper|tea)\b/.test(t)) return "pm";
+  return "am"; }   // default to AM (morning/breakfast/anytime)
+const WATER_SUPP_NAMES=["electrolyte","creatine","collagen","psyllium"];   // her four morning-drink supplements (auto-tick with first water)
+function medsByPeriod(p){ return (state.sentinel.medsList||[]).filter(m=>medPeriod(m)===p); }
 /* some check-ins can be derived from data she already logs elsewhere — those light up on their own */
 function ciDerived(k){ const d=state.today||{};
   if(k==="madeArt") return (state.sentinel.artLog||[]).some(e=>e.date===TODAY);
@@ -1060,6 +1066,7 @@ function ciDerived(k){ const d=state.today||{};
   if(k==="medsPM") return !!(d.meds&&d.meds.pm);
   if(k==="weighed") return (state.sentinel.weightLog||[]).some(w=>w.date===TODAY&&w.w!=null);
   if(k==="water") return waterCups()>=CUPS_PER_40OZ;   // a full 40oz cup logged on Food counts
+  if(k==="sleep") return Number(d.sleep)>=7;            // a real sleep log lights it
   return false; }
 function ciOn(k){ return !!(((state.today||{}).checkins||{})[k])||ciDerived(k); }
 function ciDays(k){ if(ciOn(k))return 0;
@@ -1100,6 +1107,13 @@ function kikoObservations(mode){
     else if(dStr!=null&&dStr>=4) O.push({t:`You haven't streamed in ${dStr} days. 📺`,focus:{t:"Kiko noticed a stream gap. Want to review this week's stream plans? 📺",tab:"optimize"}});
     const dEm=ciDays("emails"); if(dEm!=null&&dEm>=5) O.push({t:`You haven't replied to emails in a while. ✉️`,focus:{t:"Kiko noticed you haven't replied to emails in a while. Maybe it's time to check in! ✉️",seed:"help me do a gentle 15-minute email triage"}});
     const dSp=ciDays("sponsors"); if(dSp!=null&&dSp>=7) O.push({t:`Sponsorships haven't been touched in ${dSp} days. 🤝`,focus:{t:"Kiko suggests a quick look at sponsor opportunities. 🤝",tab:"money"}});
+    // ── deeper signals from the rest of her hub ──
+    try{ (state.sentinel.sponsors||[]).forEach(sp=>{ const nm=sp.name||sp.brand||"a sponsor"; if(sp.due&&sp.status!=="done"){ const dd=daysBetween(TODAY,sp.due);
+      if(dd<0) O.push({t:`${nm} deliverable was due ${-dd}d ago. 💼`,focus:{t:`The ${nm} deliverable is overdue — want to sort it or push the date? 💼`,tab:"events"}});
+      else if(dd<=3) O.push({t:`${nm} deliverable due ${dd===0?"today":dd===1?"tomorrow":"in "+dd+"d"}. 💼`,focus:{t:`A sponsor deliverable is coming up — block a little time? 💼`,tab:"events"}}); } }); }catch(e){}
+    try{ const gl=gachaList(), gc=(state.today||{}).gacha||{}; const left=gl.filter(g=>!gc[g.id]); if(gl.length&&left.length&&left.length<=3) O.push({t:`${left.length} gacha daily${left.length>1?"s":""} left: ${left.map(g=>g.name).join(", ")}. 🎮`}); }catch(e){}
+    try{ const wk=weekStartISO(0); const ge=(state.sentinel.calendarEvents||[]).filter(gameSrc).filter(e=>{const df=daysBetween(wk,e.date);return df>=0&&df<7&&e.date>=TODAY;}); if(ge.length) O.push({t:`${ge[0].title} this week — a fun stream? 🎮`,focus:{t:`${ge[0].title} lands this week — want it on your stream schedule? 🎮`,tab:"optimize"}}); }catch(e){}
+    try{ const gw=(state.sentinel.goalsWeek||[]).filter(g=>!g.done); if(gw.length) O.push({t:`${gw.length} weekly goal${gw.length>1?"s":""} still open. 🌷`,focus:{t:`You've got ${gw.length} weekly goal${gw.length>1?"s":""} open — pick one tiny next step? 🌷`,tab:"planner"}}); }catch(e){}
   } else {
     try{ const tg=foodTargets(); const tt=foodTotals(); const y=rangeRow(dayAgo(-1));
       const yp=y&&Array.isArray(y.food)&&y.food.length?y.food.reduce((a,f)=>a+Number(f.protein||0),0):null;
@@ -1116,13 +1130,28 @@ function kikoObservations(mode){
     else { const s0=Number((state.today||{}).sleep); if(s0&&s0<7) O.push({t:`You slept ${fmtSleep(s0)} last night. 😴`,focus:{t:"Kiko noticed a short night — maybe an earlier wind-down tonight? 🌙",tab:"care"}}); }
     const dW=ciDays("walk"); if(dW!=null&&dW>=3) O.push({t:`No walks logged in ${dW} days. 🚶`,focus:{t:"Kiko suggests a tiny 10-minute walk today — it absolutely counts! 🚶",seed:"motivate me for a tiny 10-minute walk"}});
     try{ const avg=waterWeekAvg(); const goal=CUPS_PER_40OZ*2; if(avg!=null&&avg<goal*0.6) O.push({t:`You've been drinking less water this week. 💧`,focus:{t:"Kiko noticed water has been low this week — a glass right now is a lovely start! 💧",tab:"food"}}); }catch(e){}
+    // ── deeper signals from the rest of her hub ──
+    try{ const inj=(state.sentinel.injectionLog||[]).slice().sort((a,b)=>a.date<b.date?-1:1); if(inj.length){ const nd=new Date(inj[inj.length-1].date+"T00:00"); nd.setDate(nd.getDate()+7); const di=daysBetween(TODAY,nd.toLocaleDateString("en-CA"));
+      if(di===0) O.push({t:`Today is your Mounjaro day. 💉`,focus:{t:"It's your Mounjaro day — want a reminder for tonight and a fresh injection site? 💉",seed:"remind me to take my Mounjaro shot tonight"}});
+      else if(di===1) O.push({t:`Your next Mounjaro shot is tomorrow. 💉`}); } }catch(e){}
+    try{ const wl2=(state.sentinel.weightLog||[]).filter(x=>x).slice().sort((a,b)=>a.date<b.date?-1:1);
+      const mu=wl2.filter(x=>x.muscle!=null), fa=wl2.filter(x=>x.fat!=null);
+      if(mu.length>=2&&mu[mu.length-1].muscle>mu[0].muscle+0.2) O.push({t:`Your muscle is trending up since ${fmtDate(mu[0].date)}. 💪`});
+      if(fa.length>=2&&fa[fa.length-1].fat<fa[0].fat-0.3) O.push({t:`Your body-fat % is trending down — the work is showing. 🌱`}); }catch(e){}
+    try{ const je=(state.sentinel.journalEntries||[]).map(e=>e.date); (state.range||[]).forEach(r=>{ if(r&&r.notes&&r.notes.journal&&String(r.notes.journal).trim())je.push(r.date); }); if((state.today||{}).journal&&String(state.today.journal).trim())je.push(TODAY);
+      const lastJ=je.length?je.sort()[je.length-1]:null; const dj=lastJ?daysBetween(lastJ,TODAY):null;
+      if(dj==null||dj>=5) O.push({t:`It's been a while since you journaled. 📓`,focus:{t:"A soft journal entry might feel nice — want to do one with Kiko? 📓",seed:"let's journal"}}); }catch(e){}
+    try{ const tg=foodTargets(), tt=foodTotals(); if(foodToday().length&&tt.fiber<tg.fiber*0.5) O.push({t:`Fibre is at ${Math.round(tt.fiber)}g of ${tg.fiber}g today. 🌿`,focus:{t:"Fibre's running low today — psyllium or some veggies could help. 🌿",tab:"food"}}); }catch(e){}
+    try{ (state.sentinel.medsList||[]).forEach(m=>{ if(m.refill){ const dd=daysBetween(TODAY,m.refill); if(dd>=0&&dd<=5) O.push({t:`${m.name} refill is ${dd===0?"today":"in "+dd+"d"}. 💊`,focus:{t:`Your ${m.name} refill is coming up — worth sorting before you run low. 💊`,tab:"settings"}}); } }); }catch(e){}
+    try{ const c=state.sentinel.cycle||{}; if(c.lastStart){ const dx=daysBetween(c.lastStart,TODAY); if(dx>=45) O.push({t:`${dx} days since your last period — common with PCOS, but worth a gentle note for your doctor. 🌙`}); } }catch(e){}
+    try{ const hl=habitsList(), hc=(state.today||{}).habits||{}; if(hl.length&&hl.every(h=>hc[h.id])) O.push({t:`All your daily habits are done today — lovely. ✨`}); }catch(e){}
   }
-  return O.slice(0,6);
+  return O.slice(0,8);
 }
 function glanceHeader(){ const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
   return `<div class="glance-head"><span class="glance-fox">🦊</span><div><h2>${greeting()}, ${esc(CONFIG.creator.name)}! 🌸</h2><div class="label" style="margin-top:3px">${d} • Today at a Glance</div></div></div>`; }
 function noticedCard(O){ return `<div class="gcard"><div class="sec-label">✨ Kiko noticed</div>
-  ${O.length?O.map(o=>`<div class="kn-row"><span class="kn-dot"></span><span>${o.t}</span></div>`).join(""):`<p class="soft" style="font-size:12.5px;margin:0">Nothing to flag — you're all caught up. Kiko only says what your own check-ins say. ❄️</p>`}</div>`; }
+  ${O.length?O.map(o=>`<div class="kn-row"><span class="kn-dot"></span><span>${o.t}</span></div>`).join(""):`<p class="soft" style="font-size:12.5px;margin:0">Nothing to flag — you're all caught up across everything Kiko can see. ❄️</p>`}</div>`; }
 function focusCard(O){ const F=O.filter(o=>o.focus).slice(0,3);
   if(!F.length) return `<div class="gcard"><div class="sec-label">🌸 Suggested focus</div><p class="soft" style="font-size:12.5px;margin:0">No nudges today — follow your joy. ✨</p></div>`;
   return `<div class="gcard"><div class="sec-label">🌸 Suggested focus</div>
@@ -1144,7 +1173,7 @@ function healthSnapshotCard(){
   try{ if(foodToday().length){ const tg=foodTargets(), tt=foodTotals(); rows.push(hsBar("Protein Goal",Math.round(tt.protein)+" / "+tg.protein+"g",tt.protein/tg.protein,"linear-gradient(90deg,var(--sakura),var(--sakura-deep))")); } }catch(e){}
   const cups=waterCups(), goalC=CUPS_PER_40OZ*2, L=c=>(c*0.2366);
   rows.push(hsBar("Water Intake",L(cups).toFixed(1)+" / "+L(goalC).toFixed(1)+" L",cups/goalC,"linear-gradient(90deg,var(--ice),var(--peri))"));
-  const meds=(state.sentinel.medsList||[]); if(meds.length){ const mt=((state.today||{}).health&&state.today.health.meds)||{}; const dn=meds.filter(m2=>mt[m2.id]).length; rows.push(hsBar("Meds Today",dn+" / "+meds.length,dn/meds.length,"linear-gradient(90deg,var(--lav),var(--lav-deep))")); }
+  const meds=(state.sentinel.medsList||[]); if(meds.length){ const mt=(state.today||{}).medsTaken||{}; const dn=meds.filter(m2=>mt[m2.id]).length; rows.push(hsBar("Meds Today",dn+" / "+meds.length,dn/meds.length,"linear-gradient(90deg,var(--lav),var(--lav-deep))")); }
   const sl=Number((state.today||{}).sleep); if(sl) rows.push(hsBar("Sleep",fmtSleep(sl),Math.min(1,sl/8),"linear-gradient(90deg,var(--lav),var(--peri))"));
   return `<div class="gcard"><div class="sec-label">💗 Today's health snapshot</div>
     ${rows.length?rows.join(""):'<p class="soft" style="font-size:12.5px;margin:0">Log a weigh-in, a meal, or some water and your snapshot appears here. ❄️</p>'}
@@ -2342,7 +2371,7 @@ function cardFoodCheckoffs(){
   const meds=(state.today&&state.today.meds)||{}; const w40=water40();
   const medBtn=(part,lbl)=>`<button class="chiptog ${meds[part]?'on':''}" data-act="medToggle" data-v="${part}"><span>${meds[part]?'✓':'＋'}</span>${lbl}</button>`;
   const list=(state.sentinel.medsList||[]); const taken=(state.today&&state.today.medsTaken)||{};
-  const perMed=list.length?`<details class="acc" style="margin:0 0 10px"><summary style="font-size:12px">by medication (${list.filter(m=>taken[m.id]).length}/${list.length} taken)</summary><div style="margin-top:6px">${list.map(m=>{ const refillSoon=m.refill&&daysBetween(TODAY,m.refill)<=7&&daysBetween(TODAY,m.refill)>=0;
+  const perMed=list.length?`<details id="foodMedsDetails" class="acc" style="margin:0 0 10px" ${state.foodMedsOpen?'open':''}><summary style="font-size:12px">by medication (${list.filter(m=>taken[m.id]).length}/${list.length} taken)</summary><div style="margin-top:6px">${list.map(m=>{ const refillSoon=m.refill&&daysBetween(TODAY,m.refill)<=7&&daysBetween(TODAY,m.refill)>=0;
       return `<div class="listrow"><button class="x" data-act="medTake" data-v="${m.id}" style="font-size:16px;color:${taken[m.id]?'var(--mint,#2f9d79)':'var(--muted)'}">${taken[m.id]?'●':'○'}</button><span class="grow" style="font-size:12.5px;${taken[m.id]?'text-decoration:line-through;opacity:.6':''}">${esc(m.name)} <span class="soft" style="font-size:11px">${esc(m.dose||'')}${m.time?' · '+esc(m.time):''}</span></span>${refillSoon?`<span class="pill" style="background:#fdebd9;color:#b4764a;font-size:9px">refill ${fmtDate(m.refill)}</span>`:''}</div>`; }).join("")}</div></details>`:'';
   return `<section class="panel">
     <div class="card-head"><span class="label">✅ Daily check-offs</span></div>
@@ -2976,7 +3005,7 @@ function viewSettings(){
     <div class="card-head"><div class="label">💌 Wishlist for Eggie</div><span class="pill pill-gray">${(state.sentinel.eggieRequests||[]).filter(r=>r.status!=="done").length} open</span></div>
     <p class="soft" style="font-size:12px;margin:0 0 8px">Want something new or different in your OS? Just tell Kiko — <b>"note for Eggie: …"</b> — and it lands here for Eggie to pick up and build. 💗</p>
     ${(state.sentinel.eggieRequests||[]).slice().reverse().map(r=>`<div class="listrow"><span class="grow" style="font-size:12.5px">${esc(r.text)} <span class="soft" style="font-size:10.5px">· ${fmtDate(r.date)}${r.tab?" · from "+esc(r.tab):""}</span></span><span class="pill ${r.status==="done"?"pill-mint":"pill-lav"}">${r.status==="done"?"done ✓":"noted"}</span><button class="x" data-act="delEggieReq" data-v="${r.id}">✕</button></div>`).join("")||'<p class="soft" style="font-size:12px">Nothing yet — wish away ✨</p>'}
-    ${(state.sentinel.eggieRequests||[]).length?`<button class="btn" data-act="copyEggieReqs" style="margin-top:10px">📋 copy the list for Eggie</button>`:''}
+    ${(state.sentinel.eggieRequests||[]).length?`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" data-act="copyEggieReqs">📋 copy the list for Eggie</button><button class="btn" data-act="clearEggieReqs" title="Eggie's actioned these — clear the list to start fresh">🧹 clear actioned notes</button></div>`:''}
   </section>
 
   <section class="panel">
@@ -3329,7 +3358,6 @@ function viewScript(){
       ${(out.hooks&&out.hooks.length)?`<div class="label">${tw?'opening-line options':'hook options'}</div>${out.hooks.map(h=>`<div style="display:flex;gap:8px;align-items:flex-start;margin:4px 0"><span class="grow" style="font-size:12.5px">${esc(h)}</span><button class="btn" data-act="scrCopyHook" data-t="${esc(h)}" style="padding:2px 8px">copy</button></div>`).join("")}`:""}
       <div class="label" style="margin-top:10px">${bodyLabel}${out.title?` · <span class="soft">${esc(out.title)}</span>`:""}${tw?` <span class="soft" style="font-weight:500">· ${chars} char${chars===1?'':'s'}${chars>280?' (thread)':''}</span>`:""} <button class="btn" data-act="scrCopyScript" style="padding:2px 8px;margin-left:6px">copy ${bodyLabel}</button></div>
       <div id="scrScript" style="white-space:pre-wrap;font-size:13px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:4px;background:#fff">${esc(out.script||"")}</div>
-      ${(out.hashtags&&out.hashtags.length)?`<div class="label" style="margin-top:10px">hashtags <span class="soft" style="font-weight:500">· 1 small · 2 medium · 2 large</span> <button class="btn" data-act="scrCopyTags" data-t="${esc(out.hashtags.join(' '))}" style="padding:2px 8px;margin-left:6px">copy</button></div><div style="font-size:12.5px;margin-top:4px">${out.hashtags.map(esc).join(" ")}</div>`:""}
       ${out.cta?`<div class="label" style="margin-top:8px">${tw?'closing line':'CTA'}</div><div class="soft" style="font-size:12.5px">${esc(out.cta)}</div>`:""}
     </div>` : "";
   const kpill=k=>k==='long'?['pill-lav','LF']:k==='twitter'?['pill-ice','X']:['pill-sak','SF'];
@@ -3337,7 +3365,7 @@ function viewScript(){
   return `<div style="max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
     <section class="panel">
       <div class="card-head"><h2 style="font-size:18px">✍️ Script writer</h2>${seg}</div>
-      <p class="soft" style="font-size:12.5px;margin:0 0 12px">${tw?"Talk out your idea (or paste notes) — I'll shape it into an X/Twitter post in your voice, with opening-line options and hashtags (1 small · 2 medium · 2 large). ❄️🦊":`Drop in your research, then just talk it out — I'll shape your own words into your ${kindWord} format, in your voice. ❄️🦊`}${DEMO?` <b>(Deploy the ai function &amp; turn demo off to format.)</b>`:""}</p>
+      <p class="soft" style="font-size:12.5px;margin:0 0 12px">${tw?"Talk out your idea (or paste notes) — I'll shape it into an X/Twitter post in your voice, with a few opening-line options. ❄️🦊":`Drop in your research, then just talk it out — I'll shape your own words into your ${kindWord} format, in your voice. ❄️🦊`}${DEMO?` <b>(Deploy the ai function &amp; turn demo off to format.)</b>`:""}</p>
       <div class="label">Working title <span class="soft">· optional</span></div>
       <input class="inp" id="scrTitle" value="${esc(s.title||"")}" placeholder="${tw?'e.g. one year of being a little snowfox 🦊':'e.g. I tried cozy gaming on a $0 setup'}" />
       <div class="label" style="margin-top:10px">Research / references <span class="soft">· paste facts, links, notes</span></div>
@@ -3454,6 +3482,20 @@ function creatorTools(){
   </section>`;
   return draft+debrief;
 }
+/* her reusable YouTube description template — saved in the DB, auto-appended to every generated description */
+function descTemplate(){ const t=state.sentinel&&state.sentinel.descTemplate; return (t!=null&&t!=="")?t:CONFIG.descFooter; }
+function descTemplateCard(){
+  const t=descTemplate(); const custom=!!(state.sentinel&&state.sentinel.descTemplate);
+  return `<section class="panel">
+    <div class="card-head"><span class="label">📋 Description template</span>${custom?'<span class="pill pill-mint">saved ✓</span>':'<span class="pill pill-gray">default</span>'}</div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Your standing block for long-form YouTube — dividers, your GamerSupps code, all your links. Kiko pastes this onto the end of every description it writes, exactly as typed. ✨</p>
+    <textarea class="inp" id="descTmpl" rows="9" style="font-size:12px;line-height:1.5" placeholder="━━━━━━━━━━━━━━━\n💜 GamerSupps — code MIFUYU for 10% off: …\n\n🔗 my links:\n▸ Twitch: …">${esc(t)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn btn-grad" data-act="saveDescTemplate">💾 save template</button>
+      ${custom?`<button class="btn" data-act="resetDescTemplate" title="go back to the built-in default">↺ reset to default</button>`:''}
+    </div>
+  </section>`;
+}
 function viewOptimize(){
   const m=OPT.mode;
   return `
@@ -3472,6 +3514,7 @@ function viewOptimize(){
   ${OPT.err?`<div class="disc">⚠️<span>${esc(OPT.err)}</span></div>`:''}
   ${m==='video'?(OPT.video?optVideoResult(OPT.video):''):(OPT.stream?optStreamResult(OPT.stream):'')}
   ${thumbCard()}
+  ${descTemplateCard()}
   ${creatorTools()}
   ${sponsorBlock()}
   <details class="acc" style="margin-top:14px"><summary>📺 Channel snapshot</summary><div class="acc-body">
@@ -3718,13 +3761,26 @@ function wireCalDnD(){
 function applyAppConfig(){ try{ const a=(state.sentinel&&state.sentinel.appConfig)||{};
   if(a.name)CONFIG.creator.name=a.name; if(a.greeting)CONFIG.creator.greeting=a.greeting;
   if(a.weightUnit)CONFIG.weightUnit=a.weightUnit; if(a.weightDisplay)CONFIG.weightDisplay=a.weightDisplay; }catch(e){} }
+let WITHINGS_AUTOSYNC_DONE=false;
 async function loadData(){
   state.sentinel = await DB.daily(SENTINEL);
   applyAppConfig();
   state.today = await DB.daily(TODAY);
   state.range = await DB.range(30);   // 30 days so the Trends 14d/30d toggle both have data
   state._loaded = true;
-
+  try{ withingsAutoSync(); }catch(e){}   // pull new weigh-ins from the scale in the background
+}
+/* automatic Withings sync — so new weigh-ins arrive without tapping "Sync from scale".
+   Runs once per session on load if connected and the last sync is over ~3h old. */
+async function withingsAutoSync(){
+  if(WITHINGS_AUTOSYNC_DONE || DEMO || !SB) return;
+  const w=(state.sentinel&&state.sentinel.withings)||null;
+  if(!w||!w.refresh_token) return;                         // not connected → nothing to do
+  const last=(w.lastSync||0)*1000; if(last && (Date.now()-last) < 3*3600*1000) return;   // synced recently
+  WITHINGS_AUTOSYNC_DONE=true;
+  try{ const d=await aiCall("withingsSync",{});
+    if(d&&!d.error&&(d.added||d.days)){ await loadData(); render(); if(d.added) toast(`📲 synced ${d.added} new weigh-in${d.added>1?"s":""} from your scale`); }
+  }catch(e){}
 }
 async function setToday(merge){ state.today=await DB.saveDaily(TODAY,n=>merge(n)); }
 async function setSent(merge){ state.sentinel=await DB.saveDaily(SENTINEL,n=>merge(n)); }
@@ -3758,7 +3814,15 @@ const H={
       if(on){ if(!arr.includes(TODAY))arr.push(TODAY); } else arr=arr.filter(d=>d!==TODAY);
       log[k]=arr.slice(-30); return {...n,checkinLog:log}; });
     if(k==="madeArt"&&on) await setSent(n=>{ const log=(n.artLog||[]).slice(); if(!log.some(x=>x.date===TODAY))log.push({date:TODAY,note:""}); return {...n,artLog:log.slice(-200)}; });
-    if(k==="medsAM"||k==="medsPM") await setToday(n=>({...n,meds:{...(n.meds||{}),[k==="medsAM"?"am":"pm"]:on}}));
+    if(k==="medsAM"||k==="medsPM"){ const part=k==="medsAM"?"am":"pm"; const ids=medsByPeriod(part).map(m=>m.id);
+      await setToday(n=>{ const mt={...(n.medsTaken||{})}; ids.forEach(id=>mt[id]=on);   // tick/untick that period's meds
+        return {...n,meds:{...(n.meds||{}),[part]:on},medsTaken:mt}; }); }
+    if(k==="water"){ await setToday(n=>{ const mounjaro={...(n.mounjaro||{})};
+        if(on) mounjaro.water=Math.max(mounjaro.water||0,CUPS_PER_40OZ);   // "drank water" = at least half her daily (1×40oz)
+        const mt={...(n.medsTaken||{})};
+        (state.sentinel.medsList||[]).forEach(m=>{ if(WATER_SUPP_NAMES.some(s=>String(m.name||"").toLowerCase().includes(s))) mt[m.id]=on; });   // her morning supplements ride with the first drink
+        return {...n,mounjaro,medsTaken:mt}; }); }
+    if(k==="sleep") await setToday(n=>({...n,sleep:on?8:0}));   // "slept well" = log 8h on the chart
     if(on)toast("checked in ✨"); render(); },
   focusGo(el){ const s=el.dataset.seed, t=el.dataset.tab;
     if(s){ H.kikoSeedAsk({dataset:{seed:s}}); return; }
@@ -3986,11 +4050,12 @@ const H={
     await setToday(n=>({...n,sleep:Math.max(0,Math.min(14,(n.sleep||0)+d))})); render(); },
   async medToggle(el){ const part=el.dataset.v;   // 'am' | 'pm' — both done ⇒ home "meds" habit ticks too
     await setToday(n=>{ const meds={...(n.meds||{})}; meds[part]=!meds[part]; const habits={...(n.habits||{})}; habits.h_meds=!!(meds.am&&meds.pm); return {...n,meds,habits}; }); render(); },
-  async medTake(el){ const id=el.dataset.v;   // per-medication daily check-off
-    const meds=(state.sentinel.medsList||[]);
-    await setToday(n=>{ const mt={...(n.medsTaken||{}),[id]:!(n.medsTaken||{})[id]}; const ex={};
-      if(meds.length&&meds.every(m=>mt[m.id])){ ex.habits={...(n.habits||{}),h_meds:true}; ex.meds={am:true,pm:true}; }   // all ticked → Home habit + AM/PM follow
-      return {...n,medsTaken:mt,...ex}; }); render(); },
+  async medTake(el){ const id=el.dataset.v;   // per-medication daily check-off — keeps Home AM/PM in sync both ways
+    const meds=(state.sentinel.medsList||[]), am=medsByPeriod("am"), pm=medsByPeriod("pm");
+    await setToday(n=>{ const mt={...(n.medsTaken||{}),[id]:!(n.medsTaken||{})[id]};
+      const amDone=am.length>0&&am.every(m=>mt[m.id]); const pmDone=pm.length>0&&pm.every(m=>mt[m.id]);
+      const habits={...(n.habits||{}),h_meds:!!(meds.length&&meds.every(m=>mt[m.id]))};
+      return {...n,medsTaken:mt,meds:{...(n.meds||{}),am:amDone,pm:pmDone},habits}; }); render(); },
 
   async saveHelps(){ const t=$("#helpsNote").value; await setSent(n=>({...n,helps:t})); toast("saved 💗"); },
 
@@ -4106,6 +4171,7 @@ const H={
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="mifuyu-health-backup-"+TODAY+".json"; a.click(); toast("backup downloaded 💾"); },
   // --- 💌 wishlist for Eggie ---
   async delEggieReq(el){ await setSent(n=>({...n,eggieRequests:(n.eggieRequests||[]).filter(r=>r.id!==el.dataset.v)})); toast("removed 💌"); render(); },
+  async clearEggieReqs(){ if(!confirm("Clear all notes for Eggie? (they've been actioned — this starts the list fresh)"))return; await setSent(n=>({...n,eggieRequests:[]})); toast("Eggie notes cleared — fresh start ✨"); render(); },
   copyEggieReqs(){ const rs=(state.sentinel.eggieRequests||[]); if(!rs.length)return;
     const t="MIFU'S WISHLIST FOR EGGIE — exported "+TODAY+"\n\n"+rs.map(r=>`• [${r.status||"new"}] ${r.date}${r.tab?" ("+r.tab+")":""}: ${r.text}`).join("\n");
     if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("copied — paste it to Eggie 💌"); },
@@ -4253,7 +4319,6 @@ const H={
   async delVoice(el){ const id=el.dataset.v; await setSent(n=>({...n,eqVoice:(n.eqVoice||[]).filter(e=>e.id!==id)})); teachModal("script"); },
   scrCopyHook(el){ const t=el.dataset.t||""; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("copied 💗"); },
   scrCopyScript(){ const el2=document.getElementById("scrScript"); if(el2&&navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(el2.innerText); toast("copied 💗"); },
-  scrCopyTags(el){ const t=el.dataset.t||""; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); toast("hashtags copied 💗"); },
   // --- birthdays + reminders ---
   scrollAgenda(){ const p=$("#agendaPanel"); if(p) p.scrollIntoView({behavior:"smooth",block:"center"}); },
   async addBirthday(){ const name=($("#bdayName").value||"").trim(); const dv=$("#bdayDate").value;
@@ -4492,11 +4557,13 @@ const H={
   async optVideo(){ const title=oval("ovTitle"),topic=oval("ovAbout"),format=oval("ovFormat"),platform=oval("ovPlatform"),vidiq=oval("optVidiq");
     if(!title&&!topic){ toast("add a title or topic first"); return; }
     OPT.busy="video"; OPT.err=""; render();
-    try{ OPT.video=await aiCall("optimize",{kind:"video",title,format,platform,topic,footer:CONFIG.descFooter}, vidiq||null); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+    try{ OPT.video=await aiCall("optimize",{kind:"video",title,format,platform,topic,footer:descTemplate()}, vidiq||null); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
   async optStream(){ const game=oval("osGame"),special=oval("osSpecial"),vidiq=oval("optVidiq"); if(!game){ toast("name the game/focus first"); return; }
     const topic=(OPT.drops?"DROPS ARE ACTIVE. ":"")+special;
     OPT.busy="stream"; OPT.err=""; render();
-    try{ OPT.stream=await aiCall("optimize",{kind:"livestream",title:game,topic,footer:CONFIG.descFooter}, vidiq||null); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+    try{ OPT.stream=await aiCall("optimize",{kind:"livestream",title:game,topic,footer:descTemplate()}, vidiq||null); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
+  async saveDescTemplate(){ const el=$("#descTmpl"); const t=el?el.value:""; await setSent(n=>({...n,descTemplate:t})); toast("description template saved 📋✨"); render(); },
+  async resetDescTemplate(){ await setSent(n=>({...n,descTemplate:""})); toast("back to the default template ↺"); render(); },
   async thumbCheck(){ if(!OPT.thumbData){ toast("upload a thumbnail first"); return; }
     const title=oval("ovTitle")||oval("osGame");
     OPT.busy="thumb"; OPT.err=""; render(); try{ OPT.thumb=await aiCall("thumbnail",{image:OPT.thumbData,title}); }catch(e){ OPT.err=e.message; } OPT.busy=""; render(); },
@@ -5011,6 +5078,7 @@ function kikoDataSummary(){
     const sp=(s.sponsors||[]); if(sp.length) L.push(`SPONSORS (${sp.length}): `+sp.map(x=>`${x.name} [${x.status||'pending'}]${x.payout?" "+x.payout:""}${x.due?" due "+x.due:""}`).join("; "));
     const sl=(s.streamLog||[]); if(sl.length) L.push(`STREAM DEBRIEFS (recent): `+sl.slice(-4).map(d=>`${d.game||'stream'} (${fmtDate(d.date)}${d.vibe?", vibe "+d.vibe+"/5":""})${d.note?": "+String(d.note).slice(0,80):""}`).join("; "));
     const ff=(s.foodFaves||[]); if(ff.length) L.push(`FAVORITE MEALS: `+ff.map(f=>f.name).join(", "));
+    if(s.descTemplate&&String(s.descTemplate).trim()) L.push("YOUTUBE DESCRIPTION TEMPLATE: saved (auto-appended to optimizer descriptions) — starts: "+String(s.descTemplate).replace(/\s+/g," ").slice(0,80)+"…");
 
     // ===== TASKS / GOALS / HABITS / GACHA =====
     const tasks=(s.tasks||[]); const open=tasks.filter(x=>!x.done);
@@ -5146,6 +5214,7 @@ async function execAgentAction(a){
   try{
     if(T==="navigate"){ if(TABS.some(t=>t[0]===a.tab)) state.tab=a.tab; return "opened "+a.tab; }
     if(T==="setProactivity"){ const v=["quiet","gentle","active"].includes(a.level)?a.level:"gentle"; localStorage.setItem("kiko-prolevel",v); localStorage.setItem("kiko-proactive",v==="quiet"?"0":"1"); return "🌅 proactivity set to "+v; }
+    if(T==="setDescTemplate"){ if(a.text==null)return null; await setSent(n=>({...n,descTemplate:String(a.text)})); return "📋 saved your YouTube description template — I'll paste it on every description"; }
     if(T==="healthReport"){ state.tab="health"; setTimeout(()=>{ try{showHealthReport();}catch(e){} },60); return "📋 opened your doctor-ready health report"; }
     if(T==="setCheckin"){ const k=String(a.key||""); const valid=[...CI_DEFS.creator,...CI_DEFS.health].some(d2=>d2[0]===k); if(!valid)return null; const on=a.on!=null?!!a.on:true;
       await setToday(n=>({...n,checkins:{...(n.checkins||{}),[k]:on}}));
@@ -5501,7 +5570,8 @@ start();
   },true);
   document.addEventListener("pointercancel",()=>{ if(!d)return; if(d.ghost)d.ghost.remove(); if(d.item){d.item.classList.remove("dragsrc","resizing","reordering");} d=null; },true);
   document.addEventListener("click",e=>{ if(sc){ e.stopPropagation(); e.preventDefault(); sc=false; } },true);
-  document.addEventListener("toggle",()=>{ if(MODULAR_TABS.includes(state.tab)){ try{layoutHome();}catch(_){} } },true);
+  document.addEventListener("toggle",(e)=>{ if(e.target&&e.target.id==="foodMedsDetails"){ state.foodMedsOpen=e.target.open; }   // keep the meds list open while she ticks
+    if(MODULAR_TABS.includes(state.tab)){ try{layoutHome();}catch(_){} } },true);
   window.addEventListener("resize",()=>{ clearTimeout(window._lhT); window._lhT=setTimeout(()=>{
     if(MODULAR_TABS.includes(state.tab)){ try{layoutHome();}catch(e){} }
     try{renderStickies();}catch(e){}        /* stickies keep their fractional spot on rotate */
