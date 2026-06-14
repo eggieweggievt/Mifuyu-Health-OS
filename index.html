@@ -509,7 +509,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.11";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.12";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -2524,7 +2524,7 @@ function viewWeight(){
       <div class="card-head"><h2 style="font-size:17px">📊 Body Smart metrics</h2>${wcon?'<span class="pill pill-mint">Withings linked ❄️</span>':''}</div>
       <p class="soft" style="font-size:12px;margin:0 0 10px">Everything your Withings Body Smart tracks. Sync straight from the scale, or pop any value in by hand.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-        ${wcon?`<button class="btn btn-grad" data-act="withingsSync">↻ Sync from scale</button>${lastSync?`<span class="soft" style="font-size:11px">last sync ${esc(new Date(lastSync*1000).toLocaleDateString())}</span>`:''}`
+        ${wcon?`<button class="btn btn-grad" data-act="withingsSync">↻ Sync from scale</button>${lastSync?`<span class="soft" style="font-size:11px">last sync ${esc(new Date(lastSync*1000).toLocaleDateString())}</span>`:''}<button class="btn" data-act="withingsConnect" title="re-link your scale if syncing stopped working">🔗 Reconnect</button>`
           :`<button class="btn btn-grad" data-act="withingsConnect">🔗 Connect Withings</button><span class="soft" style="font-size:11px">links your scale so weigh-ins sync automatically</span>`}
         <button class="btn" data-act="withingsDebug" title="check exactly where syncing is breaking">🔍 Diagnose</button>
       </div>
