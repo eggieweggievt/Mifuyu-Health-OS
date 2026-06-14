@@ -585,6 +585,33 @@
   .kchat-grip::after{ content:"⤡"; position:absolute; left:5px; top:3px; font-size:11px; color:#fff; opacity:.95; }
   @media (hover:hover){ .kchat-grip:hover{ background:linear-gradient(135deg, rgba(95,116,180,.58) 46%, transparent 46%); } }
   @media (max-width:640px){ .kchat-grip{ display:none; } }
+  /* ---- Media library (Memories tab) ---- */
+  .md-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .md-tile{ position:relative; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--panel-soft); }
+  .md-tile>img{ width:100%; height:120px; object-fit:cover; display:block; cursor:zoom-in; }
+  .md-tools{ position:absolute; top:4px; right:4px; display:flex; gap:4px; }
+  .md-tools .x{ background:rgba(255,255,255,.88); border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:var(--shadow-sm); }
+  .md-cap{ font-size:11px; padding:5px 8px; border:none; border-top:1px solid var(--line); border-radius:0; width:100%; background:#fff; }
+  .md-cap:focus{ box-shadow:none; outline:2px solid var(--peri); outline-offset:-2px; }
+  .md-people{ display:flex; flex-wrap:wrap; gap:3px; padding:5px; }
+  .md-pchip{ font-size:9.5px; padding:2px 7px; border-radius:999px; border:1.5px solid var(--line-2); background:#fff; color:var(--muted); }
+  .md-pchip.on{ background:#fde2f2; border-color:var(--sakura); color:var(--sakura-deep); }
+  /* ---- Digital Hobonichi daily page ---- */
+  .jr-page{ border-top:4px solid var(--jr-accent,#8AB1CA); background:linear-gradient(180deg,#fffdf9,#fff); }
+  .jr-page-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .jr-page-wd{ font-family:var(--display); font-size:13px; color:var(--jr-ink,#638AA4); letter-spacing:.05em; text-transform:uppercase; }
+  .jr-page-date{ font-family:var(--display); font-size:19px; color:var(--ink); line-height:1.1; }
+  .jr-page-day{ font-size:30px; font-weight:700; color:var(--jr-accent,#8AB1CA); }
+  .jr-page-wk{ font-size:11px; color:var(--muted); margin-top:3px; }
+  .jr-glance{ background:var(--panel-soft); border:1px solid var(--line); border-left:3px solid var(--jr-accent,#8AB1CA); border-radius:10px; padding:10px 12px; margin-bottom:12px; }
+  .jr-glance-h{ font-size:11px; font-weight:700; color:var(--jr-ink,#638AA4); letter-spacing:.04em; margin-bottom:4px; }
+  .jr-glance ul{ margin:0; padding-left:18px; font-size:12.5px; line-height:1.6; }
+  .jr-glance-empty{ font-size:12px; color:var(--ink-soft); }
+  .jr-paper{ background-color:#fffef9; background-image:repeating-linear-gradient(transparent,transparent 27px,#eceef4 27px,#eceef4 28px); border:1px solid var(--line); border-radius:12px; padding:6px 14px; }
+  .jr-pagetext{ width:100%; min-height:300px; border:none; background:transparent; resize:vertical; font-family:var(--sans); font-size:14px; line-height:28px; color:var(--jr-ink,#3a3550); outline:none; display:block; }
+  .jr-page-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .jr-cell.jr-sel{ outline:2.5px solid var(--jr-accent,#8AB1CA); outline-offset:-2px; }
+  @media (max-width:640px){ .jr-pagetext{ min-height:240px; } .jr-page-day{ font-size:26px; } }
 </style>
 </head>
 <body>
@@ -618,7 +645,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.18";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.24";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -927,10 +954,10 @@ const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plann
 try{ state.trendType=localStorage.getItem("mifu-trend-type")||state.trendType; state.wtType=localStorage.getItem("mifu-wt-type")||state.wtType; }catch(e){}   // remember her chart choices
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["trends","📈 Trends"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["trends","📈 Trends"],["memories","✨ Memories"],["settings","⚙️ Settings"]];
 /* ===== one app, two minds — Creator OS 🎀 / Health OS ❄️ (tap the logo to swap) ===== */
-const CREATOR_TABS=["home","kiko","planner","calendar","events","script","optimize","money","art","toolbox"];
-const HEALTH_TABS=["home","kiko","food","care","trends","health","journal"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
+const CREATOR_TABS=["home","kiko","planner","calendar","events","script","optimize","money","art","toolbox","memories"];
+const HEALTH_TABS=["home","kiko","food","care","trends","health","journal","memories"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
 let OS_MODE=(function(){ try{ return localStorage.getItem("mifu-mode")==="health"?"health":"creator"; }catch(e){ return "creator"; } })();   // default: Creator OS
 function modeTabs(){ return OS_MODE==="health"?HEALTH_TABS:CREATOR_TABS; }
 function modeSwapAnim(){ const v=$("#view"); if(!v)return; v.classList.remove("mode-anim"); void v.offsetWidth; v.classList.add("mode-anim");
@@ -987,7 +1014,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,events:viewEvents,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,events:viewEvents,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,memories:viewMemories,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -997,13 +1024,16 @@ async function render(){
       clearTimeout(state._animT); state._animT=setTimeout(()=>{ const vv=$("#view"); if(vv) vv.classList.remove('anim'); },1000); }
     v.innerHTML = fn();
     renderStickies();
-    if(state.tab==='care'){ state.breathOn ? startBreath() : stopBreath(); } // keep the bubble breathing across re-renders
+    if(state.tab==='care'){ try{ state.breathOn ? startBreath() : stopBreath(); }catch(_){}
+      if(state.media===undefined && !state._mediaLoading){ state._mediaLoading=true; loadMedia().then(()=>{ state._mediaLoading=false; if(state.tab==='care') render(); }).catch(()=>{ state._mediaLoading=false; }); } }
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
     if(state.tab==='planner'){ try{ wireTaskDnD(); }catch(e){ console.error(e); } } // board drag (mouse) — touch uses ◀▶
     if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } }
     if(state.tab==='art'){ try{ if(state.art&&state.art.notan) artNotanPaint(); }catch(e){} }   // repaint the value-checker canvas after innerHTML
     if(MODULAR_TABS.includes(state.tab)){ requestAnimationFrame(()=>{try{layoutHome();}catch(e){}}); setTimeout(()=>{try{layoutHome();}catch(e){}},150); setTimeout(()=>{try{layoutHome();}catch(e){}},520); }
     if(state.tab==='kiko'){ KIKO.open=false; const cc=$("#kikoChat"); if(cc)cc.classList.add("hidden"); try{ paintKiko(); }catch(e){} }   // fill the Ask-Kiko chat panel
+    if(state.tab==='memories'){ if(state.media===undefined&&!state._mediaLoading){ loadMedia().then(()=>{ if(state.tab==='memories') render(); }); } try{ wireMedia(); }catch(e){} }   // lazy-load the media row + wire upload/caption inputs
+    if(state.tab==='journal'){ try{ wireJrPage(); }catch(e){} }   // attach the daily-page auto-save
   }catch(e){ console.error(e); v.innerHTML=`<div class="panel"><h3>aw, a little hiccup ❄️</h3><p class="soft">${esc(e&&e.message||e)}</p><p class="soft" style="font-size:11px">(If you see this, screenshot it for me and I'll fix it fast.)</p></div>`; }
 }
 
@@ -2164,6 +2194,179 @@ function jrStats(rows){
     fnTrend:fn.length>=4?(avg(fn.slice(-Math.ceil(fn.length/2)))-avg(fn.slice(0,Math.floor(fn.length/2)))):null,
     best, hard, topSym };
 }
+/* ============================================================================
+   GLOBAL MEMORY SYSTEM (foundation) — one index that Search, Timeline, Favourites and
+   Bunny-timeline all read from. Derived from existing stores (no migration) + explicit
+   sentinel.memories (future quotes/cards). Deterministic ids so favourites are stable.
+   Next slice: the Media Library (uploads) that these items will reference by id.
+   ============================================================================ */
+const MEM_ICON={journal:"📖",milestone:"⚖️",quote:"💬",memcard:"✨",health:"💗",bunny:"🐰",event:"🎉",photo:"📸"};
+const MEM_STOP=new Set("the a an i my me you we us to of in on at and or for with about was were is are be been did do does day find show me when where what our this that it i'm".split(" "));
+function memFavSet(){ return new Set((state.sentinel&&state.sentinel.memFav)||[]); }
+function memMonthLabel(ym){ try{ return new Date(ym+"-01T00:00").toLocaleDateString("en-US",{month:"long",year:"numeric"}); }catch(e){ return ym; } }
+function buildMemoryIndex(){
+  const s=state.sentinel||{}; const out=[]; const seen=new Set();
+  const clip=(t,n)=>{ t=String(t||"").replace(/\s+/g," ").trim(); n=n||130; return t.length>n?t.slice(0,n-1).trim()+"…":t; };
+  const push=(it)=>{ if(!it||!it.id||!it.date||seen.has(it.id))return; seen.add(it.id); out.push(it); };
+  try{ (s.memories||[]).forEach(m=>{ if(m&&m.id&&m.date) push({...m, preview:clip(m.preview||m.title)}); }); }catch(e){}
+  try{ (s.journalEntries||[]).forEach((e,i)=>{ if(!e||!e.date)return; const txt=e.text||(Array.isArray(e.log)?e.log.filter(x=>x&&x.who==="Mifu").map(x=>x.text).join(" "):"")||"";
+    push({id:"jr:"+(e.id||e.date+":"+i), kind:"journal", date:e.date, title:"Journal", preview:clip(txt), source:{page:"journal",refId:e.date}}); }); }catch(e){}
+  try{ const byd={}; (state.range||[]).forEach(r=>{ if(r&&r.date)byd[r.date]=r.notes||{}; }); if(state.today)byd[TODAY]=state.today;
+    Object.entries(byd).forEach(([d,n])=>{ if(!n)return;
+      if(n.journal&&String(n.journal).trim()) push({id:"jrd:"+d, kind:"journal", date:d, title:"Journal", preview:clip(n.journal), source:{page:"journal",refId:d}});
+      if(n.special) push({id:"sp:"+d, kind:"event", date:d, title:"Special day", preview:clip(typeof n.special==="string"?n.special:"A day worth remembering",110), source:{page:"journal",refId:d}}); }); }catch(e){}
+  try{ const wl=(s.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort(cmpDate); let min=Infinity; const u=CONFIG.weightUnit||"kg";
+    wl.forEach(x=>{ if(x.w<min-0.001){ min=x.w; push({id:"wt:"+x.date, kind:"milestone", date:x.date, title:"New lowest weight", preview:`${x.w} ${u}`, source:{page:"trends",refId:x.date}}); } }); }catch(e){}
+  try{ (s.calendarEvents||[]).forEach(e=>{ if(!e||!e.date)return; if(typeof gameSrc==="function"&&gameSrc(e))return;
+    push({id:"ev:"+(e.id||e.date), kind:"event", date:e.date, title:clip(e.title,80), preview:clip(e.note||e.title,120), source:{page:"events",refId:e.id||e.date}}); }); }catch(e){}
+  try{ (s.memoryCapsules||[]).forEach(c=>{ const ym=c.ym||c.month; if(!ym)return; push({id:"cap:"+ym, kind:"memcard", date:ym+"-15", title:"Monthly memory · "+memMonthLabel(ym), preview:clip(c.capsule||c.text), source:{page:"journal",refId:ym+"-01"}}); }); }catch(e){}
+  try{ (state.media||[]).forEach(m=>{ if(!m||!m.id)return; push({id:"md:"+m.id, kind:"photo", date:m.date||(String(m.addedAt||"").slice(0,10))||TODAY, title:m.caption||"Photo", preview:m.caption||"", people:m.people||[], tags:m.tags||[], fav:!!m.fav, mediaId:m.id, url:m.url, source:{page:"memories",refId:m.id}}); }); }catch(e){}
+  const fav=memFavSet();
+  out.forEach(m=>{ if(m.kind!=="photo") m.fav=fav.has(m.id); m.people=m.people||[]; m.tags=m.tags||[]; });   // photos use their own media.fav
+  out.sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:0);   // newest first
+  return out;
+}
+function memIsBunny(m){ const p=(m.people||[]).map(x=>String(x).toLowerCase()); return p.includes("myla")||p.includes("kieran")||/\b(myla|kieran|bunny|bunnies|rabbit)\b/i.test((m.title||"")+" "+(m.preview||"")); }
+function searchMemories(q, idx){
+  q=String(q||"").toLowerCase().trim(); if(!q)return [];
+  const terms=q.split(/[^a-z0-9]+/).filter(t=>t&&!MEM_STOP.has(t)); if(!terms.length)return [];
+  const res=[];
+  (idx||buildMemoryIndex()).forEach(m=>{ const hay=((m.title||"")+" "+(m.preview||"")+" "+(m.tags||[]).join(" ")+" "+(m.people||[]).join(" ")).toLowerCase();
+    const hits=terms.filter(t=>hay.includes(t)); if(hits.length) res.push({...m, _score:hits.length, reason:"mentions "+hits.join(", ")}); });
+  res.sort((a,b)=> b._score-a._score || (a.date<b.date?1:-1));
+  return res.slice(0,40);
+}
+/* ---- Media library: assets live in their OWN lazily-loaded row (not the hot sentinel, so boot
+   stays fast), referenced by id. Client-side compression keeps each photo small; writes bypass
+   the undo system (a multi-MB image snapshot would blow the localStorage undo quota). Scale-up
+   path = Supabase Storage (URLs only) when the library outgrows a curated set — see the blueprint. */
+const MEDIA_KEY="2000-01-02", MEDIA_CAP=80;
+async function loadMedia(){ if(state.media!==undefined||state._mediaLoading)return; state._mediaLoading=true;
+  try{ const notes=await DB.daily(MEDIA_KEY); state.media=(notes&&notes.media)||[]; }catch(e){ state.media=[]; } state._mediaLoading=false; }
+async function setMedia(fn){
+  const cur=(state.media!==undefined&&state.media!==null)?state.media:(((await DB.daily(MEDIA_KEY))||{}).media||[]);
+  const next=fn(cur.slice()).slice(-MEDIA_CAP); state.media=next;
+  if(DEMO){ demo[MEDIA_KEY]={media:next}; return; }
+  if(SB){ try{ await SB.from("daily_logs").upsert({user_id:UID,date:MEDIA_KEY,notes:{media:next}},{onConflict:"user_id,date"}); }catch(e){ console.error(e); toast("couldn't save media 🌧️"); } }
+}
+function compressImage(file,maxDim=1000,q=0.72){ return new Promise(res=>{ try{ const r=new FileReader();
+  r.onload=()=>{ const img=new Image(); img.onload=()=>{ try{ let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+    if(!w||!h){ res(r.result); return; } if(w>maxDim||h>maxDim){ const s=maxDim/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+    const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h); res(c.toDataURL("image/jpeg",q)); }catch(_){ res(r.result); } };
+    img.onerror=()=>res(null); img.src=r.result; }; r.onerror=()=>res(null); r.readAsDataURL(file); }catch(_){ res(null); } }); }
+function wireMedia(){
+  const inp=$("#mediaFile");
+  if(inp&&!inp._wired){ inp._wired=true; inp.addEventListener("change", async ()=>{
+    const files=[...(inp.files||[])]; inp.value=""; if(!files.length)return;
+    const room=MEDIA_CAP-((state.media||[]).length); if(room<=0){ toast(`library is full (${MEDIA_CAP}) — delete a few first ❄️`); return; }
+    toast("adding photos… 📸"); const adds=[];
+    for(const f of files.slice(0,room)){ if(!/^image\//.test(f.type))continue; const url=await compressImage(f); if(url) adds.push({ id:"m"+Date.now()+Math.floor(Math.random()*1000), type:"photo", url, caption:"", date:TODAY, addedAt:new Date().toISOString(), people:[], tags:[], fav:false }); }
+    if(adds.length){ await setMedia(arr=>[...arr,...adds]); toast(`added ${adds.length} 📸`); render(); }
+  }); }
+  document.querySelectorAll('.md-cap').forEach(el=>{ if(el._wired)return; el._wired=true;
+    el.addEventListener("blur", async ()=>{ const id=el.dataset.id, cap=String(el.value||"").slice(0,160);
+      const m=(state.media||[]).find(x=>x.id===id); if(!m||m.caption===cap)return; await setMedia(arr=>arr.map(x=>x.id===id?{...x,caption:cap}:x)); }); });
+}
+function mediaGallerySection(){
+  if(state.media===undefined){ return `<section class="panel"><div class="card-head"><span class="label">📸 Media library</span></div><p class="soft" style="font-size:12.5px;margin:0">${UI.spinner({label:"loading your photos…"})}</p></section>`; }
+  const PEOPLE=["myla","kieran","together","manfu"];
+  let lib=(state.media||[]); if(state.memBunny) lib=lib.filter(memIsBunny);
+  const tile=m=>`<div class="md-tile">
+    <img src="${esc(m.url)}" alt="${esc(m.caption||'photo')}" loading="lazy" data-act="mediaView" data-id="${esc(m.id)}">
+    <div class="md-tools"><button class="x" data-act="mediaFav" data-id="${esc(m.id)}" title="favourite" aria-label="favourite">${m.fav?"⭐":"☆"}</button><button class="x" data-act="mediaDel" data-id="${esc(m.id)}" title="delete" aria-label="delete">✕</button></div>
+    <input class="md-cap" data-act="noop" data-id="${esc(m.id)}" value="${esc(m.caption||'')}" placeholder="caption…" maxlength="160">
+    <div class="md-people">${PEOPLE.map(p=>`<button class="md-pchip ${(m.people||[]).includes(p)?'on':''}" data-act="mediaTag" data-id="${esc(m.id)}" data-p="${p}">${p}</button>`).join("")}</div>
+  </div>`;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">📸 Media library</span><span class="soft" style="font-size:11px">${(state.media||[]).length}/${MEDIA_CAP}</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">Upload once, use everywhere — photos here flow into Search, your Timeline, and (soon) Journal &amp; Care. Tag who's in each one. 🐰</p>
+    <div style="margin-bottom:10px"><label class="btn btn-grad" for="mediaFile" style="cursor:pointer">⬆️ Upload photos</label><input type="file" id="mediaFile" accept="image/*" multiple style="display:none"></div>
+    ${lib.length?`<div class="md-grid">${lib.slice().reverse().map(tile).join("")}</div>`:`<p class="soft" style="font-size:12.5px;margin:0">${state.memBunny?"No bunny photos yet — tag some with Myla or Kieran.":"No photos yet — upload your first memory. ❄️"}</p>`}
+  </section>`;
+}
+function viewMemories(){
+  const idx=buildMemoryIndex();
+  const q=state.memQuery||"", bunny=!!state.memBunny;
+  let list=bunny?idx.filter(memIsBunny):idx;
+  const favs=list.filter(m=>m.fav);
+  const results=q?(bunny?searchMemories(q,list):searchMemories(q,idx)):null;
+  const tl=list.filter(m=>m.fav||["milestone","event","quote","memcard"].includes(m.kind));
+  const groups={}; tl.forEach(m=>{ const ym=(m.date||"").slice(0,7); (groups[ym]=groups[ym]||[]).push(m); });
+  const ymKeys=Object.keys(groups).sort().reverse();
+  const row=m=>`<div class="listrow"><span style="font-size:15px;flex:0 0 auto">${MEM_ICON[m.kind]||"✨"}</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(m.title||"")}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(m.date))}</span><div class="soft" style="font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.preview||"")}</div>${m.reason?`<div class="soft" style="font-size:10px">${esc(m.reason)}</div>`:""}</span><button class="x" data-act="memFav" data-id="${esc(m.id)}" aria-label="favourite" title="favourite">${m.fav?"⭐":"☆"}</button>${m.kind==="photo"?`<button class="btn" data-act="mediaView" data-id="${esc(m.mediaId||"")}">view</button>`:(m.source?`<button class="btn" data-act="memOpen" data-page="${esc(m.source.page)}" data-ref="${esc(m.source.refId||"")}">open</button>`:"")}</div>`;
+  return `<section class="panel">
+    <div class="card-head"><h2 style="font-size:17px">✨ Memories</h2><span class="soft" style="font-size:11px">${idx.length} remembered</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 10px">Everything worth keeping in one place — search it, pin it, and walk your timeline. Photos &amp; a full media library come in the next update. ❄️</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+      <input class="inp" id="memSearchInput" placeholder="search your memories… (house approval, Myla, nausea)" style="flex:1;min-width:200px" value="${esc(q)}">
+      <button class="btn btn-grad" data-act="memSearch">🔎 Search</button>
+      ${q?`<button class="btn" data-act="memSearchClear">clear</button>`:""}
+      <button class="btn ${bunny?'btn-grad':''}" data-act="memBunny" aria-pressed="${bunny}">🐰 Bunny</button>
+    </div>
+    <p class="soft" style="font-size:11px;margin:0">For fuzzy, feeling-based searches (“days I felt less nauseous”), ask Kiko — he searches by meaning.</p>
+  </section>
+  ${results?`<section class="panel"><div class="sec-label">🔎 Results for “${esc(q)}”</div>${results.length?results.map(row).join(""):`<p class="soft" style="font-size:12.5px;margin:0">No matches — try fewer words, or ask Kiko to search by meaning.</p>`}</section>`:""}
+  ${mediaGallerySection()}
+  ${favs.length?`<section class="panel"><div class="sec-label">⭐ Favourites</div>${favs.slice(0,30).map(row).join("")}</section>`:""}
+  <section class="panel"><div class="sec-label">🕒 ${bunny?"Bunny timeline":"Life timeline"}</div>
+    ${ymKeys.length?ymKeys.map(ym=>`<div style="margin-top:10px"><div class="label">${esc(memMonthLabel(ym))}</div>${groups[ym].map(row).join("")}</div>`).join(""):`<p class="soft" style="font-size:12.5px;margin:0">Your timeline fills in as you journal, log weigh-ins, and mark special days. ❄️</p>`}
+  </section>`;
+}
+/* ============================================================================
+   DIGITAL HOBONICHI JOURNAL (slice 1) — the daily page is the hero: month colour theme,
+   Kiko's Day-at-a-Glance, lined paper, voice-or-type, constant auto-save. The proven data
+   layer (setDay / jrFetchMonth / jrCache) is reused untouched. Heavy freeform canvas +
+   scrapbook drawers + font controls + templates come in the next journal slice.
+   ============================================================================ */
+const JR_THEME={ "01":["#EE7E61","#C85F47"],"02":["#A47351","#80573C"],"03":["#D392B8","#A96790"],
+  "04":["#F28D9D","#D16578"],"05":["#B5A131","#8E7D20"],"06":["#8AB1CA","#638AA4"],
+  "07":["#979EBB","#71789A"],"08":["#849FBC","#607B97"],"09":["#D79277","#B16F57"],
+  "10":["#A885AD","#85638A"],"11":["#849F94","#5F7A6F"],"12":["#F78887","#D15F60"] };
+function jrTheme(date){ return JR_THEME[(date||TODAY).slice(5,7)]||JR_THEME["06"]; }
+function dayShift(date,n){ const d=new Date(date+"T00:00"); d.setDate(d.getDate()+n); return d.toLocaleDateString("en-CA"); }
+function jrWeekNum(date){ const d=new Date(date+"T00:00"); const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const day=dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-day); const ys=new Date(Date.UTC(dt.getUTCFullYear(),0,1)); return Math.ceil((((dt-ys)/86400000)+1)/7); }
+function jrGlance(date,n){ n=n||{}; const out=[]; const m=n.mind||{};
+  try{ const wm=jrWeightMap(); if(wm[date]!=null) out.push(`Weighed in: ${wm[date]} ${CONFIG.weightUnit||"kg"}`); }catch(e){}
+  if(m.energy!=null) out.push(`Energy ${m.energy>=4?"was higher than usual":m.energy<=1?"ran low":"was steady"}`);
+  if(m.mood!=null) out.push(`Mood ${m.mood>=4?"was lovely":m.mood<=1?"was tough":"was okay"}`);
+  if(n.sleep!=null) out.push(`Slept ${n.sleep}h`);
+  try{ const ci=n.checkins||{}; const lbl={streamed:"streamed",ytVideo:"uploaded a video",ytShort:"posted a Short",madeArt:"made art",gym:"hit the gym",walk:"went for a walk",water:"hydrated well",journaled:"journaled"};
+    const named=Object.keys(ci).filter(k=>ci[k]&&lbl[k]).map(k=>lbl[k]).slice(0,3); if(named.length) out.push(named.join(", ")); }catch(e){}
+  if(n.special) out.push("💜 A special day");
+  if(jrStreamDay(date)) out.push("🔴 Stream day");
+  return out;
+}
+function jrDailyPage(date){
+  date=date||TODAY; if(date>TODAY) date=TODAY;
+  const ym=date.slice(0,7);
+  const n=(date===TODAY?(state.today||{}):(((state.jrCache||{})[ym]||{})[date]||{}));
+  const d=new Date(date+"T00:00"), isToday=date===TODAY;
+  const wd=d.toLocaleDateString("en-US",{weekday:"long"}), dnum=d.getDate(), mon=d.toLocaleDateString("en-US",{month:"long"}), wk=jrWeekNum(date);
+  const [accent,ink]=jrTheme(date); const glance=jrGlance(date,n);
+  return `<section class="panel jr-page" style="--jr-accent:${accent};--jr-ink:${ink}">
+    <div class="jr-page-head">
+      <div><div class="jr-page-wd">${esc(wd)}</div><div class="jr-page-date"><span class="jr-page-day">${dnum}</span> ${esc(mon)}</div><div class="jr-page-wk">Week ${wk}${isToday?" · today":""}</div></div>
+      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn" data-act="jrPick" data-date="${dayShift(date,-1)}" title="previous day">‹</button>
+        ${isToday?"":`<button class="btn" data-act="jrPick" data-date="${TODAY}">today</button>`}
+        <button class="btn" data-act="jrPick" data-date="${dayShift(date,1)}" ${date>=TODAY?'disabled style="opacity:.4;pointer-events:none"':''} title="next day">›</button>
+        <button class="btn" data-act="jrOpenDay" data-date="${date}" title="mood, sleep, tags & details">✏️ details</button>
+      </div>
+    </div>
+    ${glance.length?`<div class="jr-glance"><div class="jr-glance-h">🦊 Kiko's day at a glance</div><ul>${glance.map(g=>`<li>${esc(g)}</li>`).join("")}</ul></div>`:`<div class="jr-glance jr-glance-empty">🦊 Write below — Kiko fills in your day-at-a-glance from what you log.</div>`}
+    <div class="jr-paper"><textarea id="jrPageText" class="jr-pagetext" data-act="noop" data-date="${date}" placeholder="${isToday?'talk or type — today, in your own words…  ♡':'this day, in your words…'}">${esc(n.journal||"")}</textarea></div>
+    <div class="jr-page-foot">
+      <button class="btn ${state._jrMic?'btn-grad':''}" data-act="jrMic" title="speak your entry (Chrome/Edge)">${state._jrMic?"⏹ listening…":"🎤 Speak"}</button>
+      <span class="soft" id="jrSaveState" style="font-size:11px">auto-saves as you write ✨</span>
+    </div>
+  </section>`;
+}
+let _jrSaveT=null;
+function wireJrPage(){
+  const ta=$("#jrPageText"); if(!ta||ta._wired)return; ta._wired=true; const date=ta.dataset.date||TODAY;
+  ta.addEventListener("input",()=>{ const ss=$("#jrSaveState"); if(ss)ss.textContent="saving…"; clearTimeout(_jrSaveT);
+    _jrSaveT=setTimeout(async()=>{ try{ const val=ta.value; await setDay(date,n=>({...n,journal:val})); const s2=$("#jrSaveState"); if(s2)s2.textContent="saved ✓"; }catch(e){ const s2=$("#jrSaveState"); if(s2)s2.textContent="couldn't save 🌧️"; } },1100); });
+}
 function viewJournal(){
   if(!state.jrRef){ const t=new Date(); state.jrRef=new Date(t.getFullYear(),t.getMonth(),1); }
   const ref=state.jrRef, ym=jrYM(ref);
@@ -2179,7 +2382,7 @@ function viewJournal(){
   for(let d=1;d<=daysIn;d++){
     const ds=ym+"-"+String(d).padStart(2,"0"); const n=R[ds]; const sp=jrSpecial(ds,n);
     const mo=n&&n.mind&&n.mind.mood; const future=ds>TODAY;
-    cells+=`<div class="jr-cell ${ds===TODAY?'today':''}" style="background:${future?'#fff':jrDayColor(n,sp)};${future?'opacity:.45;':''}cursor:${future?'default':'pointer'}" ${future?'':`data-act="jrOpenDay" data-date="${ds}"`}>
+    cells+=`<div class="jr-cell ${ds===TODAY?'today':''} ${ds===(state.jrDay||TODAY)?'jr-sel':''}" style="background:${future?'#fff':jrDayColor(n,sp)};${future?'opacity:.45;':''}cursor:${future?'default':'pointer'}" ${future?'':`data-act="jrPick" data-date="${ds}"`}>
       <div style="display:flex;justify-content:space-between;align-items:center"><span class="cal-daynum">${d}</span>${mo!=null?`<span style="font-size:13px">${JR_MOODS[Math.max(0,Math.min(5,mo))]}</span>`:""}</div>
       ${n||wm[ds]?`<div class="jr-meta">${wm[ds]!=null?`⚖️${wm[ds]}`:""} ${n&&n.mind&&n.mind.energy!=null?`⚡${n.mind.energy}`:""} ${n&&n.sleep!=null?`🌙${n.sleep}h`:""}</div>
       <div class="jr-meta">${n&&n.stress!=null?`🫨${n.stress}`:""} ${jrSymptomFlag(n)?"🩹":""} ${n&&n.journal?"✍️":""} ${jrStreamDay(ds)?"🔴":""} ${sp?"💜":""}</div>`:""}
@@ -2189,9 +2392,10 @@ function viewJournal(){
   const capYMs=(function(){ const out=[]; const t=new Date(); for(let i=1;i<=6;i++){ const d=new Date(t.getFullYear(),t.getMonth()-i,1); out.push(jrYM(d)); } return out; })();
   const srch=state.jrSearch||{};
   return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+  ${jrDailyPage(state.jrDay||TODAY)}
   <section class="panel">
-    <div class="card-head"><h2 style="font-size:18px">📓 ${monthName}</h2>
-      <div style="display:flex;gap:6px"><button class="btn" data-act="jrShift" data-d="-1">‹</button><button class="btn" data-act="jrToday">today</button><button class="btn" data-act="jrShift" data-d="1">›</button><button class="btn btn-grad" data-act="jrOpenDay" data-date="${TODAY}">✍️ today's entry</button></div></div>
+    <div class="card-head"><h2 style="font-size:18px">📓 ${monthName} <span class="soft" style="font-size:12px;font-weight:500">· month overview</span></h2>
+      <div style="display:flex;gap:6px"><button class="btn" data-act="jrShift" data-d="-1">‹</button><button class="btn" data-act="jrToday">today</button><button class="btn" data-act="jrShift" data-d="1">›</button><button class="btn btn-grad" data-act="jrPick" data-date="${TODAY}">✍️ today's page</button></div></div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">
       ${[["🌤️ avg mood",st.avgMood!=null?st.avgMood+"/5":"—"],["⚡ avg energy",st.avgEnergy!=null?st.avgEnergy+"/5":"—"],["🌙 avg sleep",st.avgSleep!=null?st.avgSleep+"h":"—"],["⚖️ this month",st.wDelta!=null?(st.wDelta>0?"+":"")+st.wDelta+CONFIG.weightUnit:"—"],["✨ best day",st.best?fmtDate(st.best.date):"—"],["🌧️ hardest",st.hard?fmtDate(st.hard.date):"—"]].map(([l,v])=>`<div class="soft-card" style="padding:8px 10px;text-align:center"><div class="label" style="font-size:9px">${l}</div><div style="font-weight:700;font-size:14px">${v}</div></div>`).join("")}
     </div>
@@ -2211,7 +2415,7 @@ function viewJournal(){
       <label class="chiptog ${srch.sym?'on':''}" style="cursor:pointer"><input type="checkbox" id="jrSym" ${srch.sym?'checked':''} style="display:none"><span>${srch.sym?'✓':''}</span>🩹 symptom days</label>
       <button class="btn btn-grad" data-act="jrSearch">search</button>
     </div>
-    ${srch.results?`<div style="margin-top:10px">${srch.results.length?srch.results.slice(0,40).map(r=>`<div class="listrow" data-act="jrOpenDay" data-date="${r.date}" style="cursor:pointer"><span class="grow" style="font-size:12.5px"><b>${fmtDate(r.date)}</b> <span class="soft" style="font-size:11px">${r.meta}</span></span><span class="soft" style="font-size:11px">open →</span></div>`).join(""):'<p class="soft" style="font-size:12px">nothing matched — try fewer filters 🌸</p>'}${srch.results.length>40?`<p class="soft" style="font-size:10.5px">showing 40 of ${srch.results.length}</p>`:""}</div>`:""}
+    ${srch.results?`<div style="margin-top:10px">${srch.results.length?srch.results.slice(0,40).map(r=>`<div class="listrow" data-act="jrPick" data-date="${r.date}" style="cursor:pointer"><span class="grow" style="font-size:12.5px"><b>${fmtDate(r.date)}</b> <span class="soft" style="font-size:11px">${r.meta}</span></span><span class="soft" style="font-size:11px">open →</span></div>`).join(""):'<p class="soft" style="font-size:12px">nothing matched — try fewer filters 🌸</p>'}${srch.results.length>40?`<p class="soft" style="font-size:10.5px">showing 40 of ${srch.results.length}</p>`:""}</div>`:""}
   </section>
   <section class="panel">
     <div class="card-head"><span class="label">💊 Monthly memory capsules</span><span class="pill pill-gray">a keepsake per month</span></div>
@@ -2220,13 +2424,6 @@ function viewJournal(){
       return c?`<details class="acc" style="margin-bottom:6px"><summary>💊 ${label}</summary><div class="acc-body"><div style="white-space:pre-wrap;font-size:12.5px;line-height:1.65">${esc(c.text)}</div><button class="btn" data-act="jrCapsule" data-ym="${cym}" style="margin-top:8px">↻ rebuild</button></div></details>`
         :`<div class="listrow"><span class="grow" style="font-size:12.5px">${label}</span><button class="btn" data-act="jrCapsule" data-ym="${cym}">✨ build capsule</button></div>`; }).join("")}
   </section>
-  <details class="acc"><summary>🗂 Archive timeline</summary><div class="acc-body">
-    ${state.jrAll?(function(){ const byYM={}; Object.entries(state.jrAll).forEach(([d,n])=>{ if((n.mind&&n.mind.mood!=null)||n.journal){ const k=d.slice(0,7); byYM[k]=(byYM[k]||0)+1; } });
-      const yms=Object.keys(byYM).sort().reverse(); if(!yms.length)return '<p class="soft" style="font-size:12px">no entries yet — every logged day will gather here 💗</p>';
-      let lastY=""; return yms.map(k=>{ const y=k.slice(0,4); const head=y!==lastY?`<div class="label" style="margin:8px 0 2px">${y}</div>`:""; lastY=y;
-        return head+`<div class="listrow" data-act="jrJump" data-ym="${k}" style="cursor:pointer"><span class="grow" style="font-size:12.5px">${new Date(k+"-01T00:00").toLocaleDateString("en-US",{month:"long"})}</span><span class="pill pill-gray">${byYM[k]} day${byYM[k]>1?"s":""}</span></div>`; }).join(""); })()
-      :`<button class="btn" data-act="jrLoadAll">load the full archive</button>`}
-  </div></details>
   ${DISCLAIMER}</div>`;
 }
 /* the day view/editor — her words live HERE, behind a click, never on the grid */
@@ -2775,6 +2972,71 @@ function cardFoodWeek(){
     ${rows}
   </section>`;
 }
+/* ============================================================================
+   KIKO FOOD ASSISTANT (slice 1) — learns Mifu's habits from her own logs, reduces mental
+   load. Deterministic, no extra server calls. Meal memory + one-tap re-log, an actionable
+   "Kiko says", food↔health insights, a food profile, and lazy-day ideas. (Photo/voice
+   logging already exists above; smart-pantry inference + fridge-mode "what can I make" +
+   auto shopping list = staged for slice 2, where fridge-mode reuses the food agent.)
+   ============================================================================ */
+function foodAllItems(days){ try{ const out=[]; foodHistory(days||120).forEach(h=>{ (h.meals||[]).forEach(it=>{ if(it&&it.name) out.push({...it,date:h.date}); }); }); return out; }catch(e){ return []; } }
+function foodMealMemory(){
+  const items=foodAllItems(120), norm=s=>String(s||"").toLowerCase().trim();
+  const bucketOf=it=>{ try{ const h=it.time?new Date(it.time).getHours():13; return h<11?"breakfast":h<16?"lunch":h<21?"dinner":"snack"; }catch(e){ return "lunch"; } };
+  const B={breakfast:{},lunch:{},dinner:{},snack:{}};
+  items.forEach(it=>{ const b=bucketOf(it), k=norm(it.name); if(!k)return; const e=B[b][k]||(B[b][k]={name:it.name,n:0,kcal:0,protein:0,fiber:0,carbs:0,fat:0,serving:it.serving||""});
+    e.n++; e.kcal=it.kcal||e.kcal; e.protein=it.protein||e.protein; e.fiber=it.fiber||e.fiber; e.carbs=it.carbs||e.carbs; e.fat=it.fat||e.fat; });
+  const top=o=>Object.values(o).filter(e=>e.n>=2).sort((a,b)=>b.n-a.n).slice(0,4);
+  return { breakfast:top(B.breakfast), lunch:top(B.lunch), dinner:top(B.dinner), snack:top(B.snack) };
+}
+function foodKikoSays(){ const T=foodTargets(), tot=foodTotals(), bits=[];
+  if(!foodToday().length) return "Nothing logged yet — when you eat, snap a photo or tap a usual and Kiko handles the macros.";
+  bits.push(tot.protein>=T.protein?`Protein goal hit (${Math.round(tot.protein)}/${T.protein}g) — lovely. 💪`:`Protein's at ${Math.round(tot.protein)}/${T.protein}g — about ${Math.round(T.protein-tot.protein)}g to go. A shake or yogurt would close it.`);
+  if(tot.fiber<T.fiber) bits.push(`Fibre's a little behind (${Math.round(tot.fiber)}/${T.fiber}g) — fruit or veg with dinner would likely finish it.`);
+  return bits.join(" "); }
+function foodInsights(){
+  const out=[], fh=foodHistory(14).filter(h=>h.meals&&h.meals.length), T=foodTargets();
+  let streak=0; for(let i=0;i<fh.length;i++){ const h=fh[fh.length-1-i]; if(h&&h.protein>=T.protein)streak++; else break; }
+  if(streak>=3) out.push(`You've hit your protein goal ${streak} days running — strong week.`);
+  try{ const items=foodAllItems(30), hiDays=new Set(fh.filter(h=>h.protein>=T.protein).map(h=>h.date)), eggDays=new Set(items.filter(it=>/egg|yogurt|yoghurt|protein/i.test(it.name)).map(it=>it.date));
+    const overlap=[...hiDays].filter(d=>eggDays.has(d)).length; if(hiDays.size>=3&&overlap>=Math.ceil(hiDays.size*0.6)) out.push(`Your highest-protein days almost always include eggs or yogurt.`); }catch(e){}
+  try{ if(foodAllItems(7).filter(it=>/kiwi|apple|berr|strawberr|banana|fruit|orange|grape|mango|melon/i.test(it.name)).length===0 && fh.length>=2) out.push(`Not much fruit logged this week compared to usual — a kiwi or apple is an easy fibre win.`); }catch(e){}
+  return out;
+}
+function foodProfile(){
+  const items=foodAllItems(120); if(items.length<4) return null; const norm=s=>String(s||"").toLowerCase().trim(); const freq={};
+  items.forEach(it=>{ const k=norm(it.name); if(!k)return; (freq[k]=freq[k]||{name:it.name,n:0}).n++; });
+  const top=Object.values(freq).sort((a,b)=>b.n-a.n), find=re=>{ const m=top.find(t=>re.test(t.name)); return m?m.name:null; };
+  return { mostEaten:top[0]&&top[0].name, fruit:find(/kiwi|apple|berr|strawberr|banana|orange|grape|mango|melon/i), protein:find(/chicken|egg|protein|steak|fish|salmon|tofu|beef|yogurt/i), snack:find(/yogurt|yoghurt|pudding|bar|crisp|chip|chocolate|cookie|nut/i) };
+}
+function kikoFoodCard(){
+  const ins=foodInsights(), prof=foodProfile();
+  return `<section class="panel"><div class="card-head"><h2 style="font-size:17px">💗 Kiko &amp; your food</h2></div>
+    <div class="soft-card" style="font-size:12.5px;line-height:1.55"><b class="peri">Kiko says</b><br>${esc(foodKikoSays())}</div>
+    ${ins.length?`<div style="margin-top:10px">${ins.map(t=>`<div class="kn-row"><span class="kn-dot"></span><span style="font-size:12px">${esc(t)}</span></div>`).join("")}</div>`:""}
+    ${prof?`<div class="sec-label" style="margin-top:12px">🍱 Your food profile</div><div class="chiprow">${[["Most eaten",prof.mostEaten],["Fruit",prof.fruit],["Protein",prof.protein],["Snack",prof.snack]].filter(x=>x[1]).map(x=>`<span class="pill pill-gray">${x[0]}: ${esc(x[1])}</span>`).join("")}</div>`:""}
+  </section>`;
+}
+function mealMemoryCard(){
+  const mm=foodMealMemory();
+  if(!(mm.breakfast.length||mm.lunch.length||mm.dinner.length||mm.snack.length))
+    return `<section class="panel"><div class="card-head"><span class="label">🍽️ Kiko's meal memory</span></div><p class="soft" style="font-size:12.5px;margin:0">As you log meals, Kiko learns your go-tos here for one-tap re-logging. ❄️</p></section>`;
+  const reBtn=e=>`<button class="chiptog" data-act="foodRelog" data-name="${esc(e.name)}" data-serving="${esc(e.serving||'')}" data-kcal="${Math.round(e.kcal||0)}" data-protein="${e.protein||0}" data-fiber="${e.fiber||0}" data-carbs="${e.carbs||0}" data-fat="${e.fat||0}" title="${e.n}× · ${Math.round(e.kcal||0)} kcal · P${Math.round(e.protein||0)}"><span>＋</span>${esc(e.name)} <span class="soft" style="font-size:10px">${e.n}×</span></button>`;
+  const sec=(emoji,label,arr)=>arr.length?`<div style="margin-top:10px"><div class="label">${emoji} ${label}</div><div class="chiprow" style="margin-top:4px">${arr.map(reBtn).join("")}</div></div>`:"";
+  return `<section class="panel"><div class="card-head"><span class="label">🍽️ Kiko's meal memory</span><span class="soft" style="font-size:11px">tap to log the usual</span></div>
+    <p class="soft" style="font-size:12px;margin:0">Your go-to meals, learned from what you log.</p>
+    ${sec("🥣","Breakfasts",mm.breakfast)}${sec("🥗","Lunches",mm.lunch)}${sec("🍲","Dinners",mm.dinner)}${sec("🍓","Snacks",mm.snack)}
+  </section>`;
+}
+function lazyMealsCard(){
+  const T=foodTargets(), tot=foodTotals(), lowP=tot.protein<T.protein, lowF=tot.fiber<T.fiber;
+  return `<section class="panel"><div class="card-head"><span class="label">😌 Lazy-day meals</span></div>
+    <p class="soft" style="font-size:12px;margin:0 0 6px">When cooking feels like too much — quick wins for what you need today.</p>
+    ${lowP?`<div class="label">💪 Need protein</div><div class="chiprow" style="margin:4px 0 8px"><span class="pill pill-peri">🥤 Protein shake ~25g</span><span class="pill pill-peri">🥚 4 eggs ~24g</span><span class="pill pill-peri">🥛 Protein yogurt ~20g</span><span class="pill pill-peri">🥣 Protein cereal ~22g</span></div>`:""}
+    ${lowF?`<div class="label">🌿 Need fibre</div><div class="chiprow" style="margin:4px 0 8px"><span class="pill pill-mint">🥝 Kiwi</span><span class="pill pill-mint">🍎 Apple</span><span class="pill pill-mint">🥣 Oats</span><span class="pill pill-mint">🥦 Broccoli</span></div>`:""}
+    <div class="label">⚡ Just something easy</div><div class="chiprow" style="margin-top:4px"><span class="pill pill-lav">🥤 Shake</span><span class="pill pill-lav">🥛 Yogurt</span><span class="pill pill-lav">🥣 Cereal</span><span class="pill pill-lav">🍳 Eggs</span></div>
+  </section>`;
+}
 function viewFood(){
   if(!state.foodDraft) state.foodDraft={image:null,desc:"",est:null};
   const d=state.foodDraft, T=foodTargets(), tot=foodTotals(), list=foodToday();
@@ -2811,7 +3073,8 @@ function viewFood(){
     {key:"foodweek",label:"This week",cols:10,html:cardFoodWeek()},
   ];
   return `${modularGrid("food",items)}
-  <details class="acc"><summary>🎯 Daily targets</summary><div class="acc-body">
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">${kikoFoodCard()}${mealMemoryCard()}${lazyMealsCard()}</div>
+  <details class="acc" style="margin-top:14px"><summary>🎯 Daily targets</summary><div class="acc-body">
     <p class="soft" style="font-size:11.5px;margin:0 0 8px">Tune these to whatever your care team suggests.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
       <div class="field"><div class="label">Calories</div><input class="inp" type="number" id="ft_kcal" value="${T.kcal}"></div>
@@ -2937,55 +3200,87 @@ function flipCard(c){
     <div class="flip-face flip-back"><ul style="padding-left:16px;margin:2px 0">${c.b.map(x=>`<li>${x}</li>`).join("")}</ul></div>
   </div></div>`;
 }
+/* ============================================================================
+   CARE — redesigned around comfort, memories & the bunnies (not clinical widgets; breathing/
+   grounding live in the floating 🫧 button + Kiko). Leans on the media/memories foundation.
+   ============================================================================ */
+const BUNNIES=[{id:"kieran",name:"Kieran",sex:"♂ male",col:"🖤 black rabbit",born:"2021-01-03"},{id:"myla",name:"Myla",sex:"♀ female",col:"🩶 grey rabbit",born:"2021-12-28"}];
+const COMFORT_CATS=[["music","🎵 Comfort music"],["asmr","🎧 Favourite ASMR"],["videos","📺 Favourite videos"],["games","🎮 Comfort games"],["foods","🍜 Comfort foods"],["reads","📖 Comfort reads"]];
+function bunnyAge(b){ try{ const bd=new Date(b+"T00:00"), now=new Date(); let y=now.getFullYear()-bd.getFullYear(), m=now.getMonth()-bd.getMonth(); if(now.getDate()<bd.getDate())m--; if(m<0){y--;m+=12;} return y+"y"+(m?" "+m+"m":""); }catch(e){ return ""; } }
+function bunnyNextBday(b){ try{ const bd=new Date(b+"T00:00"), now=new Date(), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate()); let nx=new Date(now.getFullYear(),bd.getMonth(),bd.getDate()); if(nx<t0)nx=new Date(now.getFullYear()+1,bd.getMonth(),bd.getDate()); return Math.round((nx-t0)/86400000); }catch(e){ return null; } }
+function careGentlePlan(){ const out=[]; try{ const sl=Number((state.today||{}).sleep); if(sl&&sl<7)out.push("Go gently — last night was short 🌙"); }catch(e){}
+  out.push("Drink some water 💧"); try{ const tot=foodTotals(),T=foodTargets(); if(foodToday().length&&tot.protein<T.protein)out.push("A little protein when you can 🍳"); }catch(e){}
+  out.push("Spend a little time with Myla & Kieran 🐰"); out.push("Step outside for a moment 🌿"); out.push("Do one thing you enjoy ✨"); out.push("Be kind to yourself today 💗");
+  return out.slice(0,6); }
+function careThingsThatHelp(){ const text=[];
+  try{ (state.sentinel.journalEntries||[]).forEach(e=>{ text.push(e.text||(Array.isArray(e.log)?e.log.filter(x=>x&&x.who==="Mifu").map(x=>x.text).join(" "):"")); }); }catch(e){}
+  try{ (state.range||[]).forEach(r=>{ if(r&&r.notes&&r.notes.journal)text.push(r.notes.journal); }); if(state.today&&state.today.journal)text.push(state.today.journal); }catch(e){}
+  const blob=" "+text.join(" ").toLowerCase()+" ";
+  const cands=[["🎨 Drawing","draw|art|sketch|paint"],["🐰 Bunny time","myla|kieran|bunny|bunnies|rabbit"],["🎵 Music","music|song|playlist"],["💗 Talking with Manfu","manfu"],["🎮 Cozy games","gaming|cozy game|videogame|playing a game"],["☕ Tea","\\btea\\b"],["✨ Streaming","stream"],["📖 Journaling","journal"],["🚶 Walks","walk|fresh air|outside"]];
+  return cands.map(([l,re])=>({l,n:(blob.match(new RegExp(re,"g"))||[]).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,6); }
+function careMemoryPull(){ try{ const idx=buildMemoryIndex().filter(m=>["milestone","quote","event"].includes(m.kind)||m.fav||(m.kind==="journal"&&(m.preview||"").length>20)); if(!idx.length)return null; return idx[(state._carePull||0)%idx.length]; }catch(e){ return null; } }
+function careTinyWins(){ try{ return buildMemoryIndex().filter(m=>["milestone","event"].includes(m.kind)||m.fav).slice(0,8); }catch(e){ return []; } }
+function bunnyStatusToday(id){ try{ return (state.sentinel.bunnyLog||[]).filter(x=>x.bunny===id&&x.date===TODAY).slice(-1)[0]; }catch(e){ return null; } }
 function viewCare(){
-  const m=state.today.mind||{}, jar=state.sentinel.joyJar||[];
-  const journaledToday=(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY);
-  const lastEntry=(state.sentinel.journalEntries||[]).slice().reverse()[0];
-  const items=[
-    {key:"breathing",label:"Breathing bubble",cols:4,html:`<section class="panel" style="text-align:center">
-      <div class="label">🫧 Breathing bubble</div>
-      <p class="soft" style="font-size:12px;margin:4px 0 6px">In 4 · hold 2 · out 6 — a longer exhale tells your body it's safe.</p>
-      <div class="breath-wrap"><div class="breath-bubble" id="bubble"></div><div class="breath-label" id="breathLabel">ready</div></div>
-      <button class="btn btn-grad" data-act="breath">${state.breathOn?'Stop':'Start'}</button>
-      ${PREF.calm?'<p class="soft" style="font-size:11px;margin-top:8px">Calm mode on — the bubble holds still; breathe with the words at your own pace.</p>':''}
-    </section>`},
-    {key:"checkin",label:"Gentle check-in",cols:4,html:`<section class="panel">
-      <div class="label" style="margin-bottom:4px">🌤️ Gentle check-in</div>
-      <p class="soft" style="font-size:12px;margin:0 0 8px">How's the weather inside today? No wrong answer. 🌧️→🌞</p>
-      ${scaleRow("Weather inside","mindSet","weather",m.weather,"🌧️ stormy","🌞 bright")}
-      ${scaleRow("Mood — low → bright","mindSet","mood",m.mood,"low","bright")}
-      ${scaleRow("Anxiety","mindSet","anxiety",m.anxiety,"calm","high")}
-      <div style="margin-top:8px">${chiptog("I did something kind for myself today","mindToggle","kind",m.kind)}</div>
-    </section>`},
-    {key:"joyjar",label:"Joy jar",cols:4,html:`<section class="panel" style="text-align:center">
-      <div class="label">🫙 Joy jar</div>
-      <p class="soft" style="font-size:12px;margin:4px 0 8px">Pull out a little joy when you need one.</p>
-      <div class="jar-stage">
-      <svg width="120" height="130" viewBox="0 0 120 130">
-        <rect x="30" y="8" width="60" height="12" rx="4" fill="#cdb8ec"/>
-        <path d="M28 24 h64 a8 8 0 0 1 8 8 v78 a12 12 0 0 1 -12 12 h-56 a12 12 0 0 1 -12 -12 v-78 a8 8 0 0 1 8 -8 z" fill="#eef2ff" stroke="#cdd4ee" stroke-width="2"/>
-        <g class="jar-bub"><circle cx="48" cy="74" r="9" fill="#ff9ed8" opacity=".75"/></g>
-        <g class="jar-bub" style="animation-delay:-1.5s"><circle cx="72" cy="86" r="11" fill="#a98fe0" opacity=".7"/></g>
-        <g class="jar-bub" style="animation-delay:-2.8s"><circle cx="60" cy="60" r="7" fill="#9fc3e8" opacity=".8"/></g>
-      </svg>
-      <div class="joy-pick" id="joyPick">tap below to draw a joy ✿</div>
+  const jar=state.sentinel.joyJar||[]; const journaledToday=(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY);
+  const plan=careGentlePlan(); const helps=careThingsThatHelp(); const pull=careMemoryPull(); const wins=careTinyWins();
+  const comfort=state.sentinel.comfort||{}; const miles=(state.sentinel.bunnyMilestones||[]).slice().sort(cmpDate).reverse();
+  const ST=[["great","😊 great"],["normal","🙂 normal"],["concern","⚠️ concern"],["vet","🏥 vet"]];
+  const memRow=m=>`<div class="listrow"><span style="font-size:15px;flex:0 0 auto">${MEM_ICON[m.kind]||"✨"}</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(m.title||"")}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(m.date))}</span><div class="soft" style="font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.preview||"")}</div></span>${m.source?`<button class="btn" data-act="memOpen" data-page="${esc(m.source.page)}" data-ref="${esc(m.source.refId||"")}">open</button>`:""}</div>`;
+  // bunny photos from the media library (lazy-loaded in the care post-hook)
+  let bunPics=""; if(state.media&&state.media.length){ const pics=state.media.filter(memIsBunny).slice().reverse().slice(0,8);
+    bunPics=pics.length?`<div class="md-grid">${pics.map(m=>`<div class="md-tile"><img src="${esc(m.url)}" alt="${esc(m.caption||'bunny')}" loading="lazy" data-act="mediaView" data-id="${esc(m.id)}"></div>`).join("")}</div>`:`<p class="soft" style="font-size:12.5px;margin:0">No bunny photos yet — upload some in ✨ Memories and tag them Myla / Kieran. 🐰</p>`; }
+  return `${slipBanner(true)}<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+  <section class="panel"><div class="card-head"><h2 style="font-size:17px">🌿 Today's gentle plan</h2></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Small, kind, and made for you by Kiko — no pressure, just gentle nudges.</p>
+    ${plan.map(p=>`<div class="kn-row"><span class="kn-dot"></span><span style="font-size:13px">${esc(p)}</span></div>`).join("")}
+  </section>
+  <section class="panel"><div class="card-head"><h2 style="font-size:17px">🐰 Bunny hub</h2><button class="btn" data-act="careGoMedia">📸 Add photos</button></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      ${BUNNIES.map(b=>{ const st=bunnyStatusToday(b.id); const nb=bunnyNextBday(b.born);
+        return `<div class="soft-card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px;font-family:var(--display)">${b.name}</b><span class="soft" style="font-size:11px">${esc(b.sex)}</span></div>
+        <div class="soft" style="font-size:12px">${esc(b.col)} · ${bunnyAge(b.born)} old</div>
+        <div class="soft" style="font-size:11px;margin-top:2px">🎂 ${nb===0?"birthday today! 🎉":nb!=null?`birthday in ${nb} day${nb>1?"s":""}`:""}</div>
+        <div class="label" style="margin:8px 0 4px">how is ${b.name} today?</div>
+        <div class="chiprow">${ST.map(([v,l])=>`<button class="chiptog ${st&&st.status===v?'on':''}" data-act="bunnyStatus" data-bunny="${b.id}" data-status="${v}">${l}</button>`).join("")}</div>
+        ${st?`<p class="soft" style="font-size:10.5px;margin:6px 0 0">logged ${esc((ST.find(s=>s[0]===st.status)||[])[1]||st.status)} today</p>`:""}</div>`; }).join("")}
     </div>
-    <button class="btn btn-grad" data-act="drawJoy" style="margin-top:6px">Pull a joy 🦊</button>
+  </section>
+  <section class="panel"><div class="card-head"><span class="label">📸 Recent bunny memories</span></div>
+    ${state.media===undefined?`<p class="soft" style="font-size:12.5px;margin:0">${UI.spinner({label:"loading photos…"})}</p>`:bunPics}
+  </section>
+  <section class="panel"><div class="card-head"><span class="label">📖 A happy memory</span><button class="btn" data-act="carePull">🎲 another</button></div>
+    ${pull?memRow(pull):`<p class="soft" style="font-size:12.5px;margin:0">As you journal and hit milestones, Kiko will resurface happy memories here. 💗</p>`}
+  </section>
+  <section class="panel"><div class="card-head"><span class="label">✨ Tiny wins jar</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 6px">The little victories Kiko's noticed — they count.</p>
+    ${wins.length?wins.map(memRow).join(""):`<p class="soft" style="font-size:12.5px;margin:0">Your wins will gather here — a new lowest weight, a finished thing, a special day. 🌱</p>`}
+  </section>
+  <section class="panel"><div class="card-head"><span class="label">💗 Things that help you</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 6px">Drawn from your own journals — what tends to lift your days.</p>
+    ${helps.length?`<div class="chiprow">${helps.map(h=>`<span class="pill pill-lav">${esc(h.l)}</span>`).join("")}</div>`:`<p class="soft" style="font-size:12.5px;margin:0">Journal a little and Kiko will start to notice what helps you most. ❄️</p>`}
+  </section>
+  <section class="panel" style="text-align:center"><div class="label">🫙 Joy jar</div>
+    <p class="soft" style="font-size:12px;margin:4px 0 8px">Pull out a little joy when you need one.</p>
+    <div class="joy-pick" id="joyPick" style="min-height:24px">tap below to draw a joy ✿</div>
+    <button class="btn btn-grad" data-act="drawJoy" style="margin-top:8px">Pull a joy 🦊</button>
     <div style="display:flex;gap:8px;margin-top:10px"><input class="inp" id="joyInput" placeholder="add your own little joy…"><button class="btn" data-act="addJoy">Add</button></div>
     <p class="soft" style="font-size:11px;margin-top:6px">${jar.length} joys in the jar ❄️</p>
-    </section>`},
-    {key:"journal",label:"Daily journal",cols:4,html:`<section class="panel">
-      <div class="card-head"><div class="label">✍️ Daily journal with Kiko</div>${journaledToday?'<span class="pill pill-mint">done today ✓</span>':''}</div>
-      <p class="soft" style="font-size:12.5px;margin:0 0 10px">A few playful questions, walked through with Kiko — light and cozy, never heavy. He'll tuck your answers away in your journal. 🦊❄️</p>
-      <button class="btn btn-grad" data-act="startKikoJournal">${journaledToday?'Journal again with Kiko 🌸':'Start today’s journal 🦊'}</button>
-    </section>`},
-    {key:"journals",label:"Your journals",cols:6,html:journalArchive()},
-    {key:"reframes",label:"Soft reframes",cols:6,html:`<section class="panel">
-      <div class="label" style="margin-bottom:8px">🌸 Soft reframes</div>
-      <div class="deck">${REFRAMES.map(flipCard).join("")}</div>
-    </section>`},
-  ];
-  return `${slipBanner(true)}${modularGrid("care",items)}${DISCLAIMER}`;
+  </section>
+  <section class="panel"><div class="card-head"><span class="label">🧸 Comfort collection</span></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Your go-to comforts, one tap away when you need them.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><select class="inp" id="comfortCat" style="max-width:170px">${COMFORT_CATS.map(c=>`<option value="${c[0]}">${c[1]}</option>`).join("")}</select><input class="inp" id="comfortText" placeholder="add a comfort…" style="flex:1;min-width:140px"><button class="btn btn-grad" data-act="comfortAdd">add</button></div>
+    ${COMFORT_CATS.map(([k,l])=>{ const arr=comfort[k]||[]; return arr.length?`<div style="margin-top:8px"><div class="label">${l}</div><div class="chiprow" style="margin-top:4px">${arr.map((t,i)=>`<span class="chiptog">${esc(t)}<span class="x" data-act="comfortDel" data-cat="${k}" data-i="${i}" style="margin-left:4px">✕</span></span>`).join("")}</div></div>`:""; }).join("")||`<p class="soft" style="font-size:12.5px;margin:0">Add your comfort music, ASMR, shows, games, foods &amp; reads above. 💗</p>`}
+  </section>
+  <section class="panel"><div class="card-head"><div class="label">✍️ Daily journal with Kiko</div>${journaledToday?'<span class="pill pill-mint">done today ✓</span>':''}</div>
+    <p class="soft" style="font-size:12.5px;margin:0 0 10px">A few playful questions, walked through with Kiko — light and cozy, never heavy. 🦊❄️</p>
+    <button class="btn btn-grad" data-act="startKikoJournal">${journaledToday?'Journal again 🌸':'Start today’s journal 🦊'}</button>
+  </section>
+  <section class="panel"><div class="card-head"><span class="label">🎂 Bunny milestones</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><select class="inp" id="mileBunny" style="max-width:130px">${BUNNIES.map(b=>`<option value="${b.id}">${b.name}</option>`).join("")}<option value="both">Both 💕</option></select><input class="inp" id="mileText" placeholder="a bunny memory or milestone…" style="flex:1;min-width:150px"><button class="btn btn-grad" data-act="bunnyMilestone">add</button></div>
+    ${miles.length?miles.slice(0,12).map(mi=>`<div class="listrow"><span style="font-size:14px;flex:0 0 auto">🐰</span><span class="grow"><b style="font-size:12px">${esc(({kieran:"Kieran",myla:"Myla",both:"Myla & Kieran"})[mi.bunny]||"")}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(mi.date))}</span><div style="font-size:12.5px">${esc(mi.text)}</div></span><button class="x" data-act="bunnyMileDel" data-id="${esc(mi.id)}">✕</button></div>`).join(""):`<p class="soft" style="font-size:12.5px;margin:0">🖤 Kieran born 3 Jan 2021 · 🩶 Myla born 28 Dec 2021 — add your favourite moments with them here.</p>`}
+  </section>
+  ${DISCLAIMER}</div>`;
 }
 
 /* ===================== ASK KIKO (home base) ===================== */
@@ -3282,6 +3577,78 @@ function paintTrendChart(){
     else { stat.textContent = "each line scaled to its own range, so you can compare shapes"; } }
   const w=document.getElementById("trendWord"); if(w) w.textContent = keys.length===1 ? trendWord(keys[0]) : "";
 }
+/* ============================================================================
+   KIKO INTELLIGENCE LAYER (deterministic, grounded — no server call, no hallucination).
+   #1 Health Interpreter: per-metric trend reads with a likely cause + one action.
+   #2 Insights: the client correlation engine (kikoCorrelations) already shipped.
+   #3 Perspective: an occasional reframe from real counts. Rendered on the Trends page.
+   ============================================================================ */
+function kikoTrendReads(){
+  const s=state.sentinel||{}, u=CONFIG.weightUnit||"kg", reads=[];
+  const add=(emoji,label,value,kiko)=>{ if(kiko) reads.push({emoji,label,value,kiko}); };
+  try{ const wl=(s.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort(cmpDate);
+    if(wl.length>=3){ const last=wl[wl.length-1].w, ref=wl[Math.max(0,wl.length-5)].w, d=Math.round((last-ref)*10)/10;
+      add("⚖️","Weight",(d<0?"↓ ":d>0?"↑ ":"→ ")+(d===0?"steady":Math.abs(d)+" "+u),
+        d<=-0.2?`Trending down about ${Math.abs(d)} ${u} over your last ${Math.min(5,wl.length)} weigh-ins. Day-to-day wobble is normal — the bigger trend is what counts, and it's heading the right way.`
+        : d>=0.4?`Up ${d} ${u} recently. A short rise is usually water or eating patterns rather than fat — worth leaning into protein + veg for a few days and watching it settle.`
+        : `Holding steady. If muscle is up or fat is down underneath, that's still real progress even when the scale is quiet.`); } }catch(e){}
+  try{ const mu=(s.weightLog||[]).filter(x=>x&&x.muscle!=null).slice().sort(cmpDate);
+    if(mu.length>=2){ const d=Math.round((mu[mu.length-1].muscle-mu[0].muscle)*10)/10;
+      add("💪","Muscle",(d>0?"+":"")+d+"%",
+        d>=0.3?`Up ${d}% since ${fmtDate(mu[0].date)}. Whatever you're doing — protein + training — is working; keep it steady.`
+        : d<=-0.3?`Down ${Math.abs(d)}% since ${fmtDate(mu[0].date)}. Protein is the main lever; aim to hit your protein goal consistently this week.`
+        : `Roughly holding — keeping muscle while losing weight is exactly the goal.`); } }catch(e){}
+  try{ const fa=(s.weightLog||[]).filter(x=>x&&x.fat!=null).slice().sort(cmpDate);
+    if(fa.length>=2){ const d=Math.round((fa[fa.length-1].fat-fa[0].fat)*10)/10;
+      add("🫧","Body fat",(d>0?"+":"")+d+"%",
+        d<=-0.3?`Down ${Math.abs(d)}% since ${fmtDate(fa[0].date)} — the work is showing.`
+        : d>=0.4?`Up ${d}% lately. This can ride on water retention or a few higher days; prioritise protein + vegetables for a few days and see if it reverses.`
+        : `Fairly flat — normal week to week.`); } }catch(e){}
+  try{ const fh=foodHistory(7).filter(h=>h.meals&&h.meals.length), tg=foodTargets().protein;
+    if(fh.length>=3){ const avg=Math.round(fh.reduce((a,h)=>a+h.protein,0)/fh.length), hit=fh.filter(h=>h.protein>=tg).length;
+      add("🍳","Protein",`~${avg}g avg`,
+        hit>=Math.ceil(fh.length*0.6)?`You hit your protein goal on ${hit} of ${fh.length} logged days — strong, and it protects muscle while you lose.`
+        : `Averaging ~${avg}g/day vs your ${tg}g goal (hit on ${hit}/${fh.length} days). Easy win: a shake or yogurt on the days you fall short.`); } }catch(e){}
+  try{ const avg=waterWeekAvg(); if(avg!=null){ const goal=CUPS_PER_40OZ*2, L=c=>(c*0.2366).toFixed(1);
+    add("💧","Water",`~${L(avg)}L/day`,
+      avg<goal*0.7?`A little under your usual hydration. Water often tracks with how you feel — nausea and energy both tend to do better on well-hydrated days.`
+      : `Hydration's solid lately — that quietly helps energy and nausea.`); } }catch(e){}
+  try{ const vals=[]; for(let i=1;i<=7;i++){ const d=rangeRow(dayAgo(-i)); const sl=d&&Number(d.sleep); if(sl)vals.push(sl); }
+    if(vals.length>=3){ const avg=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
+      add("😴","Sleep",`~${avg}h avg`,
+        avg<7?`Averaging ~${avg}h over your last ${vals.length} nights — under 7h tends to show up as lower recovery and higher fatigue. An earlier wind-down a couple of nights could help.`
+        : `Averaging ~${avg}h — a recovery-friendly range. 🌙`); } }catch(e){}
+  return reads;
+}
+function kikoPerspective(){
+  const creator=OS_MODE!=="health", s=state.sentinel||{};
+  try{
+    if(creator){ const mStart=TODAY.slice(0,7)+"-01", cnt=k=>((s.checkinLog||{})[k]||[]).filter(d=>d>=mStart&&d<=TODAY).length;
+      const streams=cnt("streamed"), yt=cnt("ytVideo")+cnt("ytShort"), art=cnt("madeArt"); const bits=[];
+      if(streams)bits.push(`streamed ${streams} day${streams>1?"s":""}`); if(yt)bits.push(`${yt} upload${yt>1?"s":""}`); if(art)bits.push(`made art ${art} day${art>1?"s":""}`);
+      if(bits.length>=2) return `Even on a week that felt quiet, this month you've ${bits.join(", ")}. That's real, steady output — be fair to yourself about it.`;
+    } else {
+      const wlw=(s.weightLog||[]).filter(x=>x&&x.w!=null).slice().sort(cmpDate), mu=(s.weightLog||[]).filter(x=>x&&x.muscle!=null).slice().sort(cmpDate);
+      if(wlw.length>=3&&mu.length>=2){ const dW=wlw[wlw.length-1].w-wlw[0].w, dM=mu[mu.length-1].muscle-mu[0].muscle;
+        if(dW<=-0.3&&dM>=-0.1) return `Worth zooming out: you've lost weight while keeping (or building) muscle. That's the healthy, sustainable kind of progress — not just a smaller number.`; }
+      const byd={}; (state.range||[]).forEach(r=>{ if(r&&r.date)byd[r.date]=r.notes||{}; });
+      let streak=0; for(let i=0;i<30;i++){ const n=i===0?(state.today||{}):byd[dayAgo(-i)]; const h=n&&n.habits; if(h&&h.h_meds)streak++; else if(i>0)break; }
+      if(streak>=14) return `You've stayed on your meds ${streak} days running — that kind of consistency is one of the biggest quiet contributors to long-term results.`;
+    }
+  }catch(e){}
+  return "";
+}
+function kikoDataReadCard(){
+  const reads=kikoTrendReads(); let corr=[]; try{ corr=kikoCorrelations("health"); }catch(e){} const persp=kikoPerspective();
+  if(!reads.length&&!corr.length&&!persp) return "";
+  return `<section class="panel">
+    <div class="card-head"><h2 style="font-size:17px">💗 Kiko reads your data</h2></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 10px">Not just numbers — what the trends actually mean, grounded in your own logs.</p>
+    ${reads.map(r=>`<div class="listrow"><span style="font-size:16px;flex:0 0 auto">${r.emoji}</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(r.label)}</b> <span class="soft num" style="font-size:12px">${esc(r.value)}</span><div class="soft" style="font-size:12px;line-height:1.5">${esc(r.kiko)}</div></span></div>`).join("")}
+    ${corr.length?`<div class="sec-label" style="margin-top:12px">🔗 Connections Kiko spotted</div>${corr.map(c=>`<div class="kn-row"><span class="kn-dot"></span><span style="font-size:12px">${esc(c.t)}</span></div>`).join("")}`:""}
+    ${persp?`<div class="soft-card" style="margin-top:12px;font-size:12.5px;line-height:1.55"><b class="peri">💭 Perspective</b><br>${esc(persp)}</div>`:""}
+  </section>`;
+}
 function viewTrends(){
   const {byDate}=buildSeries();
   const sel=(state.trendMetrics&&state.trendMetrics.length)?state.trendMetrics:["mood"];
@@ -3311,6 +3678,7 @@ function viewTrends(){
     </div>
     <p class="soft" style="font-size:11px;text-align:center;margin-top:8px">Tap chips to layer metrics and watch them in tandem. Gaps just mean a rest day — that's allowed. 💗</p>
   </section>
+  ${kikoDataReadCard()}
   <section class="panel">
     <div class="label" style="margin-bottom:6px">🔎 Gentle pattern-spotter</div>
     ${patternSpotter(byDate)}
@@ -4206,6 +4574,20 @@ const H={
         return {...n,mounjaro,medsTaken:mt}; }); }
     if(k==="sleep") await setToday(n=>({...n,sleep:on?8:0}));   // "slept well" = log 8h on the chart
     if(on)toast("checked in ✨"); render(); },
+  memSearch(){ const el=$("#memSearchInput"); state.memQuery=el?String(el.value||"").trim():""; render(); },
+  memSearchClear(){ state.memQuery=""; render(); },
+  memBunny(){ state.memBunny=!state.memBunny; render(); },
+  async memFav(el){ const id=el.dataset.id; if(!id)return;
+    if(id.indexOf("md:")===0){ const mid=id.slice(3); await setMedia(arr=>arr.map(m=>m.id===mid?{...m,fav:!m.fav}:m)); render(); return; }   // photo favs live on the media item
+    await setSent(n=>{ const set=new Set(n.memFav||[]); set.has(id)?set.delete(id):set.add(id); return {...n,memFav:[...set]}; }); render(); },
+  async mediaFav(el){ const id=el.dataset.id; await setMedia(arr=>arr.map(m=>m.id===id?{...m,fav:!m.fav}:m)); render(); },
+  async mediaDel(el){ const id=el.dataset.id; await setMedia(arr=>arr.filter(m=>m.id!==id)); toast("removed"); render(); },
+  async mediaTag(el){ const id=el.dataset.id, p=el.dataset.p; await setMedia(arr=>arr.map(m=>{ if(m.id!==id)return m; const set=new Set(m.people||[]); set.has(p)?set.delete(p):set.add(p); return {...m,people:[...set]}; })); render(); },
+  mediaView(el){ const id=el.dataset.id; const m=(state.media||[]).find(x=>x.id===id); if(!m)return;
+    $("#modal").innerHTML=`<div class="modal-bg" data-act="closeModal"><div class="modal" data-act="noop" style="max-width:680px;width:100%;padding:10px"><img src="${esc(m.url)}" alt="${esc(m.caption||'photo')}" style="width:100%;border-radius:12px;display:block;max-height:78vh;object-fit:contain;background:#000">${m.caption?`<p class="soft" style="font-size:12.5px;margin:8px 4px 0">${esc(m.caption)}</p>`:""}<div style="text-align:right;margin-top:6px"><button class="btn" data-act="closeModal">close</button></div></div></div>`; },
+  memOpen(el){ const page=el.dataset.page, ref=el.dataset.ref;
+    if(page==="journal"&&ref&&/^\d{4}-\d{2}/.test(ref)){ try{ state.jrRef=new Date(ref.slice(0,7)+"-01T00:00"); }catch(_){} }
+    setTab(TABS.some(t2=>t2[0]===page)?page:"journal"); },
   focusGo(el){ const s=el.dataset.seed, t=el.dataset.tab, l=el.dataset.link, c=el.dataset.cat;
     if(c){ try{ setSent(n=>{ const fa={...(n.focusAffinity||{})}; const cur=fa[c]||{n:0}; fa[c]={n:(cur.n||0)+1,last:TODAY}; return {...n,focusAffinity:fa}; }); }catch(e){} }   // learn what she taps
     if(l){ window.open(l,"_blank","noopener"); return; }
@@ -4332,6 +4714,23 @@ const H={
   jrJump(el){ const ym=el.dataset.ym; state.jrRef=new Date(ym+"-01T00:00"); render(); window.scrollTo({top:0,behavior:"smooth"}); },
   async jrLoadAll(){ toast("gathering your archive… 📚"); await jrFetchAll(); render(); },
   async jrOpenDay(el){ const date=el.dataset.date||(el.closest("[data-date]")&&el.closest("[data-date]").dataset.date); if(!date)return; await jrEntryModal(date); },
+  jrPick(el){ const date=el.dataset.date||(el.closest("[data-date]")&&el.closest("[data-date]").dataset.date); if(!date||date>TODAY)return;
+    state.jrDay=date; const ym=date.slice(0,7); if(!state.jrRef||jrYM(state.jrRef)!==ym) state.jrRef=new Date(ym+"-01T00:00");
+    try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(e){} render(); },
+  jrMic(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){ toast("voice needs Chrome or Edge 🌸"); return; }
+    const setBtn=t=>{ const b=document.querySelector('[data-act="jrMic"]'); if(b){ b.textContent=t; b.classList.toggle("btn-grad",state._jrMic); } };
+    if(state._jrMic){ state._jrMic=false; try{state._jrRec&&state._jrRec.stop();}catch(e){} setBtn("🎤 Speak"); return; }
+    const ta=$("#jrPageText"); if(!ta)return;
+    let rec; try{ rec=new SR(); }catch(e){ toast("couldn't start the mic 🌸"); return; }
+    state._jrRec=rec; rec.lang="en-US"; rec.continuous=true; rec.interimResults=true;
+    const base=ta.value; let fin="";
+    rec.onresult=e=>{ let interim=""; for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; if(e.results[i].isFinal)fin+=t+" "; else interim+=t; }
+      const t2=$("#jrPageText"); if(t2){ t2.value=(base+(base&&!/\s$/.test(base)?" ":"")+fin+interim).trim(); t2.dispatchEvent(new Event("input")); } };
+    rec.onend=()=>{ state._jrMic=false; setBtn("🎤 Speak"); const t2=$("#jrPageText"); if(t2)t2.dispatchEvent(new Event("input")); };
+    rec.onerror=()=>{ state._jrMic=false; setBtn("🎤 Speak"); };
+    state._jrMic=true; setBtn("⏹ listening…"); try{ rec.start(); }catch(e){ state._jrMic=false; setBtn("🎤 Speak"); } },
   async jrSave(el){ const date=el.dataset.date;
     const sv=id=>{ const b=document.querySelector(`[data-jrscale="${id}"].on`); return b?Number(b.dataset.v):null; };
     const num=id=>{ const e2=$("#"+id); const v=e2&&e2.value!==""?parseFloat(e2.value):null; return (v==null||isNaN(v))?null:v; };
@@ -4545,6 +4944,8 @@ const H={
     const item={id:"fd"+Date.now(),name:f.name,serving:f.serving||"",kcal:f.kcal||0,protein:f.protein||0,carbs:f.carbs||0,fiber:f.fiber||0,fat:f.fat||0,time:new Date().toISOString()};
     await setToday(n=>({...n,food:[...(n.food||[]),item]})); toast("logged "+f.name+" 🍽️"); render(); },
   async favDel(el){ const id=el.dataset.id; await setSent(n=>({...n,foodFaves:(n.foodFaves||[]).filter(f=>f.id!==id)})); render(); },
+  async foodRelog(el){ const d=el.dataset; const item={id:"fd"+Date.now(),name:d.name||"food",serving:d.serving||"",kcal:Math.round(+d.kcal||0),protein:+d.protein||0,carbs:+d.carbs||0,fiber:+d.fiber||0,fat:+d.fat||0,time:new Date().toISOString()};
+    await setToday(n=>({...n,food:[...(n.food||[]),item]})); toast("logged "+item.name+" 🍽️"); render(); },
   async saveFoodTargets(){ const num=id=>{const el=$("#"+id);const n=el?parseFloat(el.value):NaN;return isNaN(n)?null:n;};
     await setSent(n=>({...n,foodTargets:{kcal:num("ft_kcal")||1500,protein:num("ft_protein")||110,fiber:num("ft_fiber")||28}})); toast("targets saved 🎯"); render(); },
   revealNum(){ const wl=(state.sentinel.weightLog||[]).slice().sort(cmpDate); const avg=rollingAvg(wl);
@@ -4557,6 +4958,16 @@ const H={
     await setSent(n=>({...n,measurements:[...(n.measurements||[]),entry]})); toast("saved ❄️"); render(); },
 
   async breath(){ state.breathOn=!state.breathOn; await render(); if(state.breathOn) startBreath(); else stopBreath(); },
+  async bunnyStatus(el){ const bunny=el.dataset.bunny, status=el.dataset.status; if(!bunny||!status)return;
+    await setSent(n=>{ const log=(n.bunnyLog||[]).filter(x=>!(x.bunny===bunny&&x.date===TODAY)); log.push({date:TODAY,bunny,status}); return {...n,bunnyLog:log.slice(-300)}; }); render(); },
+  async bunnyMilestone(){ const b=$("#mileBunny"), t=$("#mileText"); const text=t?String(t.value||"").trim():""; if(!text)return;
+    await setSent(n=>({...n,bunnyMilestones:[...(n.bunnyMilestones||[]),{id:"bm"+Date.now(),date:TODAY,bunny:(b&&b.value)||"both",text:text.slice(0,200)}].slice(-200)})); toast("saved 🐰💗"); render(); },
+  async bunnyMileDel(el){ const id=el.dataset.id; await setSent(n=>({...n,bunnyMilestones:(n.bunnyMilestones||[]).filter(x=>x.id!==id)})); render(); },
+  async comfortAdd(){ const c=$("#comfortCat"), t=$("#comfortText"); const cat=(c&&c.value)||"music", text=t?String(t.value||"").trim():""; if(!text)return;
+    await setSent(n=>{ const cm={...(n.comfort||{})}; cm[cat]=[...(cm[cat]||[]),text.slice(0,80)].slice(-30); return {...n,comfort:cm}; }); render(); },
+  async comfortDel(el){ const cat=el.dataset.cat, i=+el.dataset.i; await setSent(n=>{ const cm={...(n.comfort||{})}; cm[cat]=(cm[cat]||[]).filter((_,j)=>j!==i); return {...n,comfort:cm}; }); render(); },
+  carePull(){ state._carePull=(state._carePull||0)+1; render(); },
+  careGoMedia(){ state.memBunny=true; setTab("memories"); },
   flip(el){ el.closest('.flip').classList.toggle('open'); },
   drawJoy(){ const jar=state.sentinel.joyJar||[]; const el=$("#joyPick"); if(!jar.length){ el.textContent="add a joy first ✿"; return; }
     el.textContent="✿ "+jar[Math.floor(Math.random()*jar.length)]+" ✿"; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); },
