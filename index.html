@@ -508,7 +508,7 @@
 <script>
 "use strict";
 /* ===================== CONFIG (everything here is yours to change) ===== */
-const APP_BUILD="2026-06-14.1";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
+const APP_BUILD="2026-06-14.3";   // bump on EVERY change — the Settings chip ends "is it the fix or the cache?" forever
 const CONFIG = {
   url: "https://ahneitzrgiwjufqyzttl.supabase.co",          // Supabase project URL — blank = demo mode
   anonKey: "sb_publishable_8fJguyoSw-jLRClMXZs8vQ_hZdf_JfE", // sb_publishable_... — blank = demo mode
@@ -953,6 +953,29 @@ function cardHabits(){
     ${weekStrip("habits",list.length)}
   </section>`;
 }
+/* creator-focused daily goals — mirrors Daily Habits but a SEPARATE list, for content work (own energy tags) */
+const CGOALS_DEFAULT=[
+  {id:"cg_comments",text:"Reply to comments",       energy:"low"},
+  {id:"cg_socials", text:"Post on socials / X",     energy:"low"},
+  {id:"cg_clip",    text:"Edit a clip / Short",     energy:"med"},
+  {id:"cg_thumb",   text:"Make a thumbnail",        energy:"med"},
+  {id:"cg_cover",   text:"Cover-song progress",     energy:"med"},
+  {id:"cg_stream",  text:"Stream",                  energy:"high"},
+  {id:"cg_video",   text:"Work on a YouTube video", energy:"high"},
+];
+function cgoalsList(){ const l=state.sentinel.cgoalsList; return (Array.isArray(l)&&l.length)?l:CGOALS_DEFAULT; }
+function cardCreatorGoals(){
+  const list=cgoalsList(), checks=state.today.cgoals||{}, ed=!!state.cgoalEdit;
+  const done=list.filter(h=>checks[h.id]).length;
+  const groups=[["low","🌙 Low energy"],["med","🌤 Medium energy"],["high","🌞 High energy"]];
+  const row=h=>`<div class="listrow"><button class="x" data-act="cgoalToggle" data-v="${h.id}" style="font-size:16px;color:${checks[h.id]?'var(--mint,#2f9d79)':'var(--muted)'}">${checks[h.id]?'●':'○'}</button><span class="grow ${checks[h.id]?'soft':''}" style="font-size:12.5px;${checks[h.id]?'text-decoration:line-through':''}">${esc(h.text)}</span>${ed?`<button class="x" data-act="delCgoal" data-v="${h.id}">✕</button>`:''}</div>`;
+  return `<section class="panel">
+    <div class="card-head"><span class="label">Daily goals 🎯</span><span style="display:flex;gap:6px;align-items:center"><span class="pill ${done&&done===list.length?'pill-mint':'pill-gray'}">${done}/${list.length}${done&&done===list.length?' ♡':''}</span><button class="btn" data-act="cgoalEdit">${ed?'done':'edit'}</button></span></div>
+    ${groups.map(([g,label])=>{ const its=list.filter(h=>(h.energy||"med")===g); return its.length?`<div class="label" style="margin:6px 0 2px;color:var(--peri-deep)">${label}</div>${its.map(row).join("")}`:""; }).join("")}
+    ${ed?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><input class="inp" id="cgoalInput" placeholder="new goal…" style="flex:1;min-width:130px" value="${esc((state.cgoalDraft||{}).text||'')}"><select class="inp" id="cgoalEnergy" style="max-width:92px;flex:0 0 auto">${[["low","🌙 low"],["med","🌤 med"],["high","🌞 high"]].map(([v,l])=>`<option value="${v}" ${(((state.cgoalDraft||{}).energy)||"med")===v?'selected':''}>${l}</option>`).join("")}</select><button class="btn btn-grad" data-act="addCgoalUI">add</button></div>`:''}
+    ${weekStrip("cgoals",list.length)}
+  </section>`;
+}
 function cardGacha(){
   const list=gachaList(), checks=state.today.gacha||{}, ed=!!state.gachaEdit;
   const done=list.filter(g=>checks[g.id]).length;
@@ -1095,9 +1118,69 @@ function rangeRow(date){ const r=(state.range||[]).find(x=>x&&x.date===date); re
 function fmtSleep(hrs){ const H=Math.floor(hrs), M=Math.round((hrs-H)*60); return H+"h "+("0"+M).slice(-2)+"m"; }
 function sleepStreakUnder(h){ let n=0; for(let i=0;i<10;i++){ const d=i===0?(state.today||{}):rangeRow(dayAgo(-i)); if(!d)break; const s=Number(d.sleep); if(s&&s<h)n++; else break; } return n; }
 function waterWeekAvg(){ const vals=[]; for(let i=1;i<=7;i++){ const d=rangeRow(dayAgo(-i)); if(d&&d.mounjaro&&d.mounjaro.water!=null)vals.push(Number(d.mounjaro.water)||0); } return vals.length>=3?vals.reduce((a,b)=>a+b,0)/vals.length:null; }
+/* game-calendar nudges (Creator side only — respects the OS separation rule):
+   things leaving soon (uses endDate) + things worth pre-farming (upcoming start date). */
+function gameDeadlineObs(){
+  const O=[]; const seen=new Set();
+  (state.sentinel.calendarEvents||[]).filter(gameSrc).forEach(e=>{
+    if(!e||!e.date)return; const end=e.endDate||null;
+    // a live, multi-day event that's about to end — "finish it before it's gone"
+    if(end&&end>e.date&&e.date<=TODAY&&end>=TODAY){
+      const left=daysBetween(TODAY,end);
+      if(left>=0&&left<=7){ seen.add(e.id);
+        const span=left===0?"today is the last day":left===1?"1 day left":left+" days left";
+        O.push({t:`${e.title} leaves soon — ${span}. ⏳`,
+          focus:{t:`Finish the ${e.title} before it leaves soon — ${span}. ⏳`,tab:"calendar"}}); }
+    }
+    // an upcoming debut / new banner worth pre-farming (start 8–21 days out)
+    if(e.date>TODAY&&!seen.has(e.id)){
+      const d=daysBetween(TODAY,e.date);
+      if(d>=8&&d<=21){ const when=d>=13?Math.round(d/7)+" weeks":d+" days";
+        O.push({t:`${e.title} debuts in ${when}. 🌱`,
+          focus:{t:`Maybe pre-farm for ${e.title} — it debuts in about ${when}. 🌱`,tab:"calendar"}}); }
+    }
+  });
+  return O;
+}
+/* Kiko's notebook -> gentle forward nudges. Only surfaces durable notes that read like
+   an intention/deadline (finish / before / pre-farm / due / debut / remember to ...),
+   and keeps game-flavoured notes off the Health home to honour the OS separation. */
+const MEM_ACTION_RE=/\b(finish|before|pre-?farm|save up|don'?t forget|remember to|reminder|deadline|due|leaves?|ends?|debut|upcoming|need to|have to|should)\b/i;
+const MEM_GAME_RE=/\b(farm|banner|pull|gacha|debut|stream|patch|character|limited|arknights|endfield|genshin|hoyo|wuthering|star rail|zzz)\b/i;
+function memoryNudges(mode){
+  const O=[]; const mem=(state.sentinel.kikoMemory||[]);
+  for(let i=mem.length-1;i>=0&&O.length<2;i--){ const m=mem[i]; const tx=String((m&&m.text)||"").trim();
+    if(!tx||!MEM_ACTION_RE.test(tx))continue;
+    if(mode==="health"&&MEM_GAME_RE.test(tx))continue;
+    const short=tx.length>96?tx.slice(0,94).trim()+"…":tx;
+    O.push({t:`Kiko remembered: ${short} 🧠`,focus:{t:short,seed:`help me make a tiny plan for: ${tx}`}}); }
+  return O;
+}
+/* anchor: a single best nudge from what's still open today, so Suggested focus + Kiko
+   noticed are NEVER empty in either OS — always a "where am I headed today" idea. */
+function anchorFocus(mode){
+  const byEnergy=a=>({low:0,med:1,high:2}[(a&&a.energy)||"med"]);
+  if(mode==="creator"){
+    const gw=(state.sentinel.goalsWeek||[]).filter(g=>g&&!g.done);
+    if(gw.length) return {t:`${gw.length} weekly goal${gw.length>1?"s":""} still open. 🌷`,focus:{t:`A tiny step on “${gw[0].text}” would move the week forward. 🌷`,tab:"planner"}};
+    const cg=cgoalsList(), cc=(state.today||{}).cgoals||{}; const left=cg.filter(g=>!cc[g.id]).sort((a,b)=>byEnergy(a)-byEnergy(b));
+    if(left.length) return {t:`${left.length} daily goal${left.length>1?"s":""} left for today. 🎯`,focus:{t:`Start with the easy one: “${left[0].text}”. 🎯`,seed:`help me take the first tiny step on: ${left[0].text}`}};
+    const ci=CI_DEFS.creator.filter(d=>!ciOn(d[0]));
+    if(ci.length) return {t:`A few check-ins are still open today. 🌸`,focus:{t:`One gentle thing for today: ${ci[0][2]}. ${ci[0][1]}`,seed:`cheer me on to ${ci[0][2].toLowerCase()} today`}};
+    return {t:`Everything's checked off today — lovely. ✨`,focus:{t:`Follow your joy today — what's one small thing you'd love to make? ✨`,seed:"suggest one small joyful creative thing I could do today"}};
+  } else {
+    const hl=habitsList(), hc=(state.today||{}).habits||{}; const left=hl.filter(h=>!hc[h.id]).sort((a,b)=>byEnergy(a)-byEnergy(b));
+    if(left.length) return {t:`${left.length} daily habit${left.length>1?"s":""} left for today. ✅`,focus:{t:`Start small: “${left[0].text}”. ✅`,seed:`help me take the first tiny step on: ${left[0].text}`}};
+    const ci=CI_DEFS.health.filter(d=>!ciOn(d[0]));
+    if(ci.length) return {t:`A few check-ins are still open today. 🌸`,focus:{t:`One gentle thing for today: ${ci[0][2]}. ${ci[0][1]}`,seed:`cheer me on to ${ci[0][2].toLowerCase()} today`}};
+    return {t:`Every habit's done today — rest is productive too. 🌙`,focus:{t:`You're all caught up — a slow, kind evening counts as a win. 🌙`,seed:"suggest a gentle relaxing way to wind down tonight"}};
+  }
+}
 function kikoObservations(mode){
   const O=[];
+  const prio=[];
   if(mode==="creator"){
+    try{ gameDeadlineObs().forEach(o=>prio.push(o)); }catch(e){}
     const dArt=ciDays("madeArt"); if(dArt!=null&&dArt>=7) O.push({t:`You haven't drawn in ${dArt} days. 🎨`,focus:{t:"Kiko noticed you haven't drawn in a while. Maybe it's time to make some art together! 🎨",tab:"art"}});
     const dYt=ciDays("ytVideo"); if(dYt!=null&&dYt>=7) O.push({t:`Your last YouTube upload was ${dYt} days ago. 🎥`,focus:{t:"Kiko noticed you haven't uploaded to YouTube recently. Did you check in with your editors? 🎥",seed:"help me draft a check-in message to my YouTube editors"}});
     const dSh=ciDays("ytShort"); if(dSh!=null&&dSh>=7) O.push({t:`No Shorts upload in ${dSh} days. 🎬`,focus:{t:"Kiko noticed Shorts have been quiet — one clip from a recent VOD could be plenty! 🎬",tab:"script"}});
@@ -1146,12 +1229,17 @@ function kikoObservations(mode){
     try{ const c=state.sentinel.cycle||{}; if(c.lastStart){ const dx=daysBetween(c.lastStart,TODAY); if(dx>=45) O.push({t:`${dx} days since your last period — common with PCOS, but worth a gentle note for your doctor. 🌙`}); } }catch(e){}
     try{ const hl=habitsList(), hc=(state.today||{}).habits||{}; if(hl.length&&hl.every(h=>hc[h.id])) O.push({t:`All your daily habits are done today — lovely. ✨`}); }catch(e){}
   }
-  return O.slice(0,8);
+  try{ memoryNudges(mode).forEach(o=>prio.push(o)); }catch(e){}
+  // user-priority signals (game deadlines + Kiko's notebook) lead, then the rest
+  let out=[...prio,...O].slice(0,8);
+  // never leave Suggested focus or Kiko noticed empty — anchor to today's open work
+  if(!out.some(o=>o&&o.focus)){ try{ const a=anchorFocus(mode); if(a)out.push(a); }catch(e){} }
+  return out;
 }
 function glanceHeader(){ const d=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
   return `<div class="glance-head"><span class="glance-fox">🦊</span><div><h2>${greeting()}, ${esc(CONFIG.creator.name)}! 🌸</h2><div class="label" style="margin-top:3px">${d} • Today at a Glance</div></div></div>`; }
 function noticedCard(O){ return `<div class="gcard"><div class="sec-label">✨ Kiko noticed</div>
-  ${O.length?O.map(o=>`<div class="kn-row"><span class="kn-dot"></span><span>${o.t}</span></div>`).join(""):`<p class="soft" style="font-size:12.5px;margin:0">Nothing to flag — you're all caught up across everything Kiko can see. ❄️</p>`}</div>`; }
+  ${O.length?O.map(o=>`<div class="kn-row"><span class="kn-dot"></span><span>${esc(o.t)}</span></div>`).join(""):`<p class="soft" style="font-size:12.5px;margin:0">Nothing to flag — you're all caught up across everything Kiko can see. ❄️</p>`}</div>`; }
 function focusCard(O){ const F=O.filter(o=>o.focus).slice(0,3);
   if(!F.length) return `<div class="gcard"><div class="sec-label">🌸 Suggested focus</div><p class="soft" style="font-size:12.5px;margin:0">No nudges today — follow your joy. ✨</p></div>`;
   return `<div class="gcard"><div class="sec-label">🌸 Suggested focus</div>
@@ -1203,6 +1291,7 @@ function viewHome(){
     <p class="got-this">You've got this, ${esc(CONFIG.creator.name)}! ✨</p>
   </section>`;
   const items=creator?[
+    {key:"cgoals",label:"Daily goals",cols:4,html:cardCreatorGoals()},
     {key:"gacha",label:"Gacha dailies",cols:4,html:cardGacha()},
     {key:"schedule",label:"Stream schedule",cols:4,html:cardSchedule()},
     {key:"contentops",label:"Content opportunities",cols:4,html:cardContentOps()},
@@ -4027,6 +4116,19 @@ const H={
     const hi=$("#habitInput"); if(hi) state.habitDraft={text:hi.value,energy:($("#habitEnergy")||{}).value||"med"};
     await setSent(n=>{ let l=(Array.isArray(n.habitsList)&&n.habitsList.length)?n.habitsList.slice():HABITS_DEFAULT.slice();
       l=l.filter(h=>h.id!==id); return {...n,habitsList:l}; }); render(); },
+  /* --- creator daily goals (separate list, same energy-tagged shape) --- */
+  async cgoalToggle(el){ const id=el.dataset.v;
+    const ci=$("#cgoalInput"); if(ci) state.cgoalDraft={text:ci.value,energy:($("#cgoalEnergy")||{}).value||"med"};
+    await setToday(n=>({...n,cgoals:{...(n.cgoals||{}),[id]:!(n.cgoals||{})[id]}})); render(); },
+  cgoalEdit(){ state.cgoalEdit=!state.cgoalEdit; render(); },
+  async addCgoalUI(){ const inp=$("#cgoalInput"); const t=((inp&&inp.value)||"").trim(); if(!t)return;
+    const en=($("#cgoalEnergy")&&$("#cgoalEnergy").value)||"med"; state.cgoalDraft=null;
+    await setSent(n=>{ const l=(Array.isArray(n.cgoalsList)&&n.cgoalsList.length)?n.cgoalsList.slice():CGOALS_DEFAULT.slice();
+      l.push({id:"cg"+Date.now(),text:t,energy:en}); return {...n,cgoalsList:l}; }); toast("goal added 🎯"); render(); },
+  async delCgoal(el){ const id=el.dataset.v;
+    const ci=$("#cgoalInput"); if(ci) state.cgoalDraft={text:ci.value,energy:($("#cgoalEnergy")||{}).value||"med"};
+    await setSent(n=>{ let l=(Array.isArray(n.cgoalsList)&&n.cgoalsList.length)?n.cgoalsList.slice():CGOALS_DEFAULT.slice();
+      l=l.filter(h=>h.id!==id); return {...n,cgoalsList:l}; }); render(); },
   async gachaToggle(el){ const id=el.dataset.v;
     const gi=$("#gachaInput"); if(gi) state.gachaDraft=gi.value;   // keep a half-typed new game
     await setToday(n=>{ const gacha={...(n.gacha||{})}; gacha[id]=!gacha[id]; return {...n,gacha}; }); render(); },
@@ -4048,8 +4150,10 @@ const H={
     await setToday(n=>{ const mounjaro={...(n.mounjaro||{})}; mounjaro.water=Math.max(0,(mounjaro.water||0)+d); return {...n,mounjaro}; }); render(); },
   async sleepStep(el){ const d=Number(el.dataset.v);
     await setToday(n=>({...n,sleep:Math.max(0,Math.min(14,(n.sleep||0)+d))})); render(); },
-  async medToggle(el){ const part=el.dataset.v;   // 'am' | 'pm' — both done ⇒ home "meds" habit ticks too
-    await setToday(n=>{ const meds={...(n.meds||{})}; meds[part]=!meds[part]; const habits={...(n.habits||{})}; habits.h_meds=!!(meds.am&&meds.pm); return {...n,meds,habits}; }); render(); },
+  async medToggle(el){ const part=el.dataset.v;   // 'am' | 'pm' — ticks/unticks that period's meds in the list too
+    const on=!(((state.today||{}).meds||{})[part]); const ids=medsByPeriod(part).map(m=>m.id);
+    await setToday(n=>{ const meds={...(n.meds||{}),[part]:on}; const mt={...(n.medsTaken||{})}; ids.forEach(id=>mt[id]=on);
+      const habits={...(n.habits||{}),h_meds:!!(meds.am&&meds.pm)}; return {...n,meds,medsTaken:mt,habits}; }); render(); },
   async medTake(el){ const id=el.dataset.v;   // per-medication daily check-off — keeps Home AM/PM in sync both ways
     const meds=(state.sentinel.medsList||[]), am=medsByPeriod("am"), pm=medsByPeriod("pm");
     await setToday(n=>{ const mt={...(n.medsTaken||{}),[id]:!(n.medsTaken||{})[id]};
@@ -5088,6 +5192,8 @@ function kikoDataSummary(){
     if(gw.length||gm.length) L.push(`GOALS open — week: ${gw.map(g=>g.text).join(", ")||"none"}; month: ${gm.map(g=>g.text).join(", ")||"none"}`);
     const hl=habitsList(), hc=t.habits||{}; const hLeft=hl.filter(h=>!hc[h.id]).map(h=>h.text);
     L.push(`HABITS today ${hl.length-hLeft.length}/${hl.length}${hLeft.length?` (left: ${hLeft.join(", ")})`:" — all done ✓"}`);
+    const cgl=cgoalsList(), cgc=t.cgoals||{}; const cgLeft=cgl.filter(g=>!cgc[g.id]).map(g=>g.text);
+    L.push(`CREATOR DAILY GOALS today ${cgl.length-cgLeft.length}/${cgl.length}${cgLeft.length?` (left: ${cgLeft.join(", ")})`:" — all done ✓"}`);
     const gl=gachaList(), gc=t.gacha||{}; const gLeft=gl.filter(g=>!gc[g.id]).map(g=>g.name);
     L.push(`GACHA DAILIES today ${gl.length-gLeft.length}/${gl.length}${gLeft.length?` (left: ${gLeft.join(", ")})`:" — all done ✓"}`);
 
