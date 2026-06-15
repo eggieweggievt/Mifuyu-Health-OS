@@ -1058,10 +1058,10 @@ const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plann
 try{ state.trendType=localStorage.getItem("mifu-trend-type")||state.trendType; state.wtType=localStorage.getItem("mifu-wt-type")||state.wtType; }catch(e){}   // remember her chart choices
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["trends","📈 Trends"],["memories","✨ Memories"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["bunny","🐰 Bunny"],["trends","📈 Trends"],["memories","✨ Memories"],["settings","⚙️ Settings"]];
 /* ===== one app, two minds — Creator OS 🎀 / Health OS ❄️ (tap the logo to swap) ===== */
 const CREATOR_TABS=["home","kiko","planner","calendar","events","script","optimize","money","art","toolbox","memories"];
-const HEALTH_TABS=["home","kiko","food","care","trends","health","journal","memories"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
+const HEALTH_TABS=["home","kiko","food","care","bunny","trends","health","journal","memories"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
 let OS_MODE=(function(){ try{ return localStorage.getItem("mifu-mode")==="health"?"health":"creator"; }catch(e){ return "creator"; } })();   // default: Creator OS
 function modeTabs(){ return OS_MODE==="health"?HEALTH_TABS:CREATOR_TABS; }
 function modeSwapAnim(){ const v=$("#view"); if(!v)return; v.classList.remove("mode-anim"); void v.offsetWidth; v.classList.add("mode-anim");
@@ -1118,7 +1118,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,planner:viewPlanner,calendar:renderCalendar,events:viewEvents,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,memories:viewMemories,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,bunny:viewBunny,planner:viewPlanner,calendar:renderCalendar,events:viewEvents,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,memories:viewMemories,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -1130,6 +1130,7 @@ async function render(){
     renderStickies();
     if(state.tab==='care'){ try{ state.breathOn ? startBreath() : stopBreath(); }catch(_){}
       if(state.media===undefined && !state._mediaLoading){ loadMedia().then(()=>{ if(state.tab==='care') render(); }); } }   // loadMedia owns the _mediaLoading guard; pre-setting it here made loadMedia bail, leaving media undefined → infinite re-render loop
+    if(state.tab==='bunny' && state.media===undefined && !state._mediaLoading){ loadMedia().then(()=>{ if(state.tab==='bunny') render(); }); }   // lazy-load photos for the bunny tab (loadMedia owns its own guard)
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
     if(state.tab==='planner'){ try{ wireTaskDnD(); }catch(e){ console.error(e); } } // board drag (mouse) — touch uses ◀▶
     if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } }
@@ -3351,6 +3352,15 @@ function flipCard(c){
    grounding live in the floating 🫧 button + Kiko). Leans on the media/memories foundation.
    ============================================================================ */
 const BUNNIES=[{id:"kieran",name:"Kieran",sex:"♂ male",col:"🖤 black rabbit",born:"2021-01-03"},{id:"myla",name:"Myla",sex:"♀ female",col:"🩶 grey rabbit",born:"2021-12-28"}];
+/* ===== Bunny Health Trends (Idea #13) — daily check-ins → gentle trend analysis ===== */
+const BUNNY_STATUS=[["great","😊 great"],["normal","🙂 normal"],["concern","⚠️ concern"],["vet","🏥 vet"]];
+const BUNNY_FLAGS=[
+  {field:"ate",    label:"Appetite", on:["yes","🥬 ate well"], off:["less","⚠️ ate less"]},
+  {field:"poop",   label:"Poops",    on:["normal","💩 normal"], off:["off","⚠️ off"]},
+  {field:"energy", label:"Energy",   on:["good","⚡ good"],      off:["low","😴 low"]},
+];
+/* merge a patch into TODAY's log entry for a bunny (so status + appetite/poop/energy coexist); null clears a field */
+function upsertBunnyDay(n,bunny,patch){ const log=(n.bunnyLog||[]).map(x=>({...x})); let e=log.find(x=>x.bunny===bunny&&x.date===TODAY); if(!e){ e={date:TODAY,bunny}; log.push(e); } Object.entries(patch).forEach(([k,v])=>{ if(v==null) delete e[k]; else e[k]=v; }); return {...n,bunnyLog:log.slice(-400)}; }
 const COMFORT_CATS=[["music","🎵 Comfort music"],["asmr","🎧 Favourite ASMR"],["videos","📺 Favourite videos"],["games","🎮 Comfort games"],["foods","🍜 Comfort foods"],["reads","📖 Comfort reads"]];
 function bunnyAge(b){ try{ const bd=new Date(b+"T00:00"), now=new Date(); let y=now.getFullYear()-bd.getFullYear(), m=now.getMonth()-bd.getMonth(); if(now.getDate()<bd.getDate())m--; if(m<0){y--;m+=12;} return y+"y"+(m?" "+m+"m":""); }catch(e){ return ""; } }
 function bunnyNextBday(b){ try{ const bd=new Date(b+"T00:00"), now=new Date(), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate()); let nx=new Date(now.getFullYear(),bd.getMonth(),bd.getDate()); if(nx<t0)nx=new Date(now.getFullYear()+1,bd.getMonth(),bd.getDate()); return Math.round((nx-t0)/86400000); }catch(e){ return null; } }
@@ -3367,6 +3377,69 @@ function careThingsThatHelp(){ const text=[];
 function careMemoryPull(){ try{ const idx=buildMemoryIndex().filter(m=>["milestone","quote","event"].includes(m.kind)||m.fav||(m.kind==="journal"&&(m.preview||"").length>20)); if(!idx.length)return null; return idx[(state._carePull||0)%idx.length]; }catch(e){ return null; } }
 function careTinyWins(){ try{ return buildMemoryIndex().filter(m=>["milestone","event"].includes(m.kind)||m.fav).slice(0,8); }catch(e){ return []; } }
 function bunnyStatusToday(id){ try{ return (state.sentinel.bunnyLog||[]).filter(x=>x.bunny===id&&x.date===TODAY).slice(-1)[0]; }catch(e){ return null; } }
+/* gentle, non-alarmist patterns + rabbit-aware alerts from the bunny log */
+function bunnyTrends(id){
+  const name=(BUNNIES.find(b=>b.id===id)||{}).name||id;
+  const log=(state.sentinel.bunnyLog||[]).filter(x=>x&&x.bunny===id).slice().sort(cmpDate);   // oldest→newest
+  const lines=[], alerts=[];
+  if(!log.length) return {lines,alerts,logged:0};
+  const rev=log.slice().reverse(), today=log.find(x=>x.date===TODAY);
+  let good=0; for(const e of rev){ const logged=e.status||e.ate||e.poop||e.energy; const ok=e.status==="great"||e.status==="normal"||(!e.status&&e.ate!=="less"&&e.poop!=="off"&&e.energy!=="low"); if(logged&&ok) good++; else break; }
+  if(good>=3) lines.push(`${name} has been doing well ${good} days running 🌿`);
+  let ate=0; for(const e of rev){ if(e.ate==="yes") ate++; else break; } if(ate>=5) lines.push(`${name}'s appetite has been good for ${ate} days.`);
+  const concerns=rev.filter(e=>daysBetween(e.date,TODAY)<=14&&(e.status==="concern"||e.status==="vet")).length;
+  if(concerns>=2) alerts.push(`${name} was marked concern/vet ${concerns}× in the last two weeks — worth a closer eye.`);
+  const poopOff=rev.filter(e=>daysBetween(e.date,TODAY)<=7&&e.poop==="off").length;
+  if(poopOff>=2) alerts.push(`${name}'s poops were marked off ${poopOff}× this week — monitor; lasting changes deserve a vet note.`);
+  if(today){
+    if(today.ate==="less") alerts.push(`${name} is eating less today. If a rabbit stops eating or pooping it can turn urgent fast — please watch closely. 💛`);
+    if(today.energy==="low") lines.push(`${name}'s energy is marked low today.`);
+  }
+  const ago=daysBetween(rev[0].date,TODAY); if(ago>=3) lines.push(`No check-in for ${name} in ${ago} days — a quick tap keeps the trend honest.`);
+  return {lines,alerts,logged:log.length};
+}
+/* per-bunny memory timeline: milestones + photos that mention this bunny by name */
+function bunnyMemories(id){
+  const name=(BUNNIES.find(b=>b.id===id)||{}).name||id; let re; try{ re=new RegExp("\\b"+name+"\\b","i"); }catch(e){ re=null; }
+  const out=[];
+  (state.sentinel.bunnyMilestones||[]).forEach(mi=>{ if(mi&&(mi.bunny===id||mi.bunny==="both")&&mi.date) out.push({date:mi.date,kind:"milestone",text:mi.text||""}); });
+  (state.media||[]).forEach(m=>{ if(!m)return; const hay=(m.people||[]).join(" ")+" "+(m.caption||"")+" "+(m.title||""); if(re&&re.test(hay)) out.push({date:m.date||TODAY,kind:"photo",url:m.url,text:m.caption||"",id:m.id}); });
+  return out.sort(cmpDate).reverse().slice(0,12);
+}
+function bunnyFlagChips(b){
+  const day=bunnyStatusToday(b.id)||{};
+  return BUNNY_FLAGS.map(f=>{ const cur=day[f.field];
+    const btn=pair=>`<button class="chiptog ${cur===pair[0]?'on':''}" data-act="bunnyFlag" data-bunny="${b.id}" data-field="${f.field}" data-val="${pair[0]}">${pair[1]}</button>`;
+    return `<div style="margin-top:6px"><div class="label" style="font-size:10px;margin-bottom:3px">${f.label}</div><div class="chiprow">${btn(f.on)}${btn(f.off)}</div></div>`;
+  }).join("");
+}
+function viewBunny(){
+  const allAlerts=BUNNIES.flatMap(b=>bunnyTrends(b.id).alerts);
+  const intro=`<section class="panel"><div class="card-head"><h2 style="font-size:18px">🐰 Bunny hub</h2><button class="btn" data-act="tab" data-tab="memories">📸 Photos</button></div>
+    <p class="soft" style="font-size:11.5px;margin:0">Myla &amp; Kieran's daily check-ins, gentle health trends, and your favourite moments — all in one place. One tap a day is plenty. 💗</p></section>`;
+  const alertCard=allAlerts.length?`<section class="panel" style="border:1px solid var(--peach);background:rgba(243,169,120,.10)"><div class="label" style="margin-bottom:4px">💛 Gentle watch</div>${allAlerts.map(a=>`<p style="font-size:12.5px;margin:2px 0">${esc(a)}</p>`).join("")}</section>`:"";
+  const cards=BUNNIES.map(b=>{ const st=bunnyStatusToday(b.id), nb=bunnyNextBday(b.born), tr=bunnyTrends(b.id);
+    return `<div class="soft-card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:16px;font-family:var(--display)">${b.name}</b><span class="soft" style="font-size:11px">${esc(b.sex)}</span></div>
+      <div class="soft" style="font-size:12px">${esc(b.col)} · ${bunnyAge(b.born)} old</div>
+      <div class="soft" style="font-size:11px;margin-top:2px">🎂 ${nb===0?"birthday today! 🎉":nb!=null?`birthday in ${nb} day${nb>1?"s":""}`:""}</div>
+      <div class="label" style="margin:8px 0 4px">how is ${b.name} today?</div>
+      <div class="chiprow">${BUNNY_STATUS.map(([v,l])=>`<button class="chiptog ${st&&st.status===v?'on':''}" data-act="bunnyStatus" data-bunny="${b.id}" data-status="${v}">${l}</button>`).join("")}</div>
+      ${bunnyFlagChips(b)}
+      ${tr.lines.length?`<div style="margin-top:8px">${tr.lines.map(l=>`<div class="kn-row"><span class="kn-dot"></span><span style="font-size:12px">${esc(l)}</span></div>`).join("")}</div>`:`<p class="soft" style="font-size:11px;margin:8px 0 0">Log a few days and Kiko will start noticing ${b.name}'s patterns. ❄️</p>`}
+    </div>`; }).join("");
+  const grid=`<section class="panel"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">${cards}</div></section>`;
+  const photos=`<section class="panel"><div class="card-head"><span class="label">📸 Recent bunny photos</span></div>${state.media===undefined?UI.spinner({label:"loading photos…"}):(function(){ const pics=(state.media||[]).filter(memIsBunny).slice().reverse().slice(0,8); return pics.length?`<div class="md-grid">${pics.map(m=>`<div class="md-tile"><img src="${esc(m.url)}" alt="${esc(m.caption||'bunny')}" loading="lazy" data-act="mediaView" data-id="${esc(m.id)}"></div>`).join("")}</div>`:`<p class="soft" style="font-size:12.5px;margin:0">No bunny photos yet — upload some in ✨ Memories and tag them Myla / Kieran. 🐰</p>`; })()}</section>`;
+  const memBlocks=BUNNIES.map(b=>{ const mem=bunnyMemories(b.id); if(!mem.length) return "";
+    return `<div style="margin-bottom:10px"><div class="label" style="margin-bottom:4px">${b.name}</div>${mem.map(x=>x.kind==="photo"
+      ? `<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">📸</span><span class="grow" style="min-width:0"><span class="soft" style="font-size:11px">${esc(fmtDate(x.date))}</span><div style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.text||"photo")}</div></span><button class="btn" data-act="mediaView" data-id="${esc(x.id||"")}">view</button></div>`
+      : `<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">🐰</span><span class="grow"><span class="soft" style="font-size:11px">${esc(fmtDate(x.date))}</span><div style="font-size:12.5px">${esc(x.text)}</div></span></div>`).join("")}</div>`; }).join("");
+  const timelines=`<section class="panel"><div class="card-head"><span class="label">📖 Bunny memories</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><select class="inp" id="mileBunny" style="max-width:130px">${BUNNIES.map(b=>`<option value="${b.id}">${b.name}</option>`).join("")}<option value="both">Both 💕</option></select><input class="inp" id="mileText" placeholder="a bunny memory or milestone…" style="flex:1;min-width:150px"><button class="btn btn-grad" data-act="bunnyMilestone">add</button></div>
+    ${memBlocks||`<p class="soft" style="font-size:12.5px;margin:0">🖤 Kieran born 3 Jan 2021 · 🩶 Myla born 28 Dec 2021 — add your favourite moments, and tag bunny photos in ✨ Memories to see them here.</p>`}
+  </section>`;
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${alertCard}${intro}${grid}${photos}${timelines}</div>${DISCLAIMER}`;
+}
 function viewCare(){
   const jar=state.sentinel.joyJar||[]; const journaledToday=(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY);
   const plan=careGentlePlan(); const helps=careThingsThatHelp(); const pull=careMemoryPull(); const wins=careTinyWins();
@@ -5105,7 +5178,9 @@ const H={
 
   async breath(){ state.breathOn=!state.breathOn; await render(); if(state.breathOn) startBreath(); else stopBreath(); },
   async bunnyStatus(el){ const bunny=el.dataset.bunny, status=el.dataset.status; if(!bunny||!status)return;
-    await setSent(n=>{ const log=(n.bunnyLog||[]).filter(x=>!(x.bunny===bunny&&x.date===TODAY)); log.push({date:TODAY,bunny,status}); return {...n,bunnyLog:log.slice(-300)}; }); render(); },
+    await setSent(n=>upsertBunnyDay(n,bunny,{status})); render(); },
+  async bunnyFlag(el){ const bunny=el.dataset.bunny, field=el.dataset.field, val=el.dataset.val; if(!bunny||!field)return;
+    await setSent(n=>{ const cur=(n.bunnyLog||[]).find(x=>x.bunny===bunny&&x.date===TODAY); const off=cur&&cur[field]===val; return upsertBunnyDay(n,bunny,{[field]:off?null:val}); }); render(); },
   async bunnyMilestone(){ const b=$("#mileBunny"), t=$("#mileText"); const text=t?String(t.value||"").trim():""; if(!text)return;
     await setSent(n=>({...n,bunnyMilestones:[...(n.bunnyMilestones||[]),{id:"bm"+Date.now(),date:TODAY,bunny:(b&&b.value)||"both",text:text.slice(0,200)}].slice(-200)})); toast("saved 🐰💗"); render(); },
   async bunnyMileDel(el){ const id=el.dataset.id; await setSent(n=>({...n,bunnyMilestones:(n.bunnyMilestones||[]).filter(x=>x.id!==id)})); render(); },

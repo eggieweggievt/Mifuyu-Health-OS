@@ -26,7 +26,7 @@ So the recommended spine is: extend `buildMemoryIndex` with new `kind`s, store e
 
 **#9 — Creator Wins.** A proto-version already exists as `careTinyWins()` (filters the memory index for `milestone`/`event`/`fav`). Promote it: add a `win` kind, auto-derive wins from data we already have (new lowest weight is already a `milestone`; add upload/stream/sponsor-paid milestones), and add a Creator-OS Wins card. The **Kiko evidence summary** ("you streamed 4×, sent 6 sponsor emails, uploaded 2 shorts") is computable today from `ciWeek(...)` check-in counts — objective, not generic positivity. Low risk, leans on existing counters.
 
-**#13 — Bunny Health Trends.** Today `bunnyStatusToday()` reads `state.sentinel.bunnyLog` for *today only*. Upgrade to trend analysis using the same streak math as `sleepStreakUnder()`: "Myla's appetite normal for 14 days", "Kieran's energy marked low twice this week". Add gentle, non-alarmist alerts for rabbit-critical patterns (not eating / not pooping). Link bunny photos+journal ("Myla had zoomies") into a `bunnymoment` memory kind so each bunny gets a timeline. Extends existing Bunny Hub rather than replacing it.
+**#13 — Bunny Health Trends.** ✅ **Shipped 2026-06-14** — promoted to its own **🐰 Bunny tab** in the Health nav (`TABS`/`HEALTH_TABS`/`viewBunny`). Daily log now merges appetite/poops/energy alongside status (`upsertBunnyDay` + `bunnyFlag`); `bunnyTrends()` produces gentle streak lines and rabbit-aware alerts (eating-less today, repeated concern/vet, poops off this week); `bunnyMemories()` builds a per-bunny timeline from milestones + name-matched photos. *Next:* push bunny moments into `buildMemoryIndex` as a `bunnymoment` kind so they also flow into Search / On This Day. — Original note: today `bunnyStatusToday()` reads `state.sentinel.bunnyLog` for *today only*. Upgrade to trend analysis using the same streak math as `sleepStreakUnder()`: "Myla's appetite normal for 14 days", "Kieran's energy marked low twice this week". Add gentle, non-alarmist alerts for rabbit-critical patterns (not eating / not pooping). Link bunny photos+journal ("Myla had zoomies") into a `bunnymoment` memory kind so each bunny gets a timeline. Extends existing Bunny Hub rather than replacing it.
 
 ---
 
@@ -53,7 +53,7 @@ So the recommended spine is: extend `buildMemoryIndex` with new `kind`s, store e
 ## Recommended build order
 1. ~~**#14 On This Day**~~ — ✅ shipped. Proved the substrate, near-zero new data, big emotional return.
 2. **#9 Creator Wins** + the Kiko weekly evidence summary — promotes existing `careTinyWins`/`ciWeek`.
-3. **#13 Bunny Health Trends** — extends Bunny Hub; introduces the first new memory kind (`bunnymoment`).
+3. ~~**#13 Bunny Health Trends**~~ — ✅ shipped as a dedicated 🐰 Bunny tab with trends, alerts, and per-bunny memory timelines.
 4. **#6 Stream Lore** — first full new-kind + Kiko auto-capture; validates the capture pattern for everything after.
 5. **#12 Relationship Garden** — reuses calendar reminders; high day-to-day warmth.
 6. **#11 Mifu Lore** — once a few kinds exist, wire profile data into Kiko's snapshot.
