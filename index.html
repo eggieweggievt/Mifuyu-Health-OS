@@ -1684,6 +1684,47 @@ function healthSnapshotCard(){
     ${rows.length?rows.join(""):'<p class="soft" style="font-size:12.5px;margin:0">Log a weigh-in, a meal, or some water and your snapshot appears here. ❄️</p>'}
     <button class="btn" data-act="tab" data-tab="trends" style="margin-top:10px">view full health stats →</button></div>`;
 }
+/* ===== On This Day — gentle date-anchored memory resurfacing (Idea #14) =====
+   Reads the shared buildMemoryIndex() and surfaces past memories that fall on
+   today's anniversary or in soft windows (last week / two weeks / a month / ~a year).
+   Pure read — no new storage; anything pushed into the memory index appears here free. */
+function onThisDayPicks(){
+  let idx; try{ idx=buildMemoryIndex(); }catch(e){ return []; }
+  if(!idx||!idx.length) return [];
+  const now=new Date(TODAY+"T00:00"); if(isNaN(now)) return [];
+  const tY=now.getFullYear(), tM=now.getMonth(), tD=now.getDate(), t0=now.getTime();
+  const out=[], seen=new Set();
+  const add=(m,when,rank)=>{ if(!m||!m.id||seen.has(m.id))return; seen.add(m.id); out.push({m,when,rank}); };
+  idx.forEach(m=>{
+    const dt=new Date(String(m.date)+"T00:00"); if(isNaN(dt))return;
+    const diff=Math.round((t0-dt.getTime())/86400000); if(diff<1)return;          // past only
+    if(dt.getMonth()===tM && dt.getDate()===tD){                                  // exact anniversary
+      const ya=tY-dt.getFullYear(); add(m, ya<=1?"One year ago today":`${ya} years ago today`, 0); return; }
+    if(diff>=5 && diff<=9)         add(m,"Last week",2);
+    else if(diff>=12 && diff<=16)  add(m,"Two weeks ago",3);
+    else if(diff>=26 && diff<=34)  add(m,"A month ago",4);
+    else if(diff>=355 && diff<=375) add(m,"About a year ago",5);
+  });
+  out.sort((a,b)=>a.rank-b.rank);   // anniversaries first; index is already newest-first within a rank
+  return out;
+}
+function cardOnThisDay(){
+  const picks=onThisDayPicks();
+  const head=`<div class="card-head"><span class="label">🗓️ On this day</span>${picks.length>1?`<button class="btn" data-act="otdAnother">↻ another</button>`:""}</div>`;
+  if(!picks.length) return `<section class="panel">${head}${UI.empty({emoji:"🗓️",title:"No echoes yet",msg:"As your journals, photos and milestones gather, Kiko will resurface what happened on this day in the past. ❄️"})}</section>`;
+  const i=((state._otdIdx||0)%picks.length+picks.length)%picks.length, {m,when}=picks[i];
+  const icon=MEM_ICON[m.kind]||"✨";
+  const openBtn=m.kind==="photo"
+    ? `<button class="btn" data-act="mediaView" data-id="${esc(m.mediaId||"")}">view</button>`
+    : (m.source?`<button class="btn" data-act="memOpen" data-page="${esc(m.source.page)}" data-ref="${esc(m.source.refId||"")}">open</button>`:"");
+  return `<section class="panel">${head}
+    <div style="font-family:var(--display);font-size:13px;color:var(--lav-deep);margin:2px 0 4px">${esc(when)} · ${esc(fmtDate(m.date))}</div>
+    <div class="listrow"><span style="font-size:18px;flex:0 0 auto" aria-hidden="true">${icon}</span>
+      <span class="grow" style="min-width:0"><b style="font-size:13px">${esc(m.title||"")}</b>
+        <div class="soft" style="font-size:12px;line-height:1.45">${esc(m.preview||"")}</div></span>${openBtn}</div>
+    ${picks.length>1?`<p class="soft" style="font-size:10.5px;margin:8px 0 0;text-align:right">${i+1} of ${picks.length}</p>`:""}
+  </section>`;
+}
 function viewHome(){
   const m=state.today.mind||{};
   if(PREF.focus){
@@ -1715,6 +1756,7 @@ function viewHome(){
     {key:"contentops",label:"Content opportunities",cols:4,html:cardContentOps()},
     {key:"braindump",label:"Brain-dump",cols:4,html:cardBrainDump()},
     {key:"goals",label:"Goals",cols:4,html:cardGoals()},
+    {key:"onthisday",label:"On this day",cols:4,html:cardOnThisDay()},
   ]:[
     {key:"habits",label:"Daily habits",cols:4,html:cardHabits()},
     {key:"journal",label:"Journal",cols:4,html:cardJournal()},
@@ -1722,6 +1764,7 @@ function viewHome(){
     {key:"glance",label:"Dose & day glance",cols:4,html:cardGlance()},
     {key:"snowfox",label:"Snowfox",cols:4,html:cardSnowfox()},
     {key:"braindump",label:"Brain-dump",cols:4,html:cardBrainDump()},
+    {key:"onthisday",label:"On this day",cols:4,html:cardOnThisDay()},
   ];
   return `${slipBanner()}<div class="home-fixed">${cardHero()}${glance}</div>${modularGrid(creator?"home":"homehealth",items)}${DISCLAIMER}`;
 }
@@ -5070,6 +5113,7 @@ const H={
     await setSent(n=>{ const cm={...(n.comfort||{})}; cm[cat]=[...(cm[cat]||[]),text.slice(0,80)].slice(-30); return {...n,comfort:cm}; }); render(); },
   async comfortDel(el){ const cat=el.dataset.cat, i=+el.dataset.i; await setSent(n=>{ const cm={...(n.comfort||{})}; cm[cat]=(cm[cat]||[]).filter((_,j)=>j!==i); return {...n,comfort:cm}; }); render(); },
   carePull(){ state._carePull=(state._carePull||0)+1; render(); },
+  otdAnother(){ state._otdIdx=(state._otdIdx||0)+1; render(); },
   careGoMedia(){ state.memBunny=true; setTab("memories"); },
   flip(el){ el.closest('.flip').classList.toggle('open'); },
   drawJoy(){ const jar=state.sentinel.joyJar||[]; const el=$("#joyPick"); if(!jar.length){ el.textContent="add a joy first ✿"; return; }

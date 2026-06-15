@@ -22,7 +22,7 @@ So the recommended spine is: extend `buildMemoryIndex` with new `kind`s, store e
 
 ## Tier 1 — reuse the memory index, minimal new data (a few afternoons each)
 
-**#14 — On This Day / Memory Resurface.** *Highest payoff per line of code.* Filter `buildMemoryIndex()` by matching month/day (and "last week"/"one month ago"/"one year ago" windows) against `TODAY`. Render one gentle card with `[Open Memory][Show Another]` (a `_resurfaceIdx` counter, same trick as `careMemoryPull`'s `_carePull`). Place on Home and/or Care; optional on Journal. No new storage at all — it reads what's already indexed. Ship this first; it also becomes the proof that the substrate is worth standardising on.
+**#14 — On This Day / Memory Resurface.** ✅ **Shipped 2026-06-14** — `onThisDayPicks()` + `cardOnThisDay()` on both Home grids (creator + health), cycling via `otdAnother`, opening through the existing `memOpen`/`mediaView`. *Highest payoff per line of code.* Filter `buildMemoryIndex()` by matching month/day (and "last week"/"one month ago"/"one year ago" windows) against `TODAY`. Render one gentle card with `[Open Memory][Show Another]` (a `_resurfaceIdx` counter, same trick as `careMemoryPull`'s `_carePull`). Place on Home and/or Care; optional on Journal. No new storage at all — it reads what's already indexed. Ship this first; it also becomes the proof that the substrate is worth standardising on.
 
 **#9 — Creator Wins.** A proto-version already exists as `careTinyWins()` (filters the memory index for `milestone`/`event`/`fav`). Promote it: add a `win` kind, auto-derive wins from data we already have (new lowest weight is already a `milestone`; add upload/stream/sponsor-paid milestones), and add a Creator-OS Wins card. The **Kiko evidence summary** ("you streamed 4×, sent 6 sponsor emails, uploaded 2 shorts") is computable today from `ciWeek(...)` check-in counts — objective, not generic positivity. Low risk, leans on existing counters.
 
@@ -51,7 +51,7 @@ So the recommended spine is: extend `buildMemoryIndex` with new `kind`s, store e
 ---
 
 ## Recommended build order
-1. **#14 On This Day** — proves the substrate, near-zero new data, big emotional return.
+1. ~~**#14 On This Day**~~ — ✅ shipped. Proved the substrate, near-zero new data, big emotional return.
 2. **#9 Creator Wins** + the Kiko weekly evidence summary — promotes existing `careTinyWins`/`ciWeek`.
 3. **#13 Bunny Health Trends** — extends Bunny Hub; introduces the first new memory kind (`bunnymoment`).
 4. **#6 Stream Lore** — first full new-kind + Kiko auto-capture; validates the capture pattern for everything after.
