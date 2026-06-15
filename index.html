@@ -3506,7 +3506,7 @@ const SPONSOR_STATUS=["lead","waiting","negotiating","accepted","scheduled","com
 function sponsorInsights(s){
   const out=[];
   if(s.lastContact){ const d=daysBetween(s.lastContact,TODAY); if(d>=5&&["waiting","negotiating","lead"].includes(s.status)) out.push(`No reply in ${d} days`); }
-  if(s.deadline&&!["completed","paid","declined","ghosted"].includes(s.status)){ const d=daysBetween(TODAY,s.deadline); if(d<0) out.push("Deadline passed"); else if(d<=3) out.push(`Deadline in ${d} day${d===1?"":"s"}`); }
+  const dl=s.deadline||s.due; if(dl&&!["completed","paid","declined","ghosted","done"].includes(s.status)){ const d=daysBetween(TODAY,dl); if(d<0) out.push("Deadline passed"); else if(d<=3) out.push(`Deadline in ${d} day${d===1?"":"s"}`); }
   if(["completed","invoiced"].includes(s.status)) out.push("Awaiting payment");
   return out;
 }
@@ -3520,7 +3520,7 @@ function viewSponsors(){
   const list=`<section class="panel"><div class="card-head"><span class="label">📇 Pipeline</span><span class="pill pill-gray">${sp.length}</span></div>
     ${sp.length?sp.map(s=>{ const ins=sponsorInsights(s);
       return `<div class="soft-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><b style="font-size:13.5px">${esc(s.name)}</b><button class="x" data-act="sponsorDel" data-id="${esc(s.id)}" aria-label="delete">✕</button></div>
-      <div class="soft" style="font-size:11px">${s.game?esc(s.game)+" · ":""}${s.rate?esc(s.rate)+" · ":""}${s.deadline?"due "+esc(fmtDate(s.deadline)):""}</div>
+      <div class="soft" style="font-size:11px">${s.game?esc(s.game)+" · ":""}${s.rate?esc(s.rate)+" · ":""}${(s.deadline||s.due)?"due "+esc(fmtDate(s.deadline||s.due)):""}</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><button class="chiptog on" data-act="sponsorStatus" data-id="${esc(s.id)}" title="tap to advance status">${esc(s.status||"lead")} ▸</button>${ins.map(i=>`<span class="pill ${/passed|payment|No reply/.test(i)?'pill-sak':'pill-peri'}">${esc(i)}</span>`).join("")}</div>
       ${s.notes?`<div class="soft" style="font-size:11.5px;margin-top:6px">${esc(s.notes)}</div>`:""}</div>`; }).join(""):UI.empty({emoji:"🤝",title:"No sponsors yet",msg:"Add a brand when the first email lands — then Kiko watches deadlines and unpaid invoices for you."})}</section>`;
   return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
@@ -6355,6 +6355,13 @@ function kikoDataSummary(){
       const ch2=artChallengeState(s); const cnt2=s.artCount||{label:"heads",n:0,goal:100};
       L.push("ART STUDIO: "+(la2?("last made "+fmtDate(la2.date)+" ("+daysBetween(la2.date,TODAY)+"d ago)"):"nothing logged yet")+"; "+wkMin+" min this week; vault "+((s.inspoVault||[]).length)+" sparks ("+((s.inspoVault||[]).filter(v=>!v.done).length)+" untried)"+((s.inspoVault||[]).length?" — e.g. "+(s.inspoVault||[]).slice(-4).map(v=>v.text||v.url||"a reference image").join("; "):"")+"; ideas dump "+((s.artIdeas||[]).length)+"; mood board "+((s.artBoard||[]).length)+" cards; 100-challenge "+(cnt2.n||0)+"/"+(cnt2.goal||100)+" "+cnt2.label+"; today's challenge \""+ch2.dayText+"\""+(ch2.dayDone?" (done ✓)":"")+"; week's \""+ch2.weekText+"\""+(ch2.weekDone?" (done ✓)":""));
     }catch(e){}
+    try{ const ppl=(s.people||[]); if(ppl.length) L.push("PEOPLE (relationship garden — the people she loves): "+ppl.map(p=>{ const nb=personNextBday(p.birthday); return `${p.name}${p.rel?" ("+p.rel+")":""}${nb!=null?", 🎂 in "+nb+"d":""}${p.gifts?", gift ideas: "+p.gifts:""}`; }).join(" · ")); }catch(e){}
+    try{ const ml=(s.mifuLore||[]); if(ml.length) L.push("ABOUT MIFU (her own encyclopedia — use it to feel like you truly know her; weave in naturally, never recite): "+ml.slice(-30).map(x=>`${x.title}${x.cat?" ["+x.cat+"]":""}`).join("; ")); }catch(e){}
+    try{ const wns=(s.wins||[]); if(wns.length) L.push("CREATOR WINS logged ("+wns.length+"): "+wns.slice(-6).map(w=>w.title).join("; ")); }catch(e){}
+    try{ const lore=(s.streamLore||[]); if(lore.length) L.push("STREAM LORE saved ("+lore.length+"): "+lore.slice(-6).map(l=>l.title).join("; ")); }catch(e){}
+    try{ const hl=(s.houseLog||[]); if(hl.length) L.push("HOME JOURNEY ("+hl.length+" entries): "+hl.slice(-5).map(h=>h.place||h.summary||"a step").join("; ")); }catch(e){}
+    try{ const idg=(s.ideas||[]).filter(i=>i&&i.status!=="dropped"&&i.status!=="done"); if(idg.length) L.push("IDEA GRAVEYARD ("+idg.length+" resting): "+idg.slice(-8).map(i=>i.title).join("; ")); }catch(e){}
+    try{ const spn=(s.sponsors||[]); if(spn.length) L.push("SPONSORS ("+spn.length+"): "+spn.slice(-8).map(sp=>`${sp.name||sp.brand||"?"}${sp.status?" ["+sp.status+"]":""}${(sp.deadline||sp.due)?", due "+fmtDate(sp.deadline||sp.due):""}${sp.rate?", "+sp.rate:""}`).join(" · ")); }catch(e){}
     L.push("PREFS: calm "+(PREF.calm?"on":"off")+", focus "+(PREF.focus?"on":"off")+", larger-text "+(PREF.text?"on":"off")+", layout "+((function(){try{return localStorage.getItem("layout-locked")==="1"}catch(e){return false}})()?"locked":"unlocked")+", weight unit "+u+", weight display "+(CONFIG.weightDisplay||"soft"));
     const nb=s.kikoNotes||{}; const nbk=Object.keys(nb); if(nbk.length) L.push("YOUR NOTEBOOK notes: "+nbk.map(k=>`${k} (${String(nb[k]).length}ch)`).join(", ")+" — read with manage_memory");
     const tpAll=s.taxPrep||{}; const tpy=Object.keys(tpAll); if(tpy.length) L.push("TAX-PREP saved: "+tpy.map(y2=>`${y2} (${(tpAll[y2].items||[]).length} answers)`).join(", "));
@@ -6473,6 +6480,23 @@ async function execAgentAction(a){
       await setSent(n=>({...n,streamLog:[...(n.streamLog||[]),{id:"sl"+Date.now(),date:TODAY,game:a.game||"",vibe:(a.vibe>=1&&a.vibe<=5)?a.vibe:null,note:a.note||""}].slice(-40)})); return "🎬 stream debrief saved"+(a.game?": "+a.game:""); }
     if(T==="setSponsorDue"){ const sps=(state.sentinel.sponsors||[]); const i=findByText(sps,a.name,"name"); if(i<0||!/^\d{4}-\d{2}-\d{2}$/.test(a.date||""))return null;
       await setSent(n=>({...n,sponsors:(n.sponsors||[]).map(x=>x.id===sps[i].id?{...x,due:a.date}:x)})); return "💜 "+sps[i].name+" deliverable due "+fmtDate(a.date); }
+    /* ===== memory & life capture (Ideas #6-#12) — all SAFE/additive ===== */
+    if(T==="logWin"){ const title=String(a.title||a.text||"").trim(); if(!title)return null;
+      await setSent(n=>({...n,wins:[...(n.wins||[]),{id:"win"+Date.now(),date:TODAY,title:title.slice(0,140),cat:String(a.cat||a.category||""),why:String(a.why||"").slice(0,200)}].slice(-300)})); return "🏆 logged a win: "+title; }
+    if(T==="saveLore"||T==="addLore"){ const title=String(a.title||"").trim(); if(!title)return null;
+      const tags=Array.isArray(a.tags)?a.tags.map(x=>String(x).trim()).filter(Boolean).slice(0,8):(a.tags?String(a.tags).split(",").map(x=>x.trim()).filter(Boolean):[]);
+      await setSent(n=>({...n,streamLore:[...(n.streamLore||[]),{id:"lore"+Date.now(),date:TODAY,title:title.slice(0,140),game:String(a.game||"").slice(0,60),summary:String(a.summary||"").slice(0,400),why:String(a.why||"").slice(0,200),tags}].slice(-300)})); return "📜 saved to stream lore: "+title; }
+    if(T==="addIdea"){ const title=String(a.title||a.text||"").trim(); if(!title)return null;
+      await setSent(n=>({...n,ideas:[...(n.ideas||[]),{id:"idea"+Date.now(),date:TODAY,title:title.slice(0,140),cat:String(a.cat||a.category||""),status:"graveyard"}].slice(-400)})); return "💡 tucked into your idea graveyard: "+title; }
+    if(T==="addPerson"){ const name=String(a.name||"").trim(); if(!name)return null;
+      await setSent(n=>{ const ppl=(n.people||[]).slice(); const i=ppl.findIndex(p=>String(p.name||"").toLowerCase()===name.toLowerCase());
+        if(i>=0) ppl[i]={...ppl[i], rel:a.rel||a.relationship||ppl[i].rel, birthday:(/^\d{4}-\d{2}-\d{2}$/.test(a.birthday||a.date||"")?(a.birthday||a.date):ppl[i].birthday), gifts:a.gift?((ppl[i].gifts?ppl[i].gifts+" · ":"")+String(a.gift)).slice(0,200):ppl[i].gifts};
+        else ppl.push({id:"ppl"+Date.now(),name:name.slice(0,60),rel:String(a.rel||a.relationship||"").slice(0,60),birthday:(/^\d{4}-\d{2}-\d{2}$/.test(a.birthday||a.date||"")?(a.birthday||a.date):""),gifts:String(a.gift||"").slice(0,200)});
+        return {...n,people:ppl.slice(-200)}; }); return "💗 added to your relationship garden: "+name; }
+    if(T==="addMifuFact"){ const title=String(a.title||a.text||"").trim(); if(!title)return null;
+      await setSent(n=>({...n,mifuLore:[...(n.mifuLore||[]),{id:"ml"+Date.now(),date:TODAY,title:title.slice(0,200),cat:String(a.cat||a.category||"Other")}].slice(-400)})); return "📔 noted in About Me: "+title; }
+    if(T==="addHouse"){ const place=String(a.place||"").trim(), summary=String(a.summary||a.text||"").trim(); if(!place&&!summary)return null;
+      await setSent(n=>({...n,houseLog:[...(n.houseLog||[]),{id:"hs"+Date.now(),date:(/^\d{4}-\d{2}-\d{2}$/.test(a.date||"")?a.date:TODAY),place:place.slice(0,80),type:String(a.kind||a.eventType||"memory"),summary:summary.slice(0,400)}].slice(-300)})); return "🏡 added to your home journey"+(place?": "+place:""); }
     if(T==="draftStreamWeek"){ const wk=weekStartISO(0);
       const ge=(state.sentinel.calendarEvents||[]).filter(gameSrc).filter(e=>{ const diff=daysBetween(wk,e.date); return diff>=0&&diff<7&&e.date>=TODAY; });
       if(!ge.length)return "no game beats on the calendar this week to draft from";
