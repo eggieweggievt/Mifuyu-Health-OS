@@ -32,6 +32,7 @@ CSS foundation (shared classes — lift all existing markup)
 
 UI.* helpers (JS — return HTML strings, props = one options object)
   spinner · skeleton · skeletonCard · empty · button · iconButton · pill · field
+  progress · stat · toggle        ← Foundation 2.1 (health-data controls)
 ```
 
 **Why this shape.** In a vanilla render-to-string app, a shared CSS layer is the highest-
@@ -57,6 +58,9 @@ arguments are order-independent. All text is HTML-escaped via `esc()`.
 | `UI.iconButton` | `{ icon, act, data?, ariaLabel, title? }` | `ariaLabel` required — icon-only buttons must be labelled |
 | `UI.pill` | `{ text, tone?: 'peri'\|'sak'\|'lav'\|'mint'\|'ice'\|'gray' }` | maps to existing `.pill-*` classes |
 | `UI.field` | `{ label, id?, control: html, hint? }` | wraps a control with a `<label for>` + hint |
+| `UI.progress` | `{ value, max?, label?, tone?, unit?, showValue?, valueText?, indeterminate? }` | `role="progressbar"` + `aria-valuenow/min/max` and a human `aria-valuetext`; clamps to range, flags over-target / complete, `max<=0` or `NaN` → indeterminate |
+| `UI.stat` | `{ label, value, unit?, delta?, deltaText?, good?: 'up'\|'down', icon?, hint?, loading? }` | metric card; `good` says which direction is positive (weight → `'down'`) and colours the delta; arrow has an `sr-only` "increased/decreased"; `loading` → skeleton; `null` value → `—` |
+| `UI.toggle` | `{ label?, on, act, data?, hint?, disabled?, ariaLabel? }` | accessible switch — native `<button role="switch" aria-checked>` so Space/Enter work for free; always carries an accessible name; flip state in the `data-act` handler and re-render |
 
 `data` objects become `data-*` attributes, so components plug straight into the existing
 event-delegation system (`data-act="…"` → the `H` handler map).
@@ -123,4 +127,39 @@ UI.button({ label: "Save", variant: "primary", act: "save", icon: "💾" });
 Add the `interactive` class to any panel/card that's clickable to get the hover-elevation
 treatment. That's the only opt-in; everything else applies automatically.
 
-*Build: app `2026-06-14.13` (client-only — ship with `PUBLISH.bat`).*
+---
+
+## Foundation 2.1 — health-data controls (`progress` · `stat` · `toggle`)
+
+Three components added for the surfaces a tracking OS leans on most: daily targets,
+vitals, and adherence switches. Same idiom — single options object, `esc()`'d text,
+`data-act` for interactivity, reduced-motion / Calm aware.
+
+```js
+// daily target meters (announced as "82 g of 110 g")
+host.innerHTML = [
+  UI.progress({ label:"Protein",  value:82, max:110, unit:"g",    tone:"peri"  }),
+  UI.progress({ label:"Water",    value:9,  max:8,   unit:"cups", tone:"peach" }), // over → amber
+  UI.progress({ label:"Fibre",    value:28, max:28,  unit:"g",    tone:"mint"  }), // complete → mint
+  UI.progress({ label:"Syncing…", indeterminate:true }),                           // unknown total
+].join("");
+
+// vitals cards — `good` colours the trend (weight: down is good)
+UI.stat({ icon:"⚖️", label:"Weight", value:"80.9", unit:"kg", delta:-0.5, good:"down", hint:"vs last week" });
+UI.stat({ label:"Logged today", value:null, hint:"No meals yet" });  // missing → "—"
+UI.stat({ label:"Weight", loading:true });                          // skeleton while fetching
+
+// adherence switch — flip in the handler, then re-render
+UI.toggle({ label:"Protein with every meal", on:state.protein, act:"flipHabit", data:{ k:"protein" } });
+// H.flipHabit = el => { state[el.dataset.k] = !state[el.dataset.k]; save(); render(); };
+```
+
+**Edge cases handled.** `progress` clamps out-of-range values, treats `max<=0`/`NaN`
+as indeterminate (so a bad target can't throw or overflow the bar), and marks
+over-target vs complete states distinctly; `stat` renders `—` for `null`/empty values,
+falls back to a skeleton under `loading`, and never relies on colour or the arrow alone
+(screen readers hear "increased"/"decreased"); `toggle` is a real `role="switch"` so it
+is keyboard-operable with no extra JS and always has an accessible name even with no
+visible label. All animation inherits the global reduced-motion / Calm kill-switch.
+
+*Build: app `2026-06-14.14` (client-only — ship with `PUBLISH.bat`).*
