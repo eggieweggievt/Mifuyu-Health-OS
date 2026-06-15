@@ -1058,10 +1058,10 @@ const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plann
 try{ state.trendType=localStorage.getItem("mifu-trend-type")||state.trendType; state.wtType=localStorage.getItem("mifu-wt-type")||state.wtType; }catch(e){}   // remember her chart choices
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["wins","🏆 Wins"],["streamlore","📜 Lore"],["sponsors","🤝 Sponsors"],["ideas","💡 Ideas"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["people","💗 People"],["mifulore","📔 About Me"],["house","🏡 Home life"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["bunny","🐰 Bunny"],["trends","📈 Trends"],["memories","✨ Memories"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["studio","🏆 Studio"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["life","💗 Life"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["bunny","🐰 Bunny"],["trends","📈 Trends"],["memories","✨ Memories"],["settings","⚙️ Settings"]];
 /* ===== one app, two minds — Creator OS 🎀 / Health OS ❄️ (tap the logo to swap) ===== */
-const CREATOR_TABS=["home","kiko","planner","calendar","events","script","optimize","money","wins","streamlore","sponsors","ideas","art","toolbox","memories"];
-const HEALTH_TABS=["home","kiko","food","care","bunny","people","house","mifulore","trends","health","journal","memories"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
+const CREATOR_TABS=["home","planner","calendar","events","script","optimize","money","studio","art","toolbox","memories","kiko"];
+const HEALTH_TABS=["home","food","care","bunny","life","trends","health","journal","memories","kiko"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
 let OS_MODE=(function(){ try{ return localStorage.getItem("mifu-mode")==="health"?"health":"creator"; }catch(e){ return "creator"; } })();   // default: Creator OS
 function modeTabs(){ return OS_MODE==="health"?HEALTH_TABS:CREATOR_TABS; }
 function modeSwapAnim(){ const v=$("#view"); if(!v)return; v.classList.remove("mode-anim"); void v.offsetWidth; v.classList.add("mode-anim");
@@ -1101,7 +1101,8 @@ async function render(){
   applyPrefs();
   let _to=[]; try{_to=JSON.parse(localStorage.getItem("tab-order")||"[]");}catch(e){}
   const _mt=modeTabs(); const _modeTabsList=TABS.filter(([t])=>_mt.includes(t));
-  const _tabs=_to.length?[..._modeTabsList].sort((a,b)=>{const ia=_to.indexOf(a[0]),ib=_to.indexOf(b[0]);return (ia<0?999:ia)-(ib<0?999:ib);}):_modeTabsList;
+  const _tabs=_to.length?[..._modeTabsList].sort((a,b)=>{const ia=_to.indexOf(a[0]),ib=_to.indexOf(b[0]);return (ia<0?999:ia)-(ib<0?999:ib);}):[..._modeTabsList];
+  { const _ki=_tabs.findIndex(t=>t[0]==="kiko"); if(_ki>=0) _tabs.push(_tabs.splice(_ki,1)[0]); }   // 🦊 Ask Kiko always sits at the tail of the nav, both modes
   const _bn=$("#brandName"); if(_bn) _bn.textContent=OS_MODE==="health"?"Mifuyu Health OS":"Mifuyu Creator OS";
   const _mp=$("#modePill"); if(_mp){ _mp.textContent=OS_MODE==="health"?"❄️ health":"🎀 creator"; _mp.className="mode-pill "+(OS_MODE==="health"?"mode-health":"mode-creator"); _mp.title="tap the logo to swap to "+(OS_MODE==="health"?"Creator OS":"Health OS"); }
   $("#nav").innerHTML = _tabs.map(([t,l])=>`<button class="tab ${state.tab===t?'active':''}" data-act="tab" data-tab="${t}">${l}</button>`).join("");
@@ -1118,7 +1119,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,bunny:viewBunny,wins:viewWins,streamlore:viewStreamLore,sponsors:viewSponsors,ideas:viewIdeas,people:viewPeople,mifulore:viewMifuLore,house:viewHouse,planner:viewPlanner,calendar:renderCalendar,events:viewEvents,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,memories:viewMemories,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,bunny:viewBunny,studio:viewStudio,life:viewLife,planner:viewPlanner,calendar:renderCalendar,events:viewEvents,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,memories:viewMemories,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -3444,6 +3445,19 @@ function viewBunny(){
   </section>`;
   return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${alertCard}${intro}${grid}${photos}${timelines}</div>${DISCLAIMER}`;
 }
+/* ===== Tab hubs — group related extras under one tab to keep the nav tidy.
+   The hub reuses each feature's existing view function unchanged; it just adds a
+   sub-nav and stitches them together (stripping the duplicate disclaimer). ===== */
+function stripDisc(html){ return String(html).split(DISCLAIMER).join(""); }
+const STUDIO_SUBS=[["wins","🏆 Wins"],["streamlore","📜 Lore"],["sponsors","🤝 Sponsors"],["ideas","💡 Ideas"]];
+const LIFE_SUBS=[["people","💗 People"],["house","🏡 Home"],["mifulore","📔 About Me"]];
+function subNav(subs,active,act){ return `<div class="chiprow" style="max-width:980px;margin:0 auto 2px" role="tablist">${subs.map(([k,l])=>`<button class="chiptog ${active===k?'on':''}" role="tab" aria-selected="${active===k?'true':'false'}" data-act="${act}" data-sub="${k}">${l}</button>`).join("")}</div>`; }
+function viewStudio(){ const map={wins:viewWins,streamlore:viewStreamLore,sponsors:viewSponsors,ideas:viewIdeas};
+  const sub=map[state.studioSub]?state.studioSub:"wins";
+  return subNav(STUDIO_SUBS,sub,"studioSub")+stripDisc(map[sub]())+DISCLAIMER; }
+function viewLife(){ const map={people:viewPeople,house:viewHouse,mifulore:viewMifuLore};
+  const sub=map[state.lifeSub]?state.lifeSub:"people";
+  return subNav(LIFE_SUBS,sub,"lifeSub")+stripDisc(map[sub]())+DISCLAIMER; }
 /* ===== Creator Wins (Idea #9) — evidence of progress, not vibes ===== */
 const WIN_CATS=["Stream","Community","Sponsor","YouTube","Music","Merch","Project","Milestone","Personal"];
 function winWeekEvidence(){
@@ -4931,6 +4945,8 @@ const H={
     $("#modal").innerHTML=`<div class="modal-bg" data-act="closeModal"><div class="modal" data-act="noop" style="max-width:680px;width:100%;padding:10px"><img src="${esc(m.url)}" alt="${esc(m.caption||'photo')}" style="width:100%;border-radius:12px;display:block;max-height:78vh;object-fit:contain;background:#000">${m.caption?`<p class="soft" style="font-size:12.5px;margin:8px 4px 0">${esc(m.caption)}</p>`:""}<div style="text-align:right;margin-top:6px"><button class="btn" data-act="closeModal">close</button></div></div></div>`; },
   memOpen(el){ const page=el.dataset.page, ref=el.dataset.ref;
     if(page==="journal"&&ref&&/^\d{4}-\d{2}/.test(ref)){ try{ state.jrRef=new Date(ref.slice(0,7)+"-01T00:00"); }catch(_){} }
+    const SUB={wins:"studio",streamlore:"studio",sponsors:"studio",ideas:"studio",people:"life",house:"life",mifulore:"life"};   // these moved into hubs
+    if(SUB[page]){ if(SUB[page]==="studio")state.studioSub=page; else state.lifeSub=page; setTab(SUB[page]); return; }
     setTab(TABS.some(t2=>t2[0]===page)?page:"journal"); },
   focusGo(el){ const s=el.dataset.seed, t=el.dataset.tab, l=el.dataset.link, c=el.dataset.cat;
     if(c){ try{ setSent(n=>{ const fa={...(n.focusAffinity||{})}; const cur=fa[c]||{n:0}; fa[c]={n:(cur.n||0)+1,last:TODAY}; return {...n,focusAffinity:fa}; }); }catch(e){} }   // learn what she taps
@@ -5335,6 +5351,8 @@ const H={
   async houseAdd(){ const t=$("#hsPlace"); const place=t?String(t.value||"").trim():""; const s=$("#hsSummary"); const summary=s?String(s.value||"").trim():""; if(!place&&!summary)return; const ty=$("#hsType");
     await setSent(n=>({...n,houseLog:[...(n.houseLog||[]),{id:"hs"+Date.now(),date:TODAY,place:place.slice(0,80),type:(ty&&ty.value)||"memory",summary:summary.slice(0,400)}].slice(-300)})); toast("added to the journey 🏡"); render(); },
   async houseDel(el){ const id=el.dataset.id; await setSent(n=>({...n,houseLog:(n.houseLog||[]).filter(x=>x.id!==id)})); render(); },
+  studioSub(el){ state.studioSub=el.dataset.sub; render(); },
+  lifeSub(el){ state.lifeSub=el.dataset.sub; render(); },
   async comfortAdd(){ const c=$("#comfortCat"), t=$("#comfortText"); const cat=(c&&c.value)||"music", text=t?String(t.value||"").trim():""; if(!text)return;
     await setSent(n=>{ const cm={...(n.comfort||{})}; cm[cat]=[...(cm[cat]||[]),text.slice(0,80)].slice(-30); return {...n,comfort:cm}; }); render(); },
   async comfortDel(el){ const cat=el.dataset.cat, i=+el.dataset.i; await setSent(n=>{ const cm={...(n.comfort||{})}; cm[cat]=(cm[cat]||[]).filter((_,j)=>j!==i); return {...n,comfort:cm}; }); render(); },
