@@ -134,10 +134,18 @@ tablet ≤1040 → 10px phone ≤560). It feeds the column/grid stacks (`.col`, 
 `.grid-home`, `.health-cols`, `.care-cols`, `.glance-cols`, `.home-fixed`, and the modular
 grid's column gap — `layoutHome` reads the computed value so masonry rows match). Page bodies
 use the `.page` class (`max-width:980px; margin:0 auto; gap:var(--gap)`; `.page.narrow` = 880,
-`.page.tight` = 780) instead of repeating an inline flex-column wrapper. Net effect: spacing is
+`.page.tight` = 780) instead of repeating an inline flex-column wrapper. Pages that render bare
+panels (planner, calendar, health, money…) are evened by `#view > * + * { margin-top:var(--gap) }`
+— block margins collapse, so it never doubles a wrapper's own gap. Net effect: spacing is
 even within and across every page, and tightens on tablet/phone (tablet `main`/`.panel` padding
 trimmed from 20→14) so there's less dead space on small screens. To add a new full page, wrap it
 in `<div class="page">…</div>` and it inherits the responsive rhythm for free.
+
+**Home/Care/Food masonry.** The resizable modular grid (`layoutHome`) now does a true
+shortest-column packing: each card is placed explicitly into the column where it sits highest, so
+a tall card never strands an empty hole (CSS `grid-auto-flow:dense` couldn't pull it up). Card
+width (`data-c`) and height (`data-h`) resizing still work; on tablet, spans snap to clean
+half/full so cards tile without orphan side-gaps.
 
 ---
 

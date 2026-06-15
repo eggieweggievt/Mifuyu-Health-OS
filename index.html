@@ -502,6 +502,10 @@
   .home-fixed{ gap:var(--gap) !important; margin-bottom:var(--gap) !important; }
   .grid-modular{ column-gap:var(--gap) !important; }
   .disc{ margin-top:var(--gap); }
+  /* even gap between the direct children of every page — covers pages that render bare panels
+     (planner, calendar, health, money…) the same as the .page-wrapped ones. Block margins collapse,
+     so this never doubles up with a wrapper's own gap. */
+  #view > * + *{ margin-top:var(--gap); }
   /* ---- A11Y: visible keyboard focus on EVERY interactive element (was inputs-only) ---- */
   a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible,
   select:focus-visible, summary:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible,
@@ -1044,18 +1048,28 @@ function layoutHome(){
   let colCount=0;
   try{ colCount=(((getComputedStyle(grid).gridTemplateColumns)||"").match(/\S+/g)||[]).length; }catch(e){}
   if(!colCount) colCount=Math.max(3,Math.min(24,Math.floor((grid.clientWidth+gap)/(72+gap))));
-  grid.querySelectorAll(".home-widget").forEach(w=>{
-    if(w.classList.contains("resizing"))return;             // never fight a live resize drag
+  const widgets=[...grid.querySelectorAll(".home-widget")];
+  if(widgets.some(w=>w.classList.contains("resizing"))) return;   // don't fight a live resize drag; reflow on release
+  // TRUE masonry: place each card into the column slot where it sits highest, so a tall card never
+  // strands a hole (CSS grid-auto-flow:dense can't pull it up). Keeps width (data-c) + height (data-h) resize.
+  const colBottom=new Array(colCount).fill(0);                    // running bottom of each column, in row units
+  const place=(el,span,rowSpan)=>{
+    let bestC=0,bestRow=Infinity;
+    for(let c=0;c<=colCount-span;c++){ let top=0; for(let i=c;i<c+span;i++) top=Math.max(top,colBottom[i]); if(top<bestRow){ bestRow=top; bestC=c; } }
+    if(!isFinite(bestRow)) bestRow=0;
+    el.style.gridColumn=(bestC+1)+" / span "+span; el.style.gridRowStart=(bestRow+1); el.style.gridRowEnd="span "+rowSpan;
+    for(let i=bestC;i<bestC+span;i++) colBottom[i]=bestRow+rowSpan;
+  };
+  widgets.forEach(w=>{
     const want=parseInt(w.dataset.c||"0",10)||colCount;
     let span=Math.max(1,Math.min(want,colCount));
     if(colCount<=4) span=colCount;                          // phone-narrow → tidy single column
-    else if(colCount<=9&&span>colCount/2) span=colCount;    // iPad portrait: a >half card can't pair up → full row, no dead strip
-    const cur=/span (\d+)/.exec(w.style.gridColumn||"");
-    if(!cur||+cur[1]!==span) w.style.gridColumn="span "+span;
+    else if(colCount<=10) span = span>colCount*0.62 ? colCount : Math.ceil(colCount/2);   // tablet → clean halves or full so cards tile without odd orphan widths
+    const panel=w.querySelector(".panel,section")||w.lastElementChild; let h=0;
+    if(w.classList.contains("min")){ h=54; } else if(panel){ const sh=parseFloat(w.dataset.h||"0")||0; panel.style.minHeight=sh?sh+"px":""; h=panel.getBoundingClientRect().height; }
+    place(w, span, Math.max(2,Math.ceil(((h||60)+gap)/rowH)));
   });
-  grid.querySelectorAll(".home-widget").forEach(w=>{ const panel=w.querySelector(".panel,section")||w.lastElementChild; if(!panel)return;
-    let h; if(w.classList.contains("min")){ h=54; } else { const sh=parseFloat(w.dataset.h||"0")||0; panel.style.minHeight=sh?sh+"px":""; h=panel.getBoundingClientRect().height; }
-    if(h>0) w.style.gridRowEnd="span "+Math.max(2,Math.ceil((h+gap)/rowH)); });   /* row-gap 0 → gap baked into the span = uniform spacing */
+  const add=grid.querySelector(".home-add"); if(add) place(add, Math.min(4,colCount), 6);   // "+ cards" tucks under the shortest column, never floats in a gap
 }
 function manageCardsModal(tab){
   const L=modLayout(tab); const labels=MODULAR_LABELS[tab]||{}; const keys=Object.keys(labels);
