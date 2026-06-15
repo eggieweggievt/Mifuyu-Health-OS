@@ -1,5 +1,7 @@
 # Creator + Life ideas — roadmap (Ideas #6–#15)
-*2026-06-14 · captured from the "Additional Creator + Life Ideas" doc and mapped onto the actual code in `index.html`. Companion to KIKO-UPGRADE-ROADMAP.md and GLOBAL-SYSTEMS-BLUEPRINT.md. Planning only — no app code shipped with this file.*
+*2026-06-14 · captured from the "Additional Creator + Life Ideas" doc and mapped onto the actual code in `index.html`. Companion to KIKO-UPGRADE-ROADMAP.md and GLOBAL-SYSTEMS-BLUEPRINT.md.*
+
+> **STATUS — all of #6–#14 shipped (2026-06-14).** New tabs: 🏆 Wins, 📜 Lore, 🤝 Sponsors, 💡 Ideas (Creator) and 🐰 Bunny, 💗 People, 🏡 Home life, 📔 About Me (Health), plus 🗓️ On This Day on Home. New memory kinds `win`/`lore`/`house`/`bunnymoment` flow into `buildMemoryIndex` → Search + On This Day. All verified in headless Chrome (render, add, status-cycle, delete; responsive in both modes). Remaining: server-side Kiko auto-capture/insights (in `supabase/functions/ai/index.ts`) and feeding People/Mifu-Lore into Kiko's prompt — see #15.
 
 ## The one idea under all ten (Idea #15)
 The next evolution is **remembering, not more tracking**. Nine of these ten features are the same shape: *capture a typed memory → index it → let Kiko detect, surface, and search it.* That means we should **not** build ten silos. We build one substrate and hang the features off it.
@@ -52,14 +54,14 @@ So the recommended spine is: extend `buildMemoryIndex` with new `kind`s, store e
 
 ## Recommended build order
 1. ~~**#14 On This Day**~~ — ✅ shipped. Proved the substrate, near-zero new data, big emotional return.
-2. **#9 Creator Wins** + the Kiko weekly evidence summary — promotes existing `careTinyWins`/`ciWeek`.
+2. ~~**#9 Creator Wins**~~ — ✅ shipped (🏆 Wins tab: weekly evidence from `ciWeek`, manual wins indexed as `win`, Kiko-noticed auto wins).
 3. ~~**#13 Bunny Health Trends**~~ — ✅ shipped as a dedicated 🐰 Bunny tab with trends, alerts, and per-bunny memory timelines.
-4. **#6 Stream Lore** — first full new-kind + Kiko auto-capture; validates the capture pattern for everything after.
-5. **#12 Relationship Garden** — reuses calendar reminders; high day-to-day warmth.
-6. **#11 Mifu Lore** — once a few kinds exist, wire profile data into Kiko's snapshot.
-7. **#10 House Journey** — another timeline kind; mostly mechanical after #6.
-8. **#8 Content Graveyard** — quick win, drop in whenever.
-9. **#7 Sponsor CRM** — last; largest model, benefits from patterns settled by everything above.
+4. ~~**#6 Stream Lore**~~ — ✅ shipped (📜 Lore tab; indexed as `lore`). *Server-side Kiko keyword auto-capture still to do.*
+5. ~~**#12 Relationship Garden**~~ — ✅ shipped (💗 People tab; birthday countdowns + gift ideas). *Calendar-reminder wiring still to do.*
+6. ~~**#11 Mifu Lore**~~ — ✅ shipped (📔 About Me tab). *Feeding into Kiko's prompt still to do.*
+7. ~~**#10 House Journey**~~ — ✅ shipped (🏡 Home life tab; indexed as `house`).
+8. ~~**#8 Content Graveyard**~~ — ✅ shipped (💡 Ideas tab; status cycle graveyard→dropped).
+9. ~~**#7 Sponsor CRM**~~ — ✅ shipped (🤝 Sponsors tab; status pipeline + date-math insights: no-reply / deadline / awaiting payment). *Inline note editing + rate-accepted history are future polish.*
 
 ## Constraints & cautions (carried from this codebase)
 - **Single 690 KB `index.html`.** Every feature is render-to-string + `data-act`; keep new state on `state.sentinel` and persist via `setSent` with the `demo[...]` mirror so demo mode never diverges (the freeze we just fixed was a state/guard bug — be careful with any new lazy-load + re-render hooks; let the loader own its own loading flag).

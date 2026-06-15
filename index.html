@@ -1058,10 +1058,10 @@ const state={ tab:"home", today:{}, sentinel:{}, range:[], breathOn:false, plann
 try{ state.trendType=localStorage.getItem("mifu-trend-type")||state.trendType; state.wtType=localStorage.getItem("mifu-wt-type")||state.wtType; }catch(e){}   // remember her chart choices
 const OPT={ mode:"video", drops:false, busy:"", err:"", channel:null, video:null, stream:null, thumbData:null, thumb:null }; // Optimize tab
 
-const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["bunny","🐰 Bunny"],["trends","📈 Trends"],["memories","✨ Memories"],["settings","⚙️ Settings"]];
+const TABS=[["home","🏠 Home"],["kiko","🦊 Ask Kiko"],["planner","🗒️ Planner"],["calendar","📅 Calendar"],["events","🎉 Events"],["script","✍️ Script"],["optimize","🔴 Stream"],["money","💶 Money"],["wins","🏆 Wins"],["streamlore","📜 Lore"],["sponsors","🤝 Sponsors"],["ideas","💡 Ideas"],["art","🎨 Art"],["toolbox","🧰 Toolbox"],["people","💗 People"],["mifulore","📔 About Me"],["house","🏡 Home life"],["health","❄️ Health"],["food","🍱 Food"],["journal","📓 Journal"],["care","🫂 Care"],["bunny","🐰 Bunny"],["trends","📈 Trends"],["memories","✨ Memories"],["settings","⚙️ Settings"]];
 /* ===== one app, two minds — Creator OS 🎀 / Health OS ❄️ (tap the logo to swap) ===== */
-const CREATOR_TABS=["home","kiko","planner","calendar","events","script","optimize","money","art","toolbox","memories"];
-const HEALTH_TABS=["home","kiko","food","care","bunny","trends","health","journal","memories"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
+const CREATOR_TABS=["home","kiko","planner","calendar","events","script","optimize","money","wins","streamlore","sponsors","ideas","art","toolbox","memories"];
+const HEALTH_TABS=["home","kiko","food","care","bunny","people","house","mifulore","trends","health","journal","memories"];   /* Settings removed from the nav bar — reach it via the ⚙️ chip by the avatar */
 let OS_MODE=(function(){ try{ return localStorage.getItem("mifu-mode")==="health"?"health":"creator"; }catch(e){ return "creator"; } })();   // default: Creator OS
 function modeTabs(){ return OS_MODE==="health"?HEALTH_TABS:CREATOR_TABS; }
 function modeSwapAnim(){ const v=$("#view"); if(!v)return; v.classList.remove("mode-anim"); void v.offsetWidth; v.classList.add("mode-anim");
@@ -1118,7 +1118,7 @@ async function render(){
     // state.range holds only past days (today is always overlaid from state.today below), so
     // there's nothing to re-fetch on navigation. Result: tab switches render instantly.
     if(!state._loaded) await loadData();
-    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,bunny:viewBunny,planner:viewPlanner,calendar:renderCalendar,events:viewEvents,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,memories:viewMemories,settings:viewSettings}[state.tab]||viewHome;
+    const fn={home:viewHome,kiko:viewKiko,money:viewMoney,health:viewHealth,pcos:viewHealth,mj:viewHealth,weight:viewTrends,food:viewFood,care:viewCare,bunny:viewBunny,wins:viewWins,streamlore:viewStreamLore,sponsors:viewSponsors,ideas:viewIdeas,people:viewPeople,mifulore:viewMifuLore,house:viewHouse,planner:viewPlanner,calendar:renderCalendar,events:viewEvents,script:viewScript,optimize:viewOptimize,trends:viewTrends,art:viewArt,toolbox:viewToolbox,journal:viewJournal,memories:viewMemories,settings:viewSettings}[state.tab]||viewHome;
     // --- one synchronous block from here (NO awaits) so the browser paints exactly once ---
     // Arm the animation BEFORE building, so the new cards are created already in their hidden
     // start state and animate in cleanly. Because there's no await between this and innerHTML,
@@ -2347,7 +2347,7 @@ function jrStats(rows){
    sentinel.memories (future quotes/cards). Deterministic ids so favourites are stable.
    Next slice: the Media Library (uploads) that these items will reference by id.
    ============================================================================ */
-const MEM_ICON={journal:"📖",milestone:"⚖️",quote:"💬",memcard:"✨",health:"💗",bunny:"🐰",bunnymoment:"🐰",event:"🎉",photo:"📸"};
+const MEM_ICON={journal:"📖",milestone:"⚖️",quote:"💬",memcard:"✨",health:"💗",bunny:"🐰",bunnymoment:"🐰",event:"🎉",photo:"📸",win:"🏆",lore:"📜",house:"🏡"};
 const MEM_STOP=new Set("the a an i my me you we us to of in on at and or for with about was were is are be been did do does day find show me when where what our this that it i'm".split(" "));
 function memFavSet(){ return new Set((state.sentinel&&state.sentinel.memFav)||[]); }
 function memMonthLabel(ym){ try{ return new Date(ym+"-01T00:00").toLocaleDateString("en-US",{month:"long",year:"numeric"}); }catch(e){ return ym; } }
@@ -2369,6 +2369,9 @@ function buildMemoryIndex(){
   try{ (s.memoryCapsules||[]).forEach(c=>{ const ym=c.ym||c.month; if(!ym)return; push({id:"cap:"+ym, kind:"memcard", date:ym+"-15", title:"Monthly memory · "+memMonthLabel(ym), preview:clip(c.capsule||c.text), source:{page:"journal",refId:ym+"-01"}}); }); }catch(e){}
   try{ (state.media||[]).forEach(m=>{ if(!m||!m.id)return; push({id:"md:"+m.id, kind:"photo", date:m.date||(String(m.addedAt||"").slice(0,10))||TODAY, title:m.caption||"Photo", preview:m.caption||"", people:m.people||[], tags:m.tags||[], fav:!!m.fav, mediaId:m.id, url:m.url, source:{page:"memories",refId:m.id}}); }); }catch(e){}
   try{ (s.bunnyMilestones||[]).forEach(mi=>{ if(!mi||!mi.date)return; const who=({kieran:"Kieran",myla:"Myla",both:"Myla & Kieran"})[mi.bunny]||"Bunny"; push({id:"bun:"+(mi.id||mi.date), kind:"bunnymoment", date:mi.date, title:who, preview:clip(mi.text), people:who==="Myla & Kieran"?["Myla","Kieran"]:[who], source:{page:"bunny",refId:mi.id||mi.date}}); }); }catch(e){}
+  try{ (s.wins||[]).forEach(w=>{ if(!w||!w.date)return; push({id:"win:"+(w.id||w.date), kind:"win", date:w.date, title:w.title||"Win", preview:clip(w.why||w.cat||""), source:{page:"wins",refId:w.id||w.date}}); }); }catch(e){}
+  try{ (s.streamLore||[]).forEach(L=>{ if(!L||!L.date)return; push({id:"lore:"+(L.id||L.date), kind:"lore", date:L.date, title:L.title||"Stream moment", preview:clip(L.summary||L.why||""), tags:L.tags||[], source:{page:"streamlore",refId:L.id||L.date}}); }); }catch(e){}
+  try{ (s.houseLog||[]).forEach(h=>{ if(!h||!h.date)return; push({id:"house:"+(h.id||h.date), kind:"house", date:h.date, title:h.place||"Home", preview:clip(h.summary||h.meaning||""), source:{page:"house",refId:h.id||h.date}}); }); }catch(e){}
   const fav=memFavSet();
   out.forEach(m=>{ if(m.kind!=="photo") m.fav=fav.has(m.id); m.people=m.people||[]; m.tags=m.tags||[]; });   // photos use their own media.fav
   out.sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:0);   // newest first
@@ -3440,6 +3443,127 @@ function viewBunny(){
     ${memBlocks||`<p class="soft" style="font-size:12.5px;margin:0">🖤 Kieran born 3 Jan 2021 · 🩶 Myla born 28 Dec 2021 — add your favourite moments, and tag bunny photos in ✨ Memories to see them here.</p>`}
   </section>`;
   return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${alertCard}${intro}${grid}${photos}${timelines}</div>${DISCLAIMER}`;
+}
+/* ===== Creator Wins (Idea #9) — evidence of progress, not vibes ===== */
+const WIN_CATS=["Stream","Community","Sponsor","YouTube","Music","Merch","Project","Milestone","Personal"];
+function winWeekEvidence(){
+  const items=[["streamed","stream"],["ytVideo","YouTube video"],["ytShort","Short"],["madeArt","art day"],["coverSong","cover-song session"],["emails","email-reply day"],["sponsors","sponsor-work day"]];
+  const out=[]; items.forEach(([k,l])=>{ let c=0; try{c=ciWeek(k);}catch(e){} if(c>0) out.push({l,c}); });
+  return out;
+}
+function autoWins(){ try{ return buildMemoryIndex().filter(m=>(m.kind==="milestone"||m.kind==="event")&&daysBetween(m.date,TODAY)<=30).slice(0,6); }catch(e){ return []; } }
+function viewWins(){
+  const wins=(state.sentinel.wins||[]).slice().sort(cmpDate).reverse();
+  const ev=winWeekEvidence(), evTotal=ev.reduce((a,x)=>a+x.c,0);
+  const evCard=`<section class="panel"><div class="card-head"><h2 style="font-size:18px">🏆 Creator wins</h2></div>
+    ${evTotal?`<div class="soft-card"><div class="label" style="margin-bottom:6px">This week — the evidence 📊</div>
+      <p style="font-size:13px;margin:0 0 8px">Even if it didn't feel like enough, here's what actually happened:</p>
+      <div class="chiprow">${ev.map(x=>`<span class="pill pill-peri">${x.c}× ${esc(x.l)}${x.c>1?"s":""}</span>`).join("")}</div>
+      <p class="soft" style="font-size:11px;margin:8px 0 0">That's real. You showed up. 💗</p></div>`
+     :`<p class="soft" style="font-size:12.5px;margin:0">Tap your daily check-ins on Home and Kiko will tally your week's evidence here — proof, not just vibes.</p>`}</section>`;
+  const addCard=`<section class="panel"><div class="label" style="margin-bottom:6px">✨ Log a win</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input class="inp" id="winTitle" placeholder="what went well? (e.g. ZZZ sponsor paid)" style="flex:1;min-width:160px">
+    <select class="inp" id="winCat" style="max-width:130px">${WIN_CATS.map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
+    <input class="inp" id="winWhy" placeholder="why it mattered (optional)" style="margin-top:6px"><button class="btn btn-grad" data-act="winAdd" style="margin-top:6px">Add win 🏆</button></section>`;
+  const auto=autoWins();
+  const autoCard=auto.length?`<section class="panel"><div class="card-head"><span class="label">🦊 Kiko noticed</span></div>${auto.map(m=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">${MEM_ICON[m.kind]||"✨"}</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(m.title)}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(m.date))}</span><div class="soft" style="font-size:11.5px">${esc(m.preview||"")}</div></span></div>`).join("")}</section>`:"";
+  const listCard=`<section class="panel"><div class="card-head"><span class="label">📒 Your wins</span><span class="pill pill-gray">${wins.length}</span></div>
+    ${wins.length?wins.map(w=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">🏆</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(w.title)}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(w.date))}${w.cat?` · ${esc(w.cat)}`:""}</span>${w.why?`<div class="soft" style="font-size:11.5px">${esc(w.why)}</div>`:""}</span><button class="x" data-act="winDel" data-id="${esc(w.id)}" aria-label="delete">✕</button></div>`).join(""):UI.empty({emoji:"🏆",title:"No wins logged yet",msg:"Big or small — a finished video, a kind comment, a sponsor reply. They all count."})}</section>`;
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${evCard}${addCard}${autoCard}${listCard}</div>${DISCLAIMER}`;
+}
+/* ===== Stream Lore (Idea #6) ===== */
+function viewStreamLore(){
+  const lore=(state.sentinel.streamLore||[]).slice().sort(cmpDate).reverse();
+  const add=`<section class="panel"><div class="card-head"><h2 style="font-size:18px">📜 Stream lore</h2></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">The moments worth remembering — hype trains, big pulls, chat going feral, the cries. Save them before they vanish into the VOD void. 💗</p>
+    <input class="inp" id="loreTitle" placeholder="title (e.g. Level 12 Hype Train)"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input class="inp" id="loreGame" placeholder="game / category" style="flex:1;min-width:120px"><input class="inp" id="loreTags" placeholder="tags, comma separated" style="flex:1;min-width:120px"></div>
+    <textarea class="inp" id="loreSummary" rows="2" placeholder="what happened?" style="margin-top:6px"></textarea>
+    <input class="inp" id="loreWhy" placeholder="why it mattered (optional)" style="margin-top:6px"><button class="btn btn-grad" data-act="loreAdd" style="margin-top:6px">Save lore 📜</button></section>`;
+  const list=`<section class="panel"><div class="card-head"><span class="label">📚 Saved moments</span><span class="pill pill-gray">${lore.length}</span></div>
+    ${lore.length?lore.map(L=>`<div class="soft-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:13.5px">${esc(L.title)}</b><button class="x" data-act="loreDel" data-id="${esc(L.id)}" aria-label="delete">✕</button></div>
+      <div class="soft" style="font-size:11px">${esc(fmtDate(L.date))}${L.game?` · ${esc(L.game)}`:""}</div>
+      ${L.summary?`<div style="font-size:12.5px;margin-top:4px">${esc(L.summary)}</div>`:""}
+      ${L.why?`<div class="soft" style="font-size:11.5px;margin-top:3px">💗 ${esc(L.why)}</div>`:""}
+      ${(L.tags&&L.tags.length)?`<div class="chiprow" style="margin-top:6px">${L.tags.map(t=>`<span class="pill pill-lav">${esc(t)}</span>`).join("")}</div>`:""}</div>`).join(""):UI.empty({emoji:"📜",title:"No lore yet",msg:"Your first hype train, that legendary pull, the day chat made you cry-laugh — they belong here."})}</section>`;
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
+}
+/* ===== Sponsor Relationship Tracker (Idea #7) ===== */
+const SPONSOR_STATUS=["lead","waiting","negotiating","accepted","scheduled","completed","invoiced","paid","declined","ghosted"];
+function sponsorInsights(s){
+  const out=[];
+  if(s.lastContact){ const d=daysBetween(s.lastContact,TODAY); if(d>=5&&["waiting","negotiating","lead"].includes(s.status)) out.push(`No reply in ${d} days`); }
+  if(s.deadline&&!["completed","paid","declined","ghosted"].includes(s.status)){ const d=daysBetween(TODAY,s.deadline); if(d<0) out.push("Deadline passed"); else if(d<=3) out.push(`Deadline in ${d} day${d===1?"":"s"}`); }
+  if(["completed","invoiced"].includes(s.status)) out.push("Awaiting payment");
+  return out;
+}
+function viewSponsors(){
+  const sp=(state.sentinel.sponsors||[]).slice().sort((a,b)=>String(b.lastContact||b.date||"").localeCompare(String(a.lastContact||a.date||"")));
+  const add=`<section class="panel"><div class="card-head"><h2 style="font-size:18px">🤝 Sponsors</h2></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Track brand conversations, deadlines, rates and how each one felt — so nothing slips and you never undercharge.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input class="inp" id="spName" placeholder="company / brand" style="flex:1;min-width:140px"><input class="inp" id="spGame" placeholder="game / product" style="flex:1;min-width:120px"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input class="inp" id="spRate" placeholder="rate (e.g. €800)" style="flex:1;min-width:100px"><input class="inp" id="spDeadline" type="date" style="flex:1;min-width:120px"></div>
+    <input class="inp" id="spNote" placeholder="contact / note (optional)" style="margin-top:6px"><button class="btn btn-grad" data-act="sponsorAdd" style="margin-top:6px">Add sponsor 🤝</button></section>`;
+  const list=`<section class="panel"><div class="card-head"><span class="label">📇 Pipeline</span><span class="pill pill-gray">${sp.length}</span></div>
+    ${sp.length?sp.map(s=>{ const ins=sponsorInsights(s);
+      return `<div class="soft-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><b style="font-size:13.5px">${esc(s.name)}</b><button class="x" data-act="sponsorDel" data-id="${esc(s.id)}" aria-label="delete">✕</button></div>
+      <div class="soft" style="font-size:11px">${s.game?esc(s.game)+" · ":""}${s.rate?esc(s.rate)+" · ":""}${s.deadline?"due "+esc(fmtDate(s.deadline)):""}</div>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><button class="chiptog on" data-act="sponsorStatus" data-id="${esc(s.id)}" title="tap to advance status">${esc(s.status||"lead")} ▸</button>${ins.map(i=>`<span class="pill ${/passed|payment|No reply/.test(i)?'pill-sak':'pill-peri'}">${esc(i)}</span>`).join("")}</div>
+      ${s.notes?`<div class="soft" style="font-size:11.5px;margin-top:6px">${esc(s.notes)}</div>`:""}</div>`; }).join(""):UI.empty({emoji:"🤝",title:"No sponsors yet",msg:"Add a brand when the first email lands — then Kiko watches deadlines and unpaid invoices for you."})}</section>`;
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
+}
+/* ===== Content Graveyard (Idea #8) ===== */
+const IDEA_CATS=["Stream","Video","Short","Song","Cover","Merch","Outfit","Model","Art","Collab","Event","Other"];
+const IDEA_STATUS=["graveyard","maybe later","ready soon","active","done","dropped"];
+function viewIdeas(){
+  const ideas=(state.sentinel.ideas||[]).slice().reverse();
+  const add=`<section class="panel"><div class="card-head"><h2 style="font-size:18px">💡 Idea graveyard</h2></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">A calm place for "ooh, someday" ideas — <i>not</i> a to-do list. They rest here until they're useful, so none ever turn into pressure. 🌱</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input class="inp" id="ideaTitle" placeholder="the idea…" style="flex:1;min-width:160px"><select class="inp" id="ideaCat" style="max-width:120px">${IDEA_CATS.map(c=>`<option>${c}</option>`).join("")}</select></div>
+    <button class="btn btn-grad" data-act="ideaAdd" style="margin-top:6px">Bury it gently 🌱</button></section>`;
+  const list=`<section class="panel"><div class="card-head"><span class="label">🪦 Resting ideas</span><span class="pill pill-gray">${ideas.length}</span></div>
+    ${ideas.length?ideas.map(i=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">💡</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(i.title)}</b> ${i.cat?`<span class="soft" style="font-size:11px">· ${esc(i.cat)}</span>`:""}</span><button class="chiptog on" data-act="ideaStatus" data-id="${esc(i.id)}" title="tap to change">${esc(i.status||"graveyard")}</button><button class="x" data-act="ideaDel" data-id="${esc(i.id)}" aria-label="delete">✕</button></div>`).join(""):UI.empty({emoji:"💡",title:"No ideas resting yet",msg:"Every cool thought you can't act on right now — drop it here so it's safe."})}</section>`;
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
+}
+/* ===== Relationship Garden (Idea #12) ===== */
+function personNextBday(b){ if(!b)return null; try{ const bd=new Date(b+"T00:00"); if(isNaN(bd))return null; const now=new Date(TODAY+"T00:00"); let nx=new Date(now.getFullYear(),bd.getMonth(),bd.getDate()); if(nx<now)nx=new Date(now.getFullYear()+1,bd.getMonth(),bd.getDate()); return Math.round((nx-now)/86400000); }catch(e){ return null; } }
+function viewPeople(){
+  const ppl=(state.sentinel.people||[]).slice();
+  const add=`<section class="panel"><div class="card-head"><h2 style="font-size:18px">💗 Relationship garden</h2></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">The people who matter — birthdays, gift ideas, the moments you treasure. Kiko keeps the dates so you don't have to. 🌷</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input class="inp" id="pName" placeholder="name" style="flex:1;min-width:120px"><input class="inp" id="pRel" placeholder="who they are" style="flex:1;min-width:120px"><input class="inp" id="pBday" type="date" style="flex:1;min-width:120px"></div>
+    <button class="btn btn-grad" data-act="personAdd" style="margin-top:6px">Plant 🌱</button></section>`;
+  const cards=ppl.length?`<section class="panel"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px">${ppl.map(p=>{ const nb=personNextBday(p.birthday);
+    return `<div class="soft-card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px;font-family:var(--display)">${esc(p.name)}</b><button class="x" data-act="personDel" data-id="${esc(p.id)}" aria-label="delete">✕</button></div>
+    ${p.rel?`<div class="soft" style="font-size:12px">${esc(p.rel)}</div>`:""}
+    ${nb!=null?`<div class="soft" style="font-size:11px;margin-top:3px">🎂 ${nb===0?"birthday today! 🎉":`in ${nb} day${nb===1?"":"s"}`}</div>`:""}
+    ${p.gifts?`<div style="font-size:11.5px;margin-top:6px">🎁 ${esc(p.gifts)}</div>`:""}
+    <div style="display:flex;gap:6px;margin-top:8px"><input class="inp" id="giftFor_${esc(p.id)}" placeholder="gift idea…" style="font-size:12px"><button class="btn" data-act="personGift" data-id="${esc(p.id)}" aria-label="add gift idea">＋</button></div></div>`; }).join("")}</div></section>`:`<section class="panel">${UI.empty({emoji:"💗",title:"Your garden is empty",msg:"Add Horia, Eggie, your mods and friends — birthdays, gift ideas, and the memories you want to keep."})}</section>`;
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${cards}</div>${DISCLAIMER}`;
+}
+/* ===== Mifu Lore Database (Idea #11) ===== */
+const MIFU_LORE_CATS=["Favorite","Dislike","Personality","Comfort","Aesthetic","Other"];
+function viewMifuLore(){
+  const lore=(state.sentinel.mifuLore||[]).slice().reverse();
+  const add=`<section class="panel"><div class="card-head"><h2 style="font-size:18px">📔 About Me</h2></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">A little encyclopedia of you — favorites, dislikes, the patterns that make you <i>you</i>. The more Kiko knows, the less generic she feels. 💗</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input class="inp" id="mlTitle" placeholder="something true about you…" style="flex:1;min-width:160px"><select class="inp" id="mlCat" style="max-width:120px">${MIFU_LORE_CATS.map(c=>`<option>${c}</option>`).join("")}</select></div>
+    <button class="btn btn-grad" data-act="mifuLoreAdd" style="margin-top:6px">Add 📔</button></section>`;
+  const byCat={}; lore.forEach(l=>{ (byCat[l.cat||"Other"]=byCat[l.cat||"Other"]||[]).push(l); });
+  const body=lore.length?Object.entries(byCat).map(([c,arr])=>`<div style="margin-bottom:10px"><div class="label" style="margin-bottom:4px">${esc(c)}</div>${arr.map(l=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">📔</span><span class="grow">${esc(l.title)}</span><button class="x" data-act="mifuLoreDel" data-id="${esc(l.id)}" aria-label="delete">✕</button></div>`).join("")}</div>`).join(""):UI.empty({emoji:"📔",title:"Nothing here yet",msg:"Add the small things — your comfort game, your ick, your hydrangea-and-stationery soul."});
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}<section class="panel">${body}</section></div>${DISCLAIMER}`;
+}
+/* ===== House Journey Timeline (Idea #10) ===== */
+const HOUSE_TYPES=["viewing","application","rejection","acceptance","moving","decorating","bunny setup","memory"];
+function viewHouse(){
+  const log=(state.sentinel.houseLog||[]).slice().sort(cmpDate).reverse();
+  const add=`<section class="panel"><div class="card-head"><h2 style="font-size:18px">🏡 Home journey</h2></div>
+    <p class="soft" style="font-size:11.5px;margin:0 0 8px">Viewings, applications, the move, first bunny zoomies in the new place — the story of building a home with Horia. 🏡</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input class="inp" id="hsPlace" placeholder="place / nickname" style="flex:1;min-width:130px"><select class="inp" id="hsType" style="max-width:130px">${HOUSE_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div>
+    <textarea class="inp" id="hsSummary" rows="2" placeholder="what happened / how it felt…" style="margin-top:6px"></textarea>
+    <button class="btn btn-grad" data-act="houseAdd" style="margin-top:6px">Add to the journey 🏡</button></section>`;
+  const list=`<section class="panel"><div class="card-head"><span class="label">🗺️ The journey</span><span class="pill pill-gray">${log.length}</span></div>
+    ${log.length?log.map(h=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">🏡</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(h.place||"Home")}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(h.date))}${h.type?` · ${esc(h.type)}`:""}</span>${h.summary?`<div style="font-size:12px">${esc(h.summary)}</div>`:""}</span><button class="x" data-act="houseDel" data-id="${esc(h.id)}" aria-label="delete">✕</button></div>`).join(""):UI.empty({emoji:"🏡",title:"The journey starts here",msg:"Save viewings, the dream house, the day you got the keys — the whole story of home."})}</section>`;
+  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
 }
 function viewCare(){
   const jar=state.sentinel.joyJar||[]; const journaledToday=(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY);
@@ -5185,6 +5309,32 @@ const H={
   async bunnyMilestone(){ const b=$("#mileBunny"), t=$("#mileText"); const text=t?String(t.value||"").trim():""; if(!text)return;
     await setSent(n=>({...n,bunnyMilestones:[...(n.bunnyMilestones||[]),{id:"bm"+Date.now(),date:TODAY,bunny:(b&&b.value)||"both",text:text.slice(0,200)}].slice(-200)})); toast("saved 🐰💗"); render(); },
   async bunnyMileDel(el){ const id=el.dataset.id; await setSent(n=>({...n,bunnyMilestones:(n.bunnyMilestones||[]).filter(x=>x.id!==id)})); render(); },
+  async winAdd(){ const t=$("#winTitle"), c=$("#winCat"), w=$("#winWhy"); const title=t?String(t.value||"").trim():""; if(!title)return;
+    await setSent(n=>({...n,wins:[...(n.wins||[]),{id:"win"+Date.now(),date:TODAY,title:title.slice(0,140),cat:(c&&c.value)||"",why:w?String(w.value||"").trim().slice(0,200):""}].slice(-300)})); toast("logged — that counts 🏆"); render(); },
+  async winDel(el){ const id=el.dataset.id; await setSent(n=>({...n,wins:(n.wins||[]).filter(x=>x.id!==id)})); render(); },
+  async loreAdd(){ const t=$("#loreTitle"); const title=t?String(t.value||"").trim():""; if(!title)return; const g=$("#loreGame"),s=$("#loreSummary"),w=$("#loreWhy"),tg=$("#loreTags");
+    const tags=tg?String(tg.value||"").split(",").map(x=>x.trim()).filter(Boolean).slice(0,8):[];
+    await setSent(n=>({...n,streamLore:[...(n.streamLore||[]),{id:"lore"+Date.now(),date:TODAY,title:title.slice(0,140),game:g?g.value.trim().slice(0,60):"",summary:s?s.value.trim().slice(0,400):"",why:w?w.value.trim().slice(0,200):"",tags}].slice(-300)})); toast("saved to lore 📜"); render(); },
+  async loreDel(el){ const id=el.dataset.id; await setSent(n=>({...n,streamLore:(n.streamLore||[]).filter(x=>x.id!==id)})); render(); },
+  async sponsorAdd(){ const t=$("#spName"); const name=t?String(t.value||"").trim():""; if(!name)return; const g=$("#spGame"),r=$("#spRate"),d=$("#spDeadline"),nt=$("#spNote");
+    await setSent(n=>({...n,sponsors:[...(n.sponsors||[]),{id:"sp"+Date.now(),date:TODAY,lastContact:TODAY,name:name.slice(0,80),game:g?g.value.trim().slice(0,60):"",rate:r?r.value.trim().slice(0,40):"",deadline:d?d.value:"",notes:nt?nt.value.trim().slice(0,200):"",status:"lead"}].slice(-200)})); toast("added 🤝"); render(); },
+  async sponsorStatus(el){ const id=el.dataset.id; await setSent(n=>({...n,sponsors:(n.sponsors||[]).map(s=>{ if(s.id!==id)return s; const i=SPONSOR_STATUS.indexOf(s.status||"lead"); return {...s,status:SPONSOR_STATUS[(i+1)%SPONSOR_STATUS.length],lastContact:TODAY}; })})); render(); },
+  async sponsorDel(el){ const id=el.dataset.id; await setSent(n=>({...n,sponsors:(n.sponsors||[]).filter(x=>x.id!==id)})); render(); },
+  async ideaAdd(){ const t=$("#ideaTitle"); const title=t?String(t.value||"").trim():""; if(!title)return; const c=$("#ideaCat");
+    await setSent(n=>({...n,ideas:[...(n.ideas||[]),{id:"idea"+Date.now(),date:TODAY,title:title.slice(0,140),cat:(c&&c.value)||"",status:"graveyard"}].slice(-400)})); toast("resting safely 🌱"); render(); },
+  async ideaStatus(el){ const id=el.dataset.id; await setSent(n=>({...n,ideas:(n.ideas||[]).map(x=>{ if(x.id!==id)return x; const i=IDEA_STATUS.indexOf(x.status||"graveyard"); return {...x,status:IDEA_STATUS[(i+1)%IDEA_STATUS.length]}; })})); render(); },
+  async ideaDel(el){ const id=el.dataset.id; await setSent(n=>({...n,ideas:(n.ideas||[]).filter(x=>x.id!==id)})); render(); },
+  async personAdd(){ const t=$("#pName"); const name=t?String(t.value||"").trim():""; if(!name)return; const r=$("#pRel"),b=$("#pBday");
+    await setSent(n=>({...n,people:[...(n.people||[]),{id:"ppl"+Date.now(),name:name.slice(0,60),rel:r?r.value.trim().slice(0,60):"",birthday:b?b.value:"",gifts:""}].slice(-200)})); toast("planted 🌱"); render(); },
+  async personGift(el){ const id=el.dataset.id; const inp=document.getElementById("giftFor_"+id); const v=inp?String(inp.value||"").trim():""; if(!v)return;
+    await setSent(n=>({...n,people:(n.people||[]).map(p=>p.id===id?{...p,gifts:((p.gifts?p.gifts+" · ":"")+v).slice(0,200)}:p)})); toast("gift idea saved 🎁"); render(); },
+  async personDel(el){ const id=el.dataset.id; await setSent(n=>({...n,people:(n.people||[]).filter(x=>x.id!==id)})); render(); },
+  async mifuLoreAdd(){ const t=$("#mlTitle"); const title=t?String(t.value||"").trim():""; if(!title)return; const c=$("#mlCat");
+    await setSent(n=>({...n,mifuLore:[...(n.mifuLore||[]),{id:"ml"+Date.now(),date:TODAY,title:title.slice(0,200),cat:(c&&c.value)||"Other"}].slice(-400)})); toast("noted 📔"); render(); },
+  async mifuLoreDel(el){ const id=el.dataset.id; await setSent(n=>({...n,mifuLore:(n.mifuLore||[]).filter(x=>x.id!==id)})); render(); },
+  async houseAdd(){ const t=$("#hsPlace"); const place=t?String(t.value||"").trim():""; const s=$("#hsSummary"); const summary=s?String(s.value||"").trim():""; if(!place&&!summary)return; const ty=$("#hsType");
+    await setSent(n=>({...n,houseLog:[...(n.houseLog||[]),{id:"hs"+Date.now(),date:TODAY,place:place.slice(0,80),type:(ty&&ty.value)||"memory",summary:summary.slice(0,400)}].slice(-300)})); toast("added to the journey 🏡"); render(); },
+  async houseDel(el){ const id=el.dataset.id; await setSent(n=>({...n,houseLog:(n.houseLog||[]).filter(x=>x.id!==id)})); render(); },
   async comfortAdd(){ const c=$("#comfortCat"), t=$("#comfortText"); const cat=(c&&c.value)||"music", text=t?String(t.value||"").trim():""; if(!text)return;
     await setSent(n=>{ const cm={...(n.comfort||{})}; cm[cat]=[...(cm[cat]||[]),text.slice(0,80)].slice(-30); return {...n,comfort:cm}; }); render(); },
   async comfortDel(el){ const cat=el.dataset.cat, i=+el.dataset.i; await setSent(n=>{ const cm={...(n.comfort||{})}; cm[cat]=(cm[cat]||[]).filter((_,j)=>j!==i); return {...n,comfort:cm}; }); render(); },
