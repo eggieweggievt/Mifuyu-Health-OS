@@ -127,6 +127,18 @@ UI.button({ label: "Save", variant: "primary", act: "save", icon: "💾" });
 Add the `interactive` class to any panel/card that's clickable to get the hover-elevation
 treatment. That's the only opt-in; everything else applies automatically.
 
+### Spacing system (`--gap` + `.page`)
+
+One token drives the gap between every stacked component: `--gap` (14px desktop → 12px
+tablet ≤1040 → 10px phone ≤560). It feeds the column/grid stacks (`.col`, `.health-col`,
+`.grid-home`, `.health-cols`, `.care-cols`, `.glance-cols`, `.home-fixed`, and the modular
+grid's column gap — `layoutHome` reads the computed value so masonry rows match). Page bodies
+use the `.page` class (`max-width:980px; margin:0 auto; gap:var(--gap)`; `.page.narrow` = 880,
+`.page.tight` = 780) instead of repeating an inline flex-column wrapper. Net effect: spacing is
+even within and across every page, and tightens on tablet/phone (tablet `main`/`.panel` padding
+trimmed from 20→14) so there's less dead space on small screens. To add a new full page, wrap it
+in `<div class="page">…</div>` and it inherits the responsive rhythm for free.
+
 ---
 
 ## Foundation 2.1 — health-data controls (`progress` · `stat` · `toggle`)

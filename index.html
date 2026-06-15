@@ -491,6 +491,17 @@
     --elev-1:0 4px 14px rgba(120,130,200,.14);
     --elev-2:0 12px 30px rgba(120,130,200,.20);
   }
+  /* ---- SPACING SYSTEM — one even gap token across every page; tighter on tablet/phone ---- */
+  :root{ --gap:14px; }
+  @media (max-width:1040px){ :root{ --gap:12px; } }
+  @media (max-width:560px){ :root{ --gap:10px; } }
+  .page{ max-width:980px; margin:0 auto; display:flex; flex-direction:column; gap:var(--gap); }
+  .page.narrow{ max-width:880px; } .page.tight{ max-width:780px; }
+  .col, .health-col{ gap:var(--gap) !important; }
+  .grid-home, .health-cols, .care-cols, .glance-cols, .deck{ gap:var(--gap) !important; }
+  .home-fixed{ gap:var(--gap) !important; margin-bottom:var(--gap) !important; }
+  .grid-modular{ column-gap:var(--gap) !important; }
+  .disc{ margin-top:var(--gap); }
   /* ---- A11Y: visible keyboard focus on EVERY interactive element (was inputs-only) ---- */
   a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible,
   select:focus-visible, summary:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible,
@@ -586,7 +597,7 @@
   .switch[aria-disabled="true"]{ opacity:.5; cursor:not-allowed; }
   /* ---- RESPONSIVE REFINEMENTS (mobile · tablet · desktop) ---- */
   .hero-title h1{ font-size:clamp(20px,5vw,30px); }
-  @media (min-width:641px) and (max-width:1040px){ main{ padding:20px; } }   /* tablet breathing room */
+  @media (min-width:641px) and (max-width:1040px){ main{ padding:14px; } .panel{ padding:14px; } }   /* tablet: trim empty space, even it out */
   @media (max-width:560px){
     /* phone tab bar scrolls sideways instead of stacking into several rows */
     #nav{ width:100%; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:2px; scroll-snap-type:x proximity; }
@@ -1026,7 +1037,7 @@ function modularGrid(tab, items, addable){
   return `<div class="grid-modular" data-tab="${tab}">${cells}${add}</div>`;
 }
 function layoutHome(){
-  const grid=document.querySelector(".grid-modular"); if(!grid)return; const rowH=8, gap=16;
+  const grid=document.querySelector(".grid-modular"); if(!grid)return; const rowH=8; let gap=16; try{ gap=Math.round(parseFloat(getComputedStyle(grid).columnGap))||16; }catch(e){}   // match the responsive --gap token
   /* portrait/landscape: clamp each card's saved span (data-c) to the tracks that actually fit right now,
      WITHOUT persisting — rotate back to landscape and the saved width comes back.
      The browser tells us the REAL resolved track count (auto-fill expands in the computed value). */
@@ -1781,7 +1792,7 @@ function viewEvents(){
   const row=e=>{ const urgent=(e.sponsor&&e.days<=0)||(!!e.important&&e.days<=0);
     return `<div class="listrow"><span class="grow" style="font-size:13px">${esc(e.title)}</span>${evTierChip(e.days,urgent,fmtDate(e.date))}</div>`; };
   const groups=[["🌸 Today & tomorrow",e=>e.days<=1],["💙 This week",e=>e.days>1&&e.days<=7],["💜 This month",e=>e.days>7&&e.days<=30],["🩶 Later",e=>e.days>30]];
-  return `<div style="max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+  return `<div class="page narrow">
     <section class="panel"><div class="card-head"><h2 style="font-size:18px">🎉 Events</h2><button class="btn" data-act="tab" data-tab="calendar">open calendar →</button></div>
       <p class="soft" style="font-size:12px;margin:0">Birthdays, conventions, collabs, sponsor deadlines, travel and personal plans — kept separate from game updates, like they should be. Add or edit events on the Calendar. 🌸</p>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
@@ -2543,7 +2554,7 @@ function viewJournal(){
   const caps=state.sentinel.memoryCapsules||{};
   const capYMs=(function(){ const out=[]; const t=new Date(); for(let i=1;i<=6;i++){ const d=new Date(t.getFullYear(),t.getMonth()-i,1); out.push(jrYM(d)); } return out; })();
   const srch=state.jrSearch||{};
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+  return `<div class="page">
   ${jrDailyPage(state.jrDay||TODAY)}
   <section class="panel">
     <div class="card-head"><h2 style="font-size:18px">📓 ${monthName} <span class="soft" style="font-size:12px;font-weight:500">· month overview</span></h2>
@@ -2614,7 +2625,7 @@ function viewToolbox(){
   const tb=state.tb||(state.tb={spice:3,steps:null,task:"",fText:"",fTone:"professional",fOut:"",eTask:"",eOut:null,cText:"",groups:null,tText:"",tOut:null,busy:""});
   const chili=n=>`<span class="spice">${[1,2,3,4,5].map(i=>`<button data-act="tbSpice" data-v="${i}" class="${i<=n?'on':''}" title="${i}/5 — higher = tinier steps">🌶️</button>`).join("")}</span>`;
   const totalMin=(tb.steps||[]).reduce((a,s)=>a+(typeof s==="object"?Number(s.min||0):0),0);
-  return `<div style="max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+  return `<div class="page narrow">
   <section class="panel"><div class="card-head"><h2 style="font-size:18px">🧰 Toolbox</h2><span class="pill pill-gray">brain helpers</span></div>
     <p class="soft" style="font-size:12px;margin:0">Little machines for the hard parts — breaking things down, reading scary messages, finding words, guessing time, sorting a full brain. ${DEMO?"<b>(needs live mode)</b>":""}</p></section>
   <section class="panel">
@@ -3443,7 +3454,7 @@ function viewBunny(){
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><select class="inp" id="mileBunny" style="max-width:130px">${BUNNIES.map(b=>`<option value="${b.id}">${b.name}</option>`).join("")}<option value="both">Both 💕</option></select><input class="inp" id="mileText" placeholder="a bunny memory or milestone…" style="flex:1;min-width:150px"><button class="btn btn-grad" data-act="bunnyMilestone">add</button></div>
     ${memBlocks||`<p class="soft" style="font-size:12.5px;margin:0">🖤 Kieran born 3 Jan 2021 · 🩶 Myla born 28 Dec 2021 — add your favourite moments, and tag bunny photos in ✨ Memories to see them here.</p>`}
   </section>`;
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${alertCard}${intro}${grid}${photos}${timelines}</div>${DISCLAIMER}`;
+  return `<div class="page">${alertCard}${intro}${grid}${photos}${timelines}</div>${DISCLAIMER}`;
 }
 /* ===== Tab hubs — group related extras under one tab to keep the nav tidy.
    The hub reuses each feature's existing view function unchanged; it just adds a
@@ -3483,7 +3494,7 @@ function viewWins(){
   const autoCard=auto.length?`<section class="panel"><div class="card-head"><span class="label">🦊 Kiko noticed</span></div>${auto.map(m=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">${MEM_ICON[m.kind]||"✨"}</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(m.title)}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(m.date))}</span><div class="soft" style="font-size:11.5px">${esc(m.preview||"")}</div></span></div>`).join("")}</section>`:"";
   const listCard=`<section class="panel"><div class="card-head"><span class="label">📒 Your wins</span><span class="pill pill-gray">${wins.length}</span></div>
     ${wins.length?wins.map(w=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">🏆</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(w.title)}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(w.date))}${w.cat?` · ${esc(w.cat)}`:""}</span>${w.why?`<div class="soft" style="font-size:11.5px">${esc(w.why)}</div>`:""}</span><button class="x" data-act="winDel" data-id="${esc(w.id)}" aria-label="delete">✕</button></div>`).join(""):UI.empty({emoji:"🏆",title:"No wins logged yet",msg:"Big or small — a finished video, a kind comment, a sponsor reply. They all count."})}</section>`;
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${evCard}${addCard}${autoCard}${listCard}</div>${DISCLAIMER}`;
+  return `<div class="page">${evCard}${addCard}${autoCard}${listCard}</div>${DISCLAIMER}`;
 }
 /* ===== Stream Lore (Idea #6) ===== */
 function viewStreamLore(){
@@ -3499,7 +3510,7 @@ function viewStreamLore(){
       ${L.summary?`<div style="font-size:12.5px;margin-top:4px">${esc(L.summary)}</div>`:""}
       ${L.why?`<div class="soft" style="font-size:11.5px;margin-top:3px">💗 ${esc(L.why)}</div>`:""}
       ${(L.tags&&L.tags.length)?`<div class="chiprow" style="margin-top:6px">${L.tags.map(t=>`<span class="pill pill-lav">${esc(t)}</span>`).join("")}</div>`:""}</div>`).join(""):UI.empty({emoji:"📜",title:"No lore yet",msg:"Your first hype train, that legendary pull, the day chat made you cry-laugh — they belong here."})}</section>`;
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
+  return `<div class="page">${add}${list}</div>${DISCLAIMER}`;
 }
 /* ===== Sponsor Relationship Tracker (Idea #7) ===== */
 const SPONSOR_STATUS=["lead","waiting","negotiating","accepted","scheduled","completed","invoiced","paid","declined","ghosted"];
@@ -3523,7 +3534,7 @@ function viewSponsors(){
       <div class="soft" style="font-size:11px">${s.game?esc(s.game)+" · ":""}${s.rate?esc(s.rate)+" · ":""}${(s.deadline||s.due)?"due "+esc(fmtDate(s.deadline||s.due)):""}</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><button class="chiptog on" data-act="sponsorStatus" data-id="${esc(s.id)}" title="tap to advance status">${esc(s.status||"lead")} ▸</button>${ins.map(i=>`<span class="pill ${/passed|payment|No reply/.test(i)?'pill-sak':'pill-peri'}">${esc(i)}</span>`).join("")}</div>
       ${s.notes?`<div class="soft" style="font-size:11.5px;margin-top:6px">${esc(s.notes)}</div>`:""}</div>`; }).join(""):UI.empty({emoji:"🤝",title:"No sponsors yet",msg:"Add a brand when the first email lands — then Kiko watches deadlines and unpaid invoices for you."})}</section>`;
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
+  return `<div class="page">${add}${list}</div>${DISCLAIMER}`;
 }
 /* ===== Content Graveyard (Idea #8) ===== */
 const IDEA_CATS=["Stream","Video","Short","Song","Cover","Merch","Outfit","Model","Art","Collab","Event","Other"];
@@ -3536,7 +3547,7 @@ function viewIdeas(){
     <button class="btn btn-grad" data-act="ideaAdd" style="margin-top:6px">Bury it gently 🌱</button></section>`;
   const list=`<section class="panel"><div class="card-head"><span class="label">🪦 Resting ideas</span><span class="pill pill-gray">${ideas.length}</span></div>
     ${ideas.length?ideas.map(i=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">💡</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(i.title)}</b> ${i.cat?`<span class="soft" style="font-size:11px">· ${esc(i.cat)}</span>`:""}</span><button class="chiptog on" data-act="ideaStatus" data-id="${esc(i.id)}" title="tap to change">${esc(i.status||"graveyard")}</button><button class="x" data-act="ideaDel" data-id="${esc(i.id)}" aria-label="delete">✕</button></div>`).join(""):UI.empty({emoji:"💡",title:"No ideas resting yet",msg:"Every cool thought you can't act on right now — drop it here so it's safe."})}</section>`;
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
+  return `<div class="page">${add}${list}</div>${DISCLAIMER}`;
 }
 /* ===== Relationship Garden (Idea #12) ===== */
 function personNextBday(b){ if(!b)return null; try{ const bd=new Date(b+"T00:00"); if(isNaN(bd))return null; const now=new Date(TODAY+"T00:00"); let nx=new Date(now.getFullYear(),bd.getMonth(),bd.getDate()); if(nx<now)nx=new Date(now.getFullYear()+1,bd.getMonth(),bd.getDate()); return Math.round((nx-now)/86400000); }catch(e){ return null; } }
@@ -3552,7 +3563,7 @@ function viewPeople(){
     ${nb!=null?`<div class="soft" style="font-size:11px;margin-top:3px">🎂 ${nb===0?"birthday today! 🎉":`in ${nb} day${nb===1?"":"s"}`}</div>`:""}
     ${p.gifts?`<div style="font-size:11.5px;margin-top:6px">🎁 ${esc(p.gifts)}</div>`:""}
     <div style="display:flex;gap:6px;margin-top:8px"><input class="inp" id="giftFor_${esc(p.id)}" placeholder="gift idea…" style="font-size:12px"><button class="btn" data-act="personGift" data-id="${esc(p.id)}" aria-label="add gift idea">＋</button></div></div>`; }).join("")}</div></section>`:`<section class="panel">${UI.empty({emoji:"💗",title:"Your garden is empty",msg:"Add Horia, Eggie, your mods and friends — birthdays, gift ideas, and the memories you want to keep."})}</section>`;
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${cards}</div>${DISCLAIMER}`;
+  return `<div class="page">${add}${cards}</div>${DISCLAIMER}`;
 }
 /* ===== Mifu Lore Database (Idea #11) ===== */
 const MIFU_LORE_CATS=["Favorite","Dislike","Personality","Comfort","Aesthetic","Other"];
@@ -3564,7 +3575,7 @@ function viewMifuLore(){
     <button class="btn btn-grad" data-act="mifuLoreAdd" style="margin-top:6px">Add 📔</button></section>`;
   const byCat={}; lore.forEach(l=>{ (byCat[l.cat||"Other"]=byCat[l.cat||"Other"]||[]).push(l); });
   const body=lore.length?Object.entries(byCat).map(([c,arr])=>`<div style="margin-bottom:10px"><div class="label" style="margin-bottom:4px">${esc(c)}</div>${arr.map(l=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">📔</span><span class="grow">${esc(l.title)}</span><button class="x" data-act="mifuLoreDel" data-id="${esc(l.id)}" aria-label="delete">✕</button></div>`).join("")}</div>`).join(""):UI.empty({emoji:"📔",title:"Nothing here yet",msg:"Add the small things — your comfort game, your ick, your hydrangea-and-stationery soul."});
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}<section class="panel">${body}</section></div>${DISCLAIMER}`;
+  return `<div class="page">${add}<section class="panel">${body}</section></div>${DISCLAIMER}`;
 }
 /* ===== House Journey Timeline (Idea #10) ===== */
 const HOUSE_TYPES=["viewing","application","rejection","acceptance","moving","decorating","bunny setup","memory"];
@@ -3577,7 +3588,7 @@ function viewHouse(){
     <button class="btn btn-grad" data-act="houseAdd" style="margin-top:6px">Add to the journey 🏡</button></section>`;
   const list=`<section class="panel"><div class="card-head"><span class="label">🗺️ The journey</span><span class="pill pill-gray">${log.length}</span></div>
     ${log.length?log.map(h=>`<div class="listrow"><span style="flex:0 0 auto" aria-hidden="true">🏡</span><span class="grow" style="min-width:0"><b style="font-size:12.5px">${esc(h.place||"Home")}</b> <span class="soft" style="font-size:11px">· ${esc(fmtDate(h.date))}${h.type?` · ${esc(h.type)}`:""}</span>${h.summary?`<div style="font-size:12px">${esc(h.summary)}</div>`:""}</span><button class="x" data-act="houseDel" data-id="${esc(h.id)}" aria-label="delete">✕</button></div>`).join(""):UI.empty({emoji:"🏡",title:"The journey starts here",msg:"Save viewings, the dream house, the day you got the keys — the whole story of home."})}</section>`;
-  return `<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">${add}${list}</div>${DISCLAIMER}`;
+  return `<div class="page">${add}${list}</div>${DISCLAIMER}`;
 }
 function viewCare(){
   const jar=state.sentinel.joyJar||[]; const journaledToday=(state.sentinel.journalEntries||[]).some(e=>e.date===TODAY);
@@ -3588,7 +3599,7 @@ function viewCare(){
   // bunny photos from the media library (lazy-loaded in the care post-hook)
   let bunPics=""; if(state.media&&state.media.length){ const pics=state.media.filter(memIsBunny).slice().reverse().slice(0,8);
     bunPics=pics.length?`<div class="md-grid">${pics.map(m=>`<div class="md-tile"><img src="${esc(m.url)}" alt="${esc(m.caption||'bunny')}" loading="lazy" data-act="mediaView" data-id="${esc(m.id)}"></div>`).join("")}</div>`:`<p class="soft" style="font-size:12.5px;margin:0">No bunny photos yet — upload some in ✨ Memories and tag them Myla / Kieran. 🐰</p>`; }
-  return `${slipBanner(true)}<div style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+  return `${slipBanner(true)}<div class="page">
   <section class="panel"><div class="card-head"><h2 style="font-size:17px">🌿 Today's gentle plan</h2></div>
     <p class="soft" style="font-size:11.5px;margin:0 0 8px">Small, kind, and made for you by Kiko — no pressure, just gentle nudges.</p>
     ${plan.map(p=>`<div class="kn-row"><span class="kn-dot"></span><span style="font-size:13px">${esc(p)}</span></div>`).join("")}
@@ -4466,7 +4477,7 @@ function viewScript(){
     </div>` : "";
   const kpill=k=>k==='long'?['pill-lav','LF']:k==='twitter'?['pill-ice','X']:['pill-sak','SF'];
   const savedHtml = saved.length?`<section class="panel"><div class="card-head"><span class="label">📁 saved drafts</span></div>${saved.slice().reverse().map(d=>{const kp=kpill(d.kind);return `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="pill ${kp[0]}">${kp[1]}</span><span class="grow" style="font-size:12.5px">${esc(d.title||"(untitled)")}</span><button class="btn" data-act="loadScript" data-id="${d.id}">open</button><button class="x" data-act="delScript" data-id="${d.id}" title="remove">✕</button></div>`;}).join("")}</section>`:"";
-  return `<div style="max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+  return `<div class="page tight">
     <section class="panel">
       <div class="card-head"><h2 style="font-size:18px">✍️ Script writer</h2>${seg}</div>
       <p class="soft" style="font-size:12.5px;margin:0 0 12px">${tw?"Talk out your idea (or paste notes) — I'll shape it into an X/Twitter post in your voice, with a few opening-line options. ❄️🦊":`Drop in your research, then just talk it out — I'll shape your own words into your ${kindWord} format, in your voice. ❄️🦊`}${DEMO?` <b>(Deploy the ai function &amp; turn demo off to format.)</b>`:""}</p>
