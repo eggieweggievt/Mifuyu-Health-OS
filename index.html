@@ -1129,7 +1129,7 @@ async function render(){
     v.innerHTML = fn();
     renderStickies();
     if(state.tab==='care'){ try{ state.breathOn ? startBreath() : stopBreath(); }catch(_){}
-      if(state.media===undefined && !state._mediaLoading){ state._mediaLoading=true; loadMedia().then(()=>{ state._mediaLoading=false; if(state.tab==='care') render(); }).catch(()=>{ state._mediaLoading=false; }); } }
+      if(state.media===undefined && !state._mediaLoading){ loadMedia().then(()=>{ if(state.tab==='care') render(); }); } }   // loadMedia owns the _mediaLoading guard; pre-setting it here made loadMedia bail, leaving media undefined → infinite re-render loop
     if(state.tab==='calendar'){ try{ wireCalDnD(); }catch(e){ console.error(e); } } // re-attach drag listeners after innerHTML
     if(state.tab==='planner'){ try{ wireTaskDnD(); }catch(e){ console.error(e); } } // board drag (mouse) — touch uses ◀▶
     if(state.tab==='trends'){ try{ paintTrendChart(); }catch(e){ console.error(e); } }
